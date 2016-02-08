@@ -59,7 +59,7 @@ static int fiber_show_count(aroop_txt_t*input, aroop_txt_t*output) {
 int fiber_module_init() {
 	memset(fibers, 0, sizeof(fibers));
 	aroop_txt_t status_plug;
-	aroop_txt_embeded_set_static_string(&status_plug, "status");
+	aroop_txt_embeded_set_static_string(&status_plug, "shake/status");
 	pm_plug_callback(&status_plug, fiber_show_count);
 }
 

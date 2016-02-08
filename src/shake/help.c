@@ -14,7 +14,7 @@
 C_CAPSULE_START
 
 static int shake_help(aroop_txt_t*input, aroop_txt_t*output) {
-	printf("we should show help\n");
+	printf("TODO: we should show help\n");
 }
 
 int help_module_init() {
