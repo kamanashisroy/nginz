@@ -9,7 +9,8 @@ bin_PROGRAMS=$(TARGET_BIN) $(TARGET_O) $(TARGET_BASIC_O) $(TARGET_HAS_THREAD_O)
 lib_LTLIBRARIES=$(TARGET_LAR)
 lib_LIBRARIES=$(TARGET_AR)
 NGINEZ_SOURCE_FILES = \
-src/fiber.c     src/plugin.c src/plugin_manager.c src/shake.c src/scanner.c
+src/fiber.c     src/plugin.c	src/plugin_manager.c	src/scanner.c \
+src/shake.c	src/shake/help.c
 
 pkgincludedir=$(includedir)/nginez@PACKAGE_SUFFIX@
 nobase_pkginclude_HEADERS= \

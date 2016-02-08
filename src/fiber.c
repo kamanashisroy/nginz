@@ -72,7 +72,6 @@ int fiber_module_step() {
 	for(i = 0; i < MAX_FIBERS; i++) {
 		if(fibers[i].status == FIBER_STATUS_EMPTY || fibers[i].status == FIBER_STATUS_DEACTIVATED || fibers[i].status == FIBER_STATUS_DESTROYED)
 			continue;
-		printf("Stepping \n");
 		int ret = fibers[i].fiber(fibers[i].status);
 		if(ret == -1) {
 			unregister_fiber(fibers[i].fiber);
