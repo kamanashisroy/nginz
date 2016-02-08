@@ -32,7 +32,7 @@ struct internal_plugin {
 		int (*bridge)(int signature, void*x);
 		struct composite_plugin*inner;
 	} x;
-	int(*desc)(aroop_txt_t*output);
+	int(*desc)(aroop_txt_t*plugin_space, aroop_txt_t*output);
 };
 
 static struct opp_factory cplugs;
@@ -83,7 +83,7 @@ static int composite_plug_helper(struct composite_plugin*container
 	, int (*callback)(aroop_txt_t*input, aroop_txt_t*output)
 	, int (*bridge)(int signature, void*x)
 	, struct composite_plugin*inner
-	, int(*desc)(aroop_txt_t*output)
+	, int(*desc)(aroop_txt_t*plugin_space, aroop_txt_t*output)
 	) {
 	struct internal_plugin*plugin = OPP_ALLOC1(&container->factory);
 	aroop_assert(plugin != NULL);
@@ -102,6 +102,7 @@ static int composite_plug_helper(struct composite_plugin*container
 	plugin->desc = desc;
 	plugin->plugin_space = aroop_txt_new_copy_deep(plugin_space, NULL);
 	aroop_assert(plugin->plugin_space != NULL);
+	aroop_txt_zero_terminate(plugin->plugin_space);
 	opp_hash_table_set(&(container->table), plugin->plugin_space, plugin);
 	int ret = 0; // XXX TOKEN DOES NOT WORK
 	OPPUNREF(plugin); // cleanup : unref the plugin, it is already saved in the hashtable
@@ -109,7 +110,7 @@ static int composite_plug_helper(struct composite_plugin*container
 }
 
 
-int composite_plug_callback(struct composite_plugin*container, aroop_txt_t*plugin_space, int (*callback)(aroop_txt_t*input, aroop_txt_t*output), int(*desc)(aroop_txt_t*output)) {
+int composite_plug_callback(struct composite_plugin*container, aroop_txt_t*plugin_space, int (*callback)(aroop_txt_t*input, aroop_txt_t*output), int(*desc)(aroop_txt_t*plugin_space, aroop_txt_t*output)) {
 	composite_plug_helper(container, plugin_space, callback, NULL, NULL, desc);
 }
 
@@ -117,7 +118,7 @@ int composite_unplug_callback(struct composite_plugin*container, int plugin_id, 
 	// TODO FILLME
 }
 
-int composite_plug_bridge(struct composite_plugin*container, aroop_txt_t*plugin_space, int (*bridge)(int signature, void*x), int(*desc)(aroop_txt_t*output)) {
+int composite_plug_bridge(struct composite_plugin*container, aroop_txt_t*plugin_space, int (*bridge)(int signature, void*x), int(*desc)(aroop_txt_t*plugin_space, aroop_txt_t*output)) {
 	composite_plug_helper(container, plugin_space, NULL, bridge, NULL, desc);
 }
 
@@ -125,7 +126,7 @@ int composite_unplug_bridge(struct composite_plugin*container, int plugin_id, in
 	// TODO FILLME
 }
 
-int composite_plug_inner_composite(struct composite_plugin*container, aroop_txt_t*plugin_space, struct composite_plugin*inner, int(*desc)(aroop_txt_t*output)) {
+int composite_plug_inner_composite(struct composite_plugin*container, aroop_txt_t*plugin_space, struct composite_plugin*inner, int(*desc)(aroop_txt_t*plugin_space, aroop_txt_t*output)) {
 	composite_plug_helper(container, plugin_space, NULL, NULL, inner, desc);
 }
 
@@ -146,7 +147,7 @@ int composite_plugin_visit_all(struct composite_plugin*container, int (*visitor)
 		, int(*callback)(aroop_txt_t*input, aroop_txt_t*output)
 		, int(*bridge)(int signature, void*x)
 		, struct composite_plugin*inner
-		, int(*desc)(aroop_txt_t*output)
+		, int(*desc)(aroop_txt_t*plugin_space, aroop_txt_t*output)
 		, void*visitor_data
 	), void*visitor_data) {
 	struct opp_iterator iterator;
@@ -167,6 +168,20 @@ int composite_plugin_visit_all(struct composite_plugin*container, int (*visitor)
 		//OPPUNREF(plugin);
 	} while(1);
 	opp_iterator_destroy(&iterator);
+	return 0;
+}
+
+int plugin_desc(aroop_txt_t*output, char*plugin_name, char*plugin_type, aroop_txt_t*space, char*source_file, char*desc) {
+	aroop_txt_embeded_buffer(output, 128);
+	aroop_txt_concat_string(output, plugin_name);
+	aroop_txt_concat_char(output, '\t');
+	aroop_txt_concat_string(output, plugin_type);
+	aroop_txt_concat_char(output, '\t');
+	aroop_txt_concat(output, space);
+	aroop_txt_concat_char(output, '\t');
+	aroop_txt_concat_string(output, source_file);
+	aroop_txt_concat_char(output, '\n');
+	aroop_txt_concat_string(output, desc);
 	return 0;
 }
 

@@ -65,10 +65,8 @@ static int pp_fork_parent_after_callback(aroop_txt_t*input, aroop_txt_t*output) 
 	return 0;
 }
 
-static int pp_fork_callback_desc(aroop_txt_t*output) {
-	aroop_txt_embeded_rebuild_and_set_static_string(output,
-		"Pipeline fork plugin\n"
-	);
+static int pp_fork_callback_desc(aroop_txt_t*plugin_space,aroop_txt_t*output) {
+	return plugin_desc(output, "pipeline", "fork", plugin_space, __FILE__, "It allows the processes to pipeline messages to and forth.\n");
 }
 
 int pp_module_init() {

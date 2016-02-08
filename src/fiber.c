@@ -7,6 +7,7 @@
 #include <aroop/opp/opp_any_obj.h>
 #include <aroop/opp/opp_str2.h>
 #include <aroop/aroop_memory_profiler.h>
+#include "plugin.h"
 #include "plugin_manager.h"
 #include "fiber.h"
 
@@ -58,11 +59,8 @@ static int fiber_status_command(aroop_txt_t*input, aroop_txt_t*output) {
 	return 0;
 }
 
-static int fiber_status_command_desc(aroop_txt_t*output) {
-	aroop_txt_embeded_rebuild_and_set_static_string(output,
-		"fiber\n"
-		"It will show the number of active fibers.\n"
-	);
+static int fiber_status_command_desc(aroop_txt_t*plugin_space, aroop_txt_t*output) {
+	return plugin_desc(output, "fiber", "shake", plugin_space, __FILE__, "It will show the number of active fibers.\n");
 }
 
 static int internal_quit = 0;
@@ -70,11 +68,8 @@ static int fiber_quit_command(aroop_txt_t*input, aroop_txt_t*output) {
 	internal_quit = 1;
 }
 
-static int fiber_quit_command_desc(aroop_txt_t*output) {
-	aroop_txt_embeded_rebuild_and_set_static_string(output,
-		"quit\n"
-		"It stops the fibers.\n"
-	);
+static int fiber_quit_command_desc(aroop_txt_t*plugin_space, aroop_txt_t*output) {
+	return plugin_desc(output, "quit", "shake", plugin_space, __FILE__, "It stops the fibers\n");
 }
 
 int fiber_module_init() {

@@ -12,7 +12,9 @@ static int nginez_main(char*args) {
 	fiber_module_init();
 	shake_module_init();
 	event_loop_module_init();
+	pp_module_init();
 	fiber_module_run();
+	pp_module_deinit();
 	event_loop_module_deinit();
 	shake_module_deinit();
 	fiber_module_deinit();

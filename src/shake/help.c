@@ -19,7 +19,7 @@ static int help_command_helper(
 	, int(*callback)(aroop_txt_t*input, aroop_txt_t*output)
 	, int(*bridge)(int signature, void*x)
 	, struct composite_plugin*inner
-	, int(*desc)(aroop_txt_t*output)
+	, int(*desc)(aroop_txt_t*plugin_space, aroop_txt_t*output)
 	, void*visitor_data
 ) {
 	aroop_txt_t prefix = {};
@@ -29,7 +29,7 @@ static int help_command_helper(
 	aroop_txt_set_length(&prefix, 6);
 	if(!aroop_txt_equals_static(&prefix, "shake/"))
 		return 0;
-	desc(&xdesc);
+	desc(plugin_space, &xdesc);
 	aroop_txt_concat(output, &xdesc);
 }
 
@@ -38,11 +38,8 @@ static int help_command(aroop_txt_t*input, aroop_txt_t*output) {
 	composite_plugin_visit_all(pm_get(), help_command_helper, output);
 }
 
-static int help_command_desc(aroop_txt_t*output) {
-	aroop_txt_embeded_rebuild_and_set_static_string(output,
-		"Help\n"
-		"help command will show the description of the command\n"
-	);
+static int help_command_desc(aroop_txt_t*plugin_space, aroop_txt_t*output) {
+	return plugin_desc(output, "help", "shake", plugin_space, __FILE__, "It displays the command usage.\n");
 }
 
 int help_module_init() {
