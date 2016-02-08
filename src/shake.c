@@ -38,6 +38,8 @@ static int shake_shell_step(int status) {
 	aroop_txt_t input = {};
 	aroop_txt_t output = {};
 	pm_call(&plugin_space, &input, &output);
+	aroop_txt_zero_terminate(&output);
+	printf("%s", aroop_txt_to_string(&output));
 	return 0;
 }
 

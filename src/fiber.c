@@ -1,6 +1,7 @@
 
 #include <aroop/aroop_core.h>
 #include <aroop/core/thread.h>
+#include <aroop/core/xtring.h>
 #include <aroop/opp/opp_factory.h>
 #include <aroop/opp/opp_factory_profiler.h>
 #include <aroop/opp/opp_any_obj.h>
@@ -45,22 +46,44 @@ int unregister_fiber(int (*fiber)(int status)) {
 	return -1;
 }
 
-static int fiber_show_count(aroop_txt_t*input, aroop_txt_t*output) {
+static int fiber_status_command(aroop_txt_t*input, aroop_txt_t*output) {
 	int count = 0;
 	int i = 0;
 	for(i = 0; i < MAX_FIBERS; i++) {
 		if(fibers[i].status == FIBER_STATUS_ACTIVATED)
 			count++;
 	}
-	printf("%d fibers\n", count);
+	aroop_txt_embeded_buffer(output, 32);
+	aroop_txt_printf(output, "%d fibers\n", count);
 	return 0;
+}
+
+static int fiber_status_command_desc(aroop_txt_t*output) {
+	aroop_txt_embeded_rebuild_and_set_static_string(output,
+		"fiber\n"
+		"It will show the number of active fibers.\n"
+	);
+}
+
+static int internal_quit = 0;
+static int fiber_quit_command(aroop_txt_t*input, aroop_txt_t*output) {
+	internal_quit = 1;
+}
+
+static int fiber_quit_command_desc(aroop_txt_t*output) {
+	aroop_txt_embeded_rebuild_and_set_static_string(output,
+		"quit\n"
+		"It stops the fibers.\n"
+	);
 }
 
 int fiber_module_init() {
 	memset(fibers, 0, sizeof(fibers));
-	aroop_txt_t status_plug;
-	aroop_txt_embeded_set_static_string(&status_plug, "shake/status");
-	pm_plug_callback(&status_plug, fiber_show_count);
+	aroop_txt_t plugin_space;
+	aroop_txt_embeded_set_static_string(&plugin_space, "shake/fiber");
+	pm_plug_callback(&plugin_space, fiber_status_command, fiber_status_command_desc);
+	aroop_txt_embeded_set_static_string(&plugin_space, "shake/quit");
+	pm_plug_callback(&plugin_space, fiber_quit_command, fiber_status_command_desc);
 }
 
 int fiber_module_deinit() {
@@ -86,7 +109,7 @@ int fiber_module_step() {
 }
 
 int fiber_module_run() {
-	while(1) {
+	while(!internal_quit) {
 		fiber_module_step();
 	}
 }

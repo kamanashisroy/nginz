@@ -3,6 +3,7 @@
 #include "aroop/core/thread.h"
 #include "aroop/core/xtring.h"
 #include "aroop/opp/opp_factory.h"
+#include "aroop/opp/opp_iterator.h"
 #include "aroop/opp/opp_factory_profiler.h"
 #include "aroop/opp/opp_any_obj.h"
 #include "aroop/opp/opp_str2.h"
@@ -25,11 +26,13 @@ struct composite_plugin {
 
 struct internal_plugin {
 	int category;
+	aroop_txt_t*plugin_space;
 	union {
 		int (*callback)(aroop_txt_t*input, aroop_txt_t*output);
 		int (*bridge)(int signature, void*x);
 		struct composite_plugin*inner;
 	} x;
+	int(*desc)(aroop_txt_t*output);
 };
 
 static struct opp_factory cplugs;
@@ -42,8 +45,10 @@ OPP_CB(internal_plugin) {
 	switch(callback) {
 		case OPPN_ACTION_INITIALIZE:
 			plugin->category = 0;
+			plugin->plugin_space = NULL;
 		break;
 		case OPPN_ACTION_FINALIZE:
+			OPPUNREF(plugin->plugin_space);
 		break;
 	}
 	return 0;
@@ -77,7 +82,9 @@ static int composite_plug_helper(struct composite_plugin*container
 	, aroop_txt_t*plugin_space
 	, int (*callback)(aroop_txt_t*input, aroop_txt_t*output)
 	, int (*bridge)(int signature, void*x)
-	, struct composite_plugin*inner) {
+	, struct composite_plugin*inner
+	, int(*desc)(aroop_txt_t*output)
+	) {
 	struct internal_plugin*plugin = OPP_ALLOC1(&container->factory);
 	aroop_assert(plugin != NULL);
 	if(callback != NULL) {
@@ -92,48 +99,76 @@ static int composite_plug_helper(struct composite_plugin*container
 	} else {
 		aroop_assert(!"Unrecognised plugin\n");
 	}
-	aroop_txt_t*space = aroop_txt_new_copy_deep(plugin_space, NULL);
-	aroop_assert(space != NULL);
-	if(space == NULL)
-		printf("Space is NULL\n");
-	else
-		printf("%s something\n", aroop_txt_to_string(space));
-	opp_hash_table_set(&(container->table), space, plugin);
+	plugin->desc = desc;
+	plugin->plugin_space = aroop_txt_new_copy_deep(plugin_space, NULL);
+	aroop_assert(plugin->plugin_space != NULL);
+	opp_hash_table_set(&(container->table), plugin->plugin_space, plugin);
 	int ret = 0; // XXX TOKEN DOES NOT WORK
 	OPPUNREF(plugin); // cleanup : unref the plugin, it is already saved in the hashtable
 	return ret;
 }
 
 
-int composite_plug_callback(struct composite_plugin*container, aroop_txt_t*plugin_space, int (*callback)(aroop_txt_t*input, aroop_txt_t*output)) {
-	composite_plug_helper(container, plugin_space, callback, NULL, NULL);
+int composite_plug_callback(struct composite_plugin*container, aroop_txt_t*plugin_space, int (*callback)(aroop_txt_t*input, aroop_txt_t*output), int(*desc)(aroop_txt_t*output)) {
+	composite_plug_helper(container, plugin_space, callback, NULL, NULL, desc);
 }
 
 int composite_unplug_callback(struct composite_plugin*container, int plugin_id, int (*callback)(aroop_txt_t*input, aroop_txt_t*output)) {
 	// TODO FILLME
 }
 
-int composite_plug_bridge(struct composite_plugin*container, aroop_txt_t*plugin_space, int (*bridge)(int signature, void*x)) {
-	composite_plug_helper(container, plugin_space, NULL, bridge, NULL);
+int composite_plug_bridge(struct composite_plugin*container, aroop_txt_t*plugin_space, int (*bridge)(int signature, void*x), int(*desc)(aroop_txt_t*output)) {
+	composite_plug_helper(container, plugin_space, NULL, bridge, NULL, desc);
 }
 
 int composite_unplug_bridge(struct composite_plugin*container, int plugin_id, int (*bridge)(int signature, void*x)) {
 	// TODO FILLME
 }
 
-int composite_plug_inner_composite(struct composite_plugin*container, aroop_txt_t*plugin_space, struct composite_plugin*inner) {
-	composite_plug_helper(container, plugin_space, NULL, NULL, inner);
+int composite_plug_inner_composite(struct composite_plugin*container, aroop_txt_t*plugin_space, struct composite_plugin*inner, int(*desc)(aroop_txt_t*output)) {
+	composite_plug_helper(container, plugin_space, NULL, NULL, inner, desc);
 }
 
 int composite_unplug_inner_composite(struct composite_plugin*container, int plugin_id, struct composite_plugin*inner) {
 	// TODO FILLME
 }
 
-int composite_call(struct composite_plugin*container, aroop_txt_t*plugin_space, aroop_txt_t*input, aroop_txt_t*output) {
+int composite_plugin_call(struct composite_plugin*container, aroop_txt_t*plugin_space, aroop_txt_t*input, aroop_txt_t*output) {
 	struct internal_plugin*plugin = opp_hash_table_get(&container->table, plugin_space);
 	if(plugin == NULL)
 		return 0;
 	return plugin->x.callback(input, output);
 }
+
+int composite_plugin_visit_all(struct composite_plugin*container, int (*visitor)(
+		int category
+		, aroop_txt_t*plugin_space
+		, int(*callback)(aroop_txt_t*input, aroop_txt_t*output)
+		, int(*bridge)(int signature, void*x)
+		, struct composite_plugin*inner
+		, int(*desc)(aroop_txt_t*output)
+		, void*visitor_data
+	), void*visitor_data) {
+	struct opp_iterator iterator;
+	opp_iterator_create(&iterator, &container->factory, OPPN_ALL, 0, 0);
+	do {
+		struct internal_plugin*plugin = opp_iterator_next(&iterator);
+		if(plugin == NULL)
+			break;
+		visitor(
+			plugin->category
+			, plugin->plugin_space
+			, plugin->x.callback
+			, plugin->x.bridge
+			, plugin->x.inner
+			, plugin->desc
+			, visitor_data
+		);
+		//OPPUNREF(plugin);
+	} while(1);
+	opp_iterator_destroy(&iterator);
+	return 0;
+}
+
 
 C_CAPSULE_END
