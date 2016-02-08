@@ -32,8 +32,10 @@ libnginez_basic_o_CPPFLAGS= $(NGINEZ_CFLAGS)-DAROOP_BASIC $(NGINEZ_INCLUDES)
 #libnginez_has_thread_o_SOURCES = $(NGINEZ_SOURCE_FILES)
 #libnginez_has_thread_o_CPPFLAGS= $(NGINEZ_CFLAGS)-DHAS_THREAD $(NGINEZ_INCLUDES)
 nginez_main_SOURCES= $(NGINEZ_SOURCE_FILES) src/main.c
-nginez_main_CPPFLAGS= $(NGINEZ_CFLAGS) $(NGINEZ_INCLUDES)
-nginez_main_LDFLAGS= $(AROOP_LIBS)
+#nginez_main_CPPFLAGS= $(NGINEZ_CFLAGS) -O2 $(NGINEZ_INCLUDES)
+nginez_main_CPPFLAGS= $(NGINEZ_CFLAGS) -ggdb3 -DAROOP_OPP_PROFILE -DAROOP_OPP_DEBUG -DMTRACE -DOPP_DEBUG $(NGINEZ_INCLUDES)
+#nginez_main_LDFLAGS= $(AROOP_LIBS)
+nginez_main_LDFLAGS= $(AROOP_DEBUG_LIBS)
 
 
 pkgconfigdir = $(libdir)/pkgconfig

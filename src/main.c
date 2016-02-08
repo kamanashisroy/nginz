@@ -10,6 +10,7 @@ static int nginez_main(char*args) {
 	pm_init();
 	fiber_module_init();
 	shake_module_init();
+	fiber_module_run();
 	shake_module_deinit();
 	fiber_module_deinit();
 	pm_deinit();

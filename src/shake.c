@@ -12,13 +12,17 @@
 
 C_CAPSULE_START
 static int shake_shell_step(int status) {
+	printf("Shake shell\n");
 	// read data from stdin
 	char mem[128]; 
-	char*cmd = fgets_unlocked(mem, 128, stdin);
-	if(cmd == NULL)
+	mem[0] = '\0';
+	if(fgets_unlocked(mem, 128, stdin))
+		return 0;
+	printf("The command %s\n", mem);
+	if(mem[0] == '\0')
 		return 0;
 	aroop_txt_t xcmd;
-	aroop_txt_embeded_set_content(&xcmd, cmd, strlen(cmd), NULL);
+	aroop_txt_embeded_set_content(&xcmd, mem, strlen(mem), NULL);
 	aroop_txt_t target = {};
 	shotodol_scanner_next_token(&xcmd, &target);
 	if(aroop_txt_length(&target) == 0)
@@ -31,6 +35,7 @@ static int shake_shell_step(int status) {
 	aroop_txt_t output = {};
 	pm_call(&plugin_space, &input, &output);
 	printf("We executed the commnad\n");
+	return 0;
 }
 
 int shake_module_init() {

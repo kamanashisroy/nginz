@@ -94,6 +94,10 @@ static int composite_plug_helper(struct composite_plugin*container
 	}
 	aroop_txt_t*space = aroop_txt_new_copy_deep(plugin_space, NULL);
 	aroop_assert(space != NULL);
+	if(space == NULL)
+		printf("Space is NULL\n");
+	else
+		printf("%s something\n", aroop_txt_to_string(space));
 	opp_hash_table_set(&(container->table), space, plugin);
 	int ret = 0; // XXX TOKEN DOES NOT WORK
 	OPPUNREF(plugin); // cleanup : unref the plugin, it is already saved in the hashtable

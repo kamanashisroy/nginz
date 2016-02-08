@@ -58,7 +58,9 @@ static int fiber_show_count(aroop_txt_t*input, aroop_txt_t*output) {
 
 int fiber_module_init() {
 	memset(fibers, 0, sizeof(fibers));
-	pm_plug_callback("status", fiber_show_count);
+	aroop_txt_t status_plug;
+	aroop_txt_embeded_set_static_string(&status_plug, "status");
+	pm_plug_callback(&status_plug, fiber_show_count);
 }
 
 int fiber_module_deinit() {
@@ -70,6 +72,7 @@ int fiber_module_step() {
 	for(i = 0; i < MAX_FIBERS; i++) {
 		if(fibers[i].status == FIBER_STATUS_EMPTY || fibers[i].status == FIBER_STATUS_DEACTIVATED || fibers[i].status == FIBER_STATUS_DESTROYED)
 			continue;
+		printf("Stepping \n");
 		int ret = fibers[i].fiber(fibers[i].status);
 		if(ret == -1) {
 			unregister_fiber(fibers[i].fiber);
