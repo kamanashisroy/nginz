@@ -1,0 +1,57 @@
+# please refer to https://wiki.gnome.org/Projects/Vala/GameDevelopmentSeries/Setup
+
+m4_define([nginez_major], [0])
+m4_define([nginez_minor], [0])
+m4_define([nginez_micro], [1])
+
+m4_define([nginez_version], [nginez_major.nginez_minor.nginez_micro])
+m4_define([nginez_suffix], [-nginez_version])
+m4_define([nginez_api_version], [0.0])
+
+m4_define([nginez_name], [nginez])
+
+AC_PREREQ([2.64])
+AC_INIT([NgineZ], [nginez_version], [kamanashisroy@github.com])
+AC_CONFIG_HEADERS([config.h])
+AC_CONFIG_MACRO_DIR([m4])
+AM_INIT_AUTOMAKE([dist-bzip2 subdir-objects])
+AM_MAINTAINER_MODE
+
+NGINEZ_MAJOR_VERSION=nginez_major
+NGINEZ_MINOR_VERSION=nginez_minor
+NGINEZ_MICRO_VERSION=nginez_micro
+NGINEZ_VERSION=nginez_version
+NGINEZ_API_VERSION=nginez_api_version
+PACKAGE_SUFFIX=nginez_suffix
+AC_SUBST(PACKAGE_SUFFIX)
+AC_SUBST(NGINEZ_MAJOR_VERSION)
+AC_SUBST(NGINEZ_MINOR_VERSION)
+AC_SUBST(NGINEZ_MICRO_VERSION)
+AC_SUBST(NGINEZ_VERSION)
+AC_SUBST(NGINEZ_API_VERSION)
+
+m4_ifdef([AM_SILENT_RULES],[AM_SILENT_RULES([yes])])
+
+
+# Checks for header files.
+AC_CHECK_HEADERS([stdlib.h string.h])
+
+
+# Checks for programs.
+AC_PROG_CC
+AM_PROG_CC_C_O
+AC_PROG_INSTALL
+AC_PROG_LIBTOOL
+AC_PROG_RANLIB
+
+
+AROOP_REQUIRED=0.2
+PKG_CHECK_MODULES(AROOP, aroop_core-0.2.0 >= $AROOP_REQUIRED)
+AC_SUBST(AROOP_CFLAGS)
+AC_SUBST(AROOP_LIBS)
+
+AC_CONFIG_FILES([Makefile
+           libnginez.pc
+           ])
+
+AC_OUTPUT

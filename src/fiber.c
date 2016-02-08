@@ -1,60 +1,92 @@
 
-
+#include <aroop/aroop_core.h>
+#include <aroop/core/thread.h>
+#include <aroop/opp/opp_factory.h>
+#include <aroop/opp/opp_factory_profiler.h>
+#include <aroop/opp/opp_any_obj.h>
+#include <aroop/opp/opp_str2.h>
+#include <aroop/aroop_memory_profiler.h>
+#include "plugin_manager.h"
 #include "fiber.h"
 
 C_CAPSULE_START
 
+#define MAX_FIBERS 16
 struct internal_fiber {
 	int status;
-	int (fiber*)(int status);
+	int (*fiber)(int status);
+};
+
+static struct internal_fiber fibers[MAX_FIBERS];
+
+int register_fiber(int (*fiber)(int status)) {
+	int i = 0;
+	for(i = 0; i < MAX_FIBERS; i++) {
+		if(fibers[i].status != FIBER_STATUS_EMPTY)
+			continue;
+		fibers[i].status = FIBER_STATUS_CREATED;
+		fibers[i].fiber = fiber;
+		return 0;
+	}
+	aroop_assert(!"Fiber array is full");
+	return -1;
 }
 
-OPP_CB(internal_fiber) {
-	struct internal_fiber*fiber = data;
-	switch(callback) {
-		case OPPN_ACTION_INITIALIZE:
-			fiber->fiber = cb_data;
-			fiber->status = FIBER_STATUS_CREATED;
-		break;
-		case OPPN_ACTION_FINALIZE:
-			fiber->status = FIBER_STATUS_DESTROYED;
-			fiber->fiber(fiber->status);
-		break;
+int unregister_fiber(int (*fiber)(int status)) {
+	int i = 0;
+	for(i = 0; i < MAX_FIBERS; i++) {
+		if(fibers[i].fiber != fiber)
+			continue;
+		fiber(FIBER_STATUS_DESTROYED);
+		fibers[i].status = FIBER_STATUS_EMPTY;
+		fibers[i].fiber = NULL;
+		return 0;
+	}
+	return -1;
+}
+
+static int fiber_show_count(aroop_txt_t*input, aroop_txt_t*output) {
+	int count = 0;
+	int i = 0;
+	for(i = 0; i < MAX_FIBERS; i++) {
+		if(fibers[i].status == FIBER_STATUS_ACTIVATED)
+			count++;
+	}
+	printf("%d fibers\n", count);
+	return 0;
+}
+
+int fiber_module_init() {
+	memset(fibers, 0, sizeof(fibers));
+	pm_plug_callback("status", fiber_show_count);
+}
+
+int fiber_module_deinit() {
+	// TODO unregister all
+}
+
+int fiber_module_step() {
+	int i = 0;
+	for(i = 0; i < MAX_FIBERS; i++) {
+		if(fibers[i].status == FIBER_STATUS_EMPTY || fibers[i].status == FIBER_STATUS_DEACTIVATED || fibers[i].status == FIBER_STATUS_DESTROYED)
+			continue;
+		int ret = fibers[i].fiber(fibers[i].status);
+		if(ret == -1) {
+			unregister_fiber(fibers[i].fiber);
+		} else if(ret == -2) {
+			fibers[i].status = FIBER_STATUS_DEACTIVATED;
+		}
+		if(fibers[i].status == FIBER_STATUS_CREATED)
+			fibers[i].status = FIBER_STATUS_ACTIVATED;
+		return 0;
 	}
 	return 0;
 }
 
-static struct opp_factory fibers;
-
-
-/*
- * Library api
- * It registers a fiber for execution. The fiber() is called in rotation. It is a stackless non-preemptive co-operative multitasking example.
- */
-int register_fiber(int (fiber*)(int status)) {
-	/**
-	 * Create the fiber object and save that in a collection.
-	 */
-	struct internal_fiber x = OPP_ALLOC2(&fibers, fiber);
-	OPP_ASSERT(x != NULL);
-	OPP_ASSERT(x.fiber == fiber);
-}
-
-/*
- * Library api
- * It unregisters fiber from the execution line.
- */
-int unregister_fiber(int (fiber*)(int status)) {
-	// TODO search the fiber and remove ..
-}
-/***********************************************************************************/
-
-int fiber_module_init() {
-	opp_factory_create_full(&fibers, 2, sizeof(struct internal_fiber), 1, OPPF_HAS_LOCK | OPPF_SWEEP_ON_UNREF, OPP_CB_FUNC(internal_fiber));
-}
-
-int fiber_module_deinit() {
-	opp_factory_destroy(&fibers);
+int fiber_module_run() {
+	while(1) {
+		fiber_module_step();
+	}
 }
 
 C_CAPSULE_END
