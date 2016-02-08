@@ -1,0 +1,11 @@
+#ifndef NGINEZ_CONFIG_H
+#define NGINEZ_CONFIG_H
+
+C_CAPSULE_START
+
+#define MAX_POLL_FD 10000
+#define NGINEZ_INLINE inline
+
+C_CAPSULE_END
+
+#endif // NGINEZ_CONFIG_H

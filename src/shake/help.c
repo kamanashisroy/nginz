@@ -22,9 +22,13 @@ static int help_command_helper(
 	, int(*desc)(aroop_txt_t*output)
 	, void*visitor_data
 ) {
+	aroop_txt_t prefix = {};
 	aroop_txt_t*output = (aroop_txt_t*)visitor_data;
-	aroop_txt_t xdesc;
-	memset(&xdesc, 0, sizeof(xdesc));
+	aroop_txt_t xdesc = {};
+	aroop_txt_embeded_copy_on_demand(&prefix, plugin_space);
+	aroop_txt_set_length(&prefix, 6);
+	if(!aroop_txt_equals_static(&prefix, "shake/"))
+		return 0;
 	desc(&xdesc);
 	aroop_txt_concat(output, &xdesc);
 }

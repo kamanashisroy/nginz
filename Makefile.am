@@ -10,11 +10,14 @@ lib_LTLIBRARIES=$(TARGET_LAR)
 lib_LIBRARIES=$(TARGET_AR)
 NGINEZ_SOURCE_FILES = \
 src/fiber.c     src/plugin.c	src/plugin_manager.c	src/scanner.c \
-src/shake.c	src/shake/help.c
+src/event_loop.c \
+src/shake.c	src/shake/help.c \
+src/parallel/pipeline.c
 
 pkgincludedir=$(includedir)/nginez@PACKAGE_SUFFIX@
 nobase_pkginclude_HEADERS= \
-inc/fiber.h       inc/plugin.h inc/plugin_manager.h inc/scanner.h
+inc/event_loop.h \
+inc/fiber.h       inc/plugin.h	inc/plugin_manager.h	inc/scanner.h
 
 NGINEZ_INCLUDES=-Iinc
 NGINEZ_CFLAGS=$(AROOP_CFLAGS)

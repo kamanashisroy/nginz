@@ -79,11 +79,11 @@ static int fiber_quit_command_desc(aroop_txt_t*output) {
 
 int fiber_module_init() {
 	memset(fibers, 0, sizeof(fibers));
-	aroop_txt_t plugin_space;
+	aroop_txt_t plugin_space = {};
 	aroop_txt_embeded_set_static_string(&plugin_space, "shake/fiber");
 	pm_plug_callback(&plugin_space, fiber_status_command, fiber_status_command_desc);
 	aroop_txt_embeded_set_static_string(&plugin_space, "shake/quit");
-	pm_plug_callback(&plugin_space, fiber_quit_command, fiber_status_command_desc);
+	pm_plug_callback(&plugin_space, fiber_quit_command, fiber_quit_command_desc);
 }
 
 int fiber_module_deinit() {

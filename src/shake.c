@@ -8,18 +8,12 @@
 #include "aroop/opp/opp_str2.h"
 #include "aroop/aroop_memory_profiler.h"
 #include "plugin.h"
+#include "event_loop.h"
 #include "shake.h"
 
 C_CAPSULE_START
 
-#include <sys/ioctl.h> // defines FIONREAD 
-#define fileio_available_bytes(x) ({ \
-        int __bt=0;ioctl(x, FIONREAD, &__bt);__bt; \
-})
-
-static int shake_shell_step(int status) {
-	if(fileio_available_bytes(STDIN_FILENO) == 0)
-		return 0;
+static int on_shake_command(int events) {
 	// read data from stdin
 	char mem[128]; 
 	char*cmd = fgets(mem, 128, stdin);
@@ -44,15 +38,13 @@ static int shake_shell_step(int status) {
 }
 
 int shake_module_init() {
-	// XXX why to get all the available commands from the plugin ? may be we do not need it ..
-	
 	// register shake shell
-	register_fiber(shake_shell_step);
+	event_loop_register_fd(STDIN_FILENO, on_shake_command, POLLIN);
 	help_module_init();
 }
 
 int shake_module_deinit() {
-	unregister_fiber(shake_shell_step);
+	event_loop_unregister_fd(STDIN_FILENO);
 	help_module_deinit();
 }
 C_CAPSULE_END
