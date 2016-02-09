@@ -33,6 +33,7 @@ struct internal_plugin {
 		struct composite_plugin*inner;
 	} x;
 	int(*desc)(aroop_txt_t*plugin_space, aroop_txt_t*output);
+	struct internal_plugin*next;
 };
 
 static struct opp_factory cplugs;
@@ -46,9 +47,12 @@ OPP_CB(internal_plugin) {
 		case OPPN_ACTION_INITIALIZE:
 			plugin->category = 0;
 			plugin->plugin_space = NULL;
+			plugin->desc = NULL;
+			plugin->next = NULL;
 		break;
 		case OPPN_ACTION_FINALIZE:
 			OPPUNREF(plugin->plugin_space);
+			OPPUNREF(plugin->next);
 		break;
 	}
 	return 0;
@@ -103,7 +107,13 @@ static int composite_plug_helper(struct composite_plugin*container
 	plugin->plugin_space = aroop_txt_new_copy_deep(plugin_space, NULL);
 	aroop_assert(plugin->plugin_space != NULL);
 	aroop_txt_zero_terminate(plugin->plugin_space);
-	opp_hash_table_set(&(container->table), plugin->plugin_space, plugin);
+	struct internal_plugin*root = opp_hash_table_get(&(container->table), plugin->plugin_space);
+	if(root) {
+		OPPREF(plugin);
+		root->next = plugin;
+	} else {
+		opp_hash_table_set(&(container->table), plugin->plugin_space, plugin);
+	}
 	int ret = 0; // XXX TOKEN DOES NOT WORK
 	OPPUNREF(plugin); // cleanup : unref the plugin, it is already saved in the hashtable
 	return ret;
@@ -136,9 +146,12 @@ int composite_unplug_inner_composite(struct composite_plugin*container, int plug
 
 int composite_plugin_call(struct composite_plugin*container, aroop_txt_t*plugin_space, aroop_txt_t*input, aroop_txt_t*output) {
 	struct internal_plugin*plugin = opp_hash_table_get(&container->table, plugin_space);
-	if(plugin == NULL)
-		return 0;
-	return plugin->x.callback(input, output);
+	int ret = 0;
+	while(plugin) {
+		ret |= plugin->x.callback(input, output);
+		plugin = plugin->next;
+	}
+	return ret;
 }
 
 int composite_plugin_visit_all(struct composite_plugin*container, int (*visitor)(
@@ -156,15 +169,17 @@ int composite_plugin_visit_all(struct composite_plugin*container, int (*visitor)
 		struct internal_plugin*plugin = opp_iterator_next(&iterator);
 		if(plugin == NULL)
 			break;
-		visitor(
-			plugin->category
-			, plugin->plugin_space
-			, plugin->x.callback
-			, plugin->x.bridge
-			, plugin->x.inner
-			, plugin->desc
-			, visitor_data
-		);
+		do {
+			visitor(
+				plugin->category
+				, plugin->plugin_space
+				, plugin->x.callback
+				, plugin->x.bridge
+				, plugin->x.inner
+				, plugin->desc
+				, visitor_data
+			);
+		} while((plugin = plugin->next));
 		//OPPUNREF(plugin);
 	} while(1);
 	opp_iterator_destroy(&iterator);
