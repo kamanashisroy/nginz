@@ -32,6 +32,7 @@ static int plugin_command_helper(
 	aroop_txt_t xdesc = {};
 	desc(plugin_space, &xdesc);
 	aroop_txt_concat(output, &xdesc);
+	aroop_txt_destroy(&xdesc);
 }
 
 static int plugin_command(aroop_txt_t*input, aroop_txt_t*output) {

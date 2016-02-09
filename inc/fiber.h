@@ -1,5 +1,5 @@
-#ifndef DEMOCHAT_FIBER_H
-#define DEMOCHAT_FIBER_H
+#ifndef NGINEZ_FIBER_H
+#define NGINEZ_FIBER_H
 
 C_CAPSULE_START
 
@@ -39,4 +39,4 @@ int fiber_module_deinit();
 
 C_CAPSULE_END
 
-#endif // DEMOCHAT_FIBER_H
+#endif // NGINEZ_FIBER_H

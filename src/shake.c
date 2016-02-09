@@ -34,6 +34,7 @@ static int on_shake_command(int events) {
 	pm_call(&plugin_space, &input, &output);
 	aroop_txt_zero_terminate(&output);
 	printf("%s", aroop_txt_to_string(&output));
+	aroop_txt_destroy(&output);
 	return 0;
 }
 

@@ -1,8 +1,10 @@
 
 #include "aroop/aroop_core.h"
 #include "aroop/core/xtring.h"
+#include "nginez_config.h"
 #include "inc/plugin_manager.h"
 #include "inc/fiber.h"
+#include "inc/fork.h"
 #include "inc/event_loop.h"
 
 C_CAPSULE_START
@@ -13,6 +15,7 @@ static int nginez_main(char*args) {
 	shake_module_init();
 	event_loop_module_init();
 	pp_module_init();
+	fork_processors(NUMBER_OF_PROCESSORS);
 	fiber_module_run();
 	pp_module_deinit();
 	event_loop_module_deinit();
