@@ -7,7 +7,9 @@
 #include "aroop/opp/opp_any_obj.h"
 #include "aroop/opp/opp_str2.h"
 #include "aroop/aroop_memory_profiler.h"
+#include "nginez_config.h"
 #include "plugin.h"
+#include "plugin_manager.h"
 #include "event_loop.h"
 #include "shake.h"
 
@@ -38,15 +40,30 @@ static int on_shake_command(int events) {
 	return 0;
 }
 
+static int shake_stop_on_fork(aroop_txt_t*input, aroop_txt_t*output) {
+	//close(stdin);
+	event_loop_unregister_fd(STDIN_FILENO);
+}
+
+static int shake_stop_on_fork_desc(aroop_txt_t*plugin_space,aroop_txt_t*output) {
+	return plugin_desc(output, "shake", "fork", plugin_space, __FILE__, "It stops stdio in child process\n");
+}
+
+
+
 int shake_module_init() {
+	aroop_txt_t plugin_space = {};
 	// register shake shell
-	event_loop_register_fd(STDIN_FILENO, on_shake_command, POLLIN);
+	event_loop_register_fd(STDIN_FILENO, on_shake_command, NGINEZ_POLL_ALL_FLAGS);
 	help_module_init();
+	aroop_txt_embeded_set_static_string(&plugin_space, "fork/child/after");
+	//pm_plug_callback(&plugin_space, shake_stop_on_fork, shake_stop_on_fork_desc);
 }
 
 int shake_module_deinit() {
 	event_loop_unregister_fd(STDIN_FILENO);
 	help_module_deinit();
 }
+
 C_CAPSULE_END
 

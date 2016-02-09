@@ -54,14 +54,16 @@ static int on_pong(int events) {
 
 static int pp_fork_child_after_callback(aroop_txt_t*input, aroop_txt_t*output) {
 	parent = pipefd[1];
-	event_loop_register_fd(parent, on_ping, POLLIN);
+	event_loop_register_fd(parent, on_ping, NGINEZ_POLL_ALL_FLAGS);
 	child = -1;
+	//close(pipefd[0]);
 	return 0;
 }
 
 static int pp_fork_parent_after_callback(aroop_txt_t*input, aroop_txt_t*output) {
 	child = pipefd[0];
-	event_loop_register_fd(child, on_pong, POLLIN);
+	event_loop_register_fd(child, on_pong, NGINEZ_POLL_ALL_FLAGS);
+	//close(pipefd[1]);
 	return 0;
 }
 

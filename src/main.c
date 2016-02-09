@@ -15,7 +15,9 @@ static int nginez_main(char*args) {
 	shake_module_init();
 	event_loop_module_init();
 	pp_module_init();
+	tcp_listener_init();
 	fork_processors(NUMBER_OF_PROCESSORS);
+	tcp_listener_deinit();
 	fiber_module_run();
 	pp_module_deinit();
 	event_loop_module_deinit();
