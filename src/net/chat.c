@@ -129,11 +129,13 @@ int chat_module_init() {
 	protostack_set(NGINZ_DEFAULT_PORT, &chat_protostack);
 	welcome_module_init();
 	room_module_init();
+	join_module_init();
 	quit_module_init();
 }
 
 int chat_module_deinit() {
 	quit_module_deinit();
+	join_module_deinit();
 	room_module_deinit();
 	welcome_module_deinit();
 	composite_plugin_destroy(chat_plug);
