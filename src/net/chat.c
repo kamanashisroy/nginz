@@ -25,6 +25,7 @@ static int chat_destroy(struct chat_connection*chat) {
 	// cleanup socket
 	event_loop_unregister_fd(chat->fd);
 	if(chat->fd != -1)close(chat->fd);
+	chat->fd = -1;
 	// free data
 	OPPUNREF(chat);
 }
@@ -49,7 +50,7 @@ static int chat_command(struct chat_connection*chat, aroop_txt_t*given_request) 
 		aroop_txt_embeded_stackbuffer(&plugin_space, 64);
 		aroop_txt_concat_string(&plugin_space, "chat/");
 		aroop_txt_concat(&plugin_space, &ctoken);
-		composite_plugin_bridge_call(chat_context_get(), &plugin_space, CHAT_SIGNATURE, chat);
+		ret = composite_plugin_bridge_call(chat_context_get(), &plugin_space, CHAT_SIGNATURE, chat);
 		aroop_txt_destroy(&plugin_space);
 	} while(0);
 	aroop_txt_destroy(&ctoken);
@@ -79,8 +80,14 @@ static int on_client_data(int status, const void*cb_data) {
 			return 0;
 		}
 	}
+	if(chat->state == CHAT_QUIT) {
+		printf("Client quited\n");
+		chat_destroy(chat);
+		return -1;
+	}
 	// we cannot handle data
 	send(chat->fd, aroop_txt_to_string(&cannot_process), aroop_txt_length(&cannot_process), 0);
+	return 0;
 }
 
 static struct opp_factory chat_factory;
@@ -102,6 +109,7 @@ OPP_CB(chat_connection) {
 	switch(callback) {
 		case OPPN_ACTION_INITIALIZE:
 			chat->on_answer = NULL;
+			chat->state = CHAT_CONNECTED;
 		break;
 		case OPPN_ACTION_FINALIZE:
 		break;
@@ -121,9 +129,11 @@ int chat_module_init() {
 	protostack_set(NGINZ_DEFAULT_PORT, &chat_protostack);
 	welcome_module_init();
 	room_module_init();
+	quit_module_init();
 }
 
 int chat_module_deinit() {
+	quit_module_deinit();
 	room_module_deinit();
 	welcome_module_deinit();
 	composite_plugin_destroy(chat_plug);

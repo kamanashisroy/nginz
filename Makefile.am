@@ -15,7 +15,7 @@ src/binary_coder.c \
 src/shake.c	src/shake/help.c \
 src/parallel/pipeline.c	src/parallel/fork.c \
 src/net/tcp_listener.c src/net/protostack.c \
-src/net/chat.c	src/net/chat/welcome.c	src/net/chat/room.c
+src/net/chat.c	src/net/chat/welcome.c	src/net/chat/room.c	src/net/chat/quit.c
 
 pkgincludedir=$(includedir)/nginz@PACKAGE_SUFFIX@
 nobase_pkginclude_HEADERS= \
