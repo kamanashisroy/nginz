@@ -4,6 +4,7 @@
 #include "nginz_config.h"
 #include "plugin.h"
 #include "net/chat.h"
+#include "net/chat/chat_plugin_manager.h"
 #include "net/chat/join.h"
 
 C_CAPSULE_START
@@ -28,11 +29,11 @@ int join_module_init() {
 	aroop_txt_embeded_buffer(&join_info, 128);
 	aroop_txt_t plugin_space = {};
 	aroop_txt_embeded_set_static_string(&plugin_space, "chat/join");
-	composite_plug_bridge(chat_context_get(), &plugin_space, chat_join_plug, chat_join_plug_desc);
+	composite_plug_bridge(chat_plugin_manager_get(), &plugin_space, chat_join_plug, chat_join_plug_desc);
 }
 
 int join_module_deinit() {
-	composite_unplug_bridge(chat_context_get(), 0, chat_join_plug);
+	composite_unplug_bridge(chat_plugin_manager_get(), 0, chat_join_plug);
 	aroop_txt_destroy(&join_info);
 }
 

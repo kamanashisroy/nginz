@@ -10,16 +10,9 @@
 #include "plugin_manager.h"
 #include "net/protostack.h"
 #include "net/chat.h"
-#include "net/chat/welcome.h"
-#include "net/chat/room.h"
+#include "net/chat/chat_plugin_manager.h"
 
 C_CAPSULE_START
-
-static struct composite_plugin*chat_plug = NULL;
-
-NGINZ_INLINE struct composite_plugin*chat_context_get() {
-	return chat_plug;
-}
 
 static int chat_destroy(struct chat_connection*chat) {
 	// cleanup socket
@@ -50,7 +43,7 @@ static int chat_command(struct chat_connection*chat, aroop_txt_t*given_request) 
 		aroop_txt_embeded_stackbuffer(&plugin_space, 64);
 		aroop_txt_concat_string(&plugin_space, "chat/");
 		aroop_txt_concat(&plugin_space, &ctoken);
-		ret = composite_plugin_bridge_call(chat_context_get(), &plugin_space, CHAT_SIGNATURE, chat);
+		ret = composite_plugin_bridge_call(chat_plugin_manager_get(), &plugin_space, CHAT_SIGNATURE, chat);
 		aroop_txt_destroy(&plugin_space);
 	} while(0);
 	aroop_txt_destroy(&ctoken);
@@ -95,7 +88,7 @@ static aroop_txt_t chat_welcome = {};
 static int chat_on_connect(int fd) {
 	struct chat_connection*chat = OPP_ALLOC1(&chat_factory);
 	chat->fd = fd;
-	composite_plugin_bridge_call(chat_context_get(), &chat_welcome, CHAT_SIGNATURE, chat);
+	composite_plugin_bridge_call(chat_plugin_manager_get(), &chat_welcome, CHAT_SIGNATURE, chat);
 	event_loop_register_fd(fd, on_client_data, chat, NGINZ_POLL_ALL_FLAGS);
 	return 0;
 }
@@ -120,25 +113,15 @@ OPP_CB(chat_connection) {
 
 
 int chat_module_init() {
+	chat_plugin_manager_module_init();
 	OPP_PFACTORY_CREATE(&chat_factory, 64, sizeof(struct chat_connection), OPP_CB_FUNC(chat_connection));
 	aroop_txt_embeded_set_static_string(&chat_welcome, "chat/welcome");
 	aroop_txt_embeded_set_static_string(&cannot_process, "Cannot process the request\n");
 	aroop_txt_embeded_buffer(&recv_buffer, 255);
-	aroop_assert(chat_plug == NULL);
-	chat_plug = composite_plugin_create();
 	protostack_set(NGINZ_DEFAULT_PORT, &chat_protostack);
-	welcome_module_init();
-	room_module_init();
-	join_module_init();
-	quit_module_init();
 }
 
 int chat_module_deinit() {
-	quit_module_deinit();
-	join_module_deinit();
-	room_module_deinit();
-	welcome_module_deinit();
-	composite_plugin_destroy(chat_plug);
 	aroop_txt_destroy(&recv_buffer);
 	// TODO  unplug all the clients
 	struct opp_iterator iterator;
@@ -154,6 +137,7 @@ int chat_module_deinit() {
 	} while(1);
 	opp_iterator_destroy(&iterator);
 	OPP_PFACTORY_DESTROY(&chat_factory);
+	chat_plugin_manager_module_deinit();
 }
 
 

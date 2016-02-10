@@ -4,6 +4,7 @@
 #include "nginz_config.h"
 #include "plugin.h"
 #include "net/chat.h"
+#include "net/chat/chat_plugin_manager.h"
 #include "net/chat/room.h"
 
 C_CAPSULE_START
@@ -28,11 +29,11 @@ int room_module_init() {
 	aroop_txt_embeded_buffer(&room_info, 128);
 	aroop_txt_t plugin_space = {};
 	aroop_txt_embeded_set_static_string(&plugin_space, "chat/rooms");
-	composite_plug_bridge(chat_context_get(), &plugin_space, chat_room_lookup_plug, chat_room_lookup_plug_desc);
+	composite_plug_bridge(chat_plugin_manager_get(), &plugin_space, chat_room_lookup_plug, chat_room_lookup_plug_desc);
 }
 
 int room_module_deinit() {
-	composite_unplug_bridge(chat_context_get(), 0, chat_room_lookup_plug);
+	composite_unplug_bridge(chat_plugin_manager_get(), 0, chat_room_lookup_plug);
 	aroop_txt_destroy(&room_info);
 }
 

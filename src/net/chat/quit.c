@@ -4,6 +4,7 @@
 #include "nginz_config.h"
 #include "plugin.h"
 #include "net/chat.h"
+#include "net/chat/chat_plugin_manager.h"
 #include "net/chat/quit.h"
 
 C_CAPSULE_START
@@ -25,11 +26,11 @@ static int chat_quit_plug_desc(aroop_txt_t*plugin_space, aroop_txt_t*output) {
 int quit_module_init() {
 	aroop_txt_t plugin_space = {};
 	aroop_txt_embeded_set_static_string(&plugin_space, "chat/quit");
-	composite_plug_bridge(chat_context_get(), &plugin_space, chat_quit_plug, chat_quit_plug_desc);
+	composite_plug_bridge(chat_plugin_manager_get(), &plugin_space, chat_quit_plug, chat_quit_plug_desc);
 }
 
 int quit_module_deinit() {
-	composite_unplug_bridge(chat_context_get(), 0, chat_quit_plug);
+	composite_unplug_bridge(chat_plugin_manager_get(), 0, chat_quit_plug);
 }
 
 

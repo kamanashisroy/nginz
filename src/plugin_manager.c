@@ -19,7 +19,7 @@ struct composite_plugin*pm_get() {
 	return coreplug;
 }
 
-static int plugin_command_helper(
+int plugin_command_helper(
 	int category
 	, aroop_txt_t*plugin_space
 	, int(*callback)(aroop_txt_t*input, aroop_txt_t*output)
