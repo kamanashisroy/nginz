@@ -148,11 +148,25 @@ int composite_plugin_call(struct composite_plugin*container, aroop_txt_t*plugin_
 	struct internal_plugin*plugin = opp_hash_table_get(&container->table, plugin_space);
 	int ret = 0;
 	while(plugin) {
+		aroop_assert(plugin->category == CALLBACK_PLUGIN);
 		ret |= plugin->x.callback(input, output);
 		plugin = plugin->next;
 	}
 	return ret;
 }
+
+
+int composite_plugin_bridge_call(struct composite_plugin*container, aroop_txt_t*plugin_space, int signature, void*data) {
+	struct internal_plugin*plugin = opp_hash_table_get(&container->table, plugin_space);
+	int ret = 0;
+	while(plugin) {
+		aroop_assert(plugin->category == BRIDGE_PLUGIN);
+		ret |= plugin->x.bridge(signature, data);
+		plugin = plugin->next;
+	}
+	return ret;
+}
+
 
 int composite_plugin_visit_all(struct composite_plugin*container, int (*visitor)(
 		int category

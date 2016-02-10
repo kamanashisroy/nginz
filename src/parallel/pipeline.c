@@ -12,6 +12,7 @@
 #include "plugin_manager.h"
 #include "event_loop.h"
 #include "parallel/pipeline.h"
+#include "net/chat.h"
 
 /****************************************************/
 /********* This file is really tricky ***************/
@@ -167,15 +168,10 @@ static int on_pingmsg(int events) {
 	if(pp_recvmsg_helper(mparent, &acceptfd)) {
 		return -1;
 	}
-	printf("worker is saying hi to %d\n", acceptfd);
-	aroop_txt_t input = {};
-	aroop_txt_t output = {};
-	aroop_txt_embeded_stackbuffer(&input, 8);
-	aroop_txt_printf(&input, "%d", acceptfd);
-	pm_call(&chat_welcome, &input, &output);
-	if(acceptfd != -1 && aroop_txt_length(&output) != 0)
-		send(acceptfd, aroop_txt_to_string(&output), aroop_txt_length(&output), 0);
-	aroop_txt_destroy(&output);
+	struct chat_interface x;
+	chat_interface_init(&x, acceptfd);
+	composite_plugin_bridge_call(chat_context_get(), &chat_welcome, CHAT_SIGNATURE, &x);
+	chat_interface_destroy(&x);
 	return 0;
 }
 
