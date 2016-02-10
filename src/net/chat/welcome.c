@@ -13,9 +13,17 @@ static int on_login_data(struct chat_connection*chat, aroop_txt_t*answer) {
 	// TODO authenticate
 	if(aroop_txt_is_empty_magical(answer))
 		return 0;
+	// remove the trailing space and new line
+	aroop_txt_t input = {};
+	aroop_txt_embeded_txt_copy_shallow(&input, answer);
+	aroop_txt_t name = {}; // TODO save the user data somewhere
+	shotodol_scanner_next_token(answer, &name);
+	if(aroop_txt_is_empty_magical(&name)) // TODO say the name is not valid
+		return 0;
+	// say welcome
 	aroop_txt_set_length(&greet_on_login, 0);
 	aroop_txt_concat_string(&greet_on_login, "Welcome ");
-	aroop_txt_concat(&greet_on_login, answer);
+	aroop_txt_concat(&greet_on_login, &name);
 	aroop_txt_concat_char(&greet_on_login, '!');
 	aroop_txt_concat_char(&greet_on_login, '\n');
 	send(chat->fd, aroop_txt_to_string(&greet_on_login), aroop_txt_length(&greet_on_login), 0);
