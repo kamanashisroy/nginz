@@ -66,7 +66,7 @@ int tcp_listener_init() {
 	struct sockaddr_in addr;
 	addr.sin_family = AF_INET;
 	inet_aton("0.0.0.0", &(addr.sin_addr));
-	addr.sin_port = htons(NGINEZ_CHAT_PORT);
+	addr.sin_port = htons(NGINEZ_DEFAULT_PORT);
 	char sock_flag = 0;
 	setsockopt(tcp_sock, SOL_SOCKET, SO_REUSEADDR, (char*)&sock_flag, sizeof(sock_flag));
 	if(bind(tcp_sock, (struct sockaddr*)&addr, sizeof(addr)) < 0) {

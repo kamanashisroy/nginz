@@ -12,8 +12,13 @@
 #include "plugin_manager.h"
 #include "event_loop.h"
 #include "parallel/pipeline.h"
-#include "net/chat.h"
+#include "net/protostack.h"
 
+struct connection {
+	int fd;
+	struct protostack*stack;
+	void*pvt;
+};
 /****************************************************/
 /********* This file is really tricky ***************/
 /****************************************************/
@@ -162,16 +167,13 @@ static int on_ping(int events) {
 	}
 }
 
-static aroop_txt_t chat_welcome = {};
 static int on_pingmsg(int events) {
 	int acceptfd = -1;
 	if(pp_recvmsg_helper(mparent, &acceptfd)) {
 		return -1;
 	}
-	struct chat_interface x;
-	chat_interface_init(&x, acceptfd);
-	composite_plugin_bridge_call(chat_context_get(), &chat_welcome, CHAT_SIGNATURE, &x);
-	chat_interface_destroy(&x);
+	struct protostack*stack = protostack_get(NGINEZ_DEFAULT_PORT);
+	stack->on_connect(acceptfd);
 	return 0;
 }
 
@@ -251,7 +253,6 @@ static int pp_fork_callback_desc(aroop_txt_t*plugin_space,aroop_txt_t*output) {
 /****** Module constructors and destructors *********/
 /****************************************************/
 int pp_module_init() {
-	aroop_txt_embeded_set_static_string(&chat_welcome, "chat/welcome");
 	aroop_txt_embeded_buffer(&recv_buffer, 255);
 	aroop_txt_t plugin_space = {};
 	aroop_txt_embeded_set_static_string(&plugin_space, "fork/before");

@@ -14,7 +14,7 @@ src/event_loop.c \
 src/binary_coder.c \
 src/shake.c	src/shake/help.c \
 src/parallel/pipeline.c	src/parallel/fork.c \
-src/net/tcp_listener.c \
+src/net/tcp_listener.c src/net/protostack.c \
 src/net/chat.c	src/net/chat/welcome.c
 
 pkgincludedir=$(includedir)/nginez@PACKAGE_SUFFIX@

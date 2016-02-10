@@ -10,12 +10,12 @@ C_CAPSULE_START
 
 static int chat_welcome_plug(int signature, void*given) {
 	aroop_assert(signature == CHAT_SIGNATURE);
-	struct chat_interface*x = (struct chat_interface*)given;
-	if(x->fd == -1) // sanity check
+	int*fd = (int*)given;
+	if(fd == NULL || *fd == -1) // sanity check
 		return 0;
 	aroop_txt_t greet = {};
 	aroop_txt_embeded_set_static_string(&greet, "Welcome to NgineZ chat server\nLogin name?\n");
-	send(x->fd, aroop_txt_to_string(&greet), aroop_txt_length(&greet), 0);
+	send(*fd, aroop_txt_to_string(&greet), aroop_txt_length(&greet), 0);
 	return 0;
 }
 
