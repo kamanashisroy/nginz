@@ -1,5 +1,5 @@
-#ifndef DEMOCHAT_PLUGIN_H
-#define DEMOCHAT_PLUGIN_H
+#ifndef NGINZ_PLUGIN_H
+#define NGINZ_PLUGIN_H
 
 C_CAPSULE_START
 
@@ -68,4 +68,4 @@ int composite_plugin_visit_all(struct composite_plugin*container, int (*visitor)
 
 C_CAPSULE_END
 
-#endif // DEMOCHAT_PLUGIN_H
+#endif // NGINZ_PLUGIN_H

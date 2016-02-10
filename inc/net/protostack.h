@@ -1,5 +1,5 @@
-#ifndef NGINEZ_PROTOSTACK_H
-#define NGINEZ_PROTOSTACK_H
+#ifndef NGINZ_PROTOSTACK_H
+#define NGINZ_PROTOSTACK_H
 
 C_CAPSULE_START
 
@@ -11,4 +11,4 @@ int protostack_set(int port, struct protostack*x);
 
 C_CAPSULE_END
 
-#endif // NGINEZ_PROTOSTACK_H
+#endif // NGINZ_PROTOSTACK_H

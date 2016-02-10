@@ -8,7 +8,7 @@
 #include <aroop/opp/opp_any_obj.h>
 #include <aroop/opp/opp_str2.h>
 #include <aroop/aroop_memory_profiler.h>
-#include "nginez_config.h"
+#include "nginz_config.h"
 #include "plugin_manager.h"
 #include "event_loop.h"
 #include "parallel/pipeline.h"
@@ -29,7 +29,7 @@ int mchild = -1;
 int parent = -1;
 int mparent = -1;
 
-NGINEZ_INLINE int pp_ping(aroop_txt_t*pkt) {
+NGINZ_INLINE int pp_ping(aroop_txt_t*pkt) {
 	// sanity check
 	if(child == -1)
 		return -1;
@@ -37,7 +37,7 @@ NGINEZ_INLINE int pp_ping(aroop_txt_t*pkt) {
 	return 0;
 }
 
-NGINEZ_INLINE static int pp_sendmsg_helper(int through, int target) {
+NGINZ_INLINE static int pp_sendmsg_helper(int through, int target) {
 	union {
 		int target;
 		char buf[CMSG_SPACE(sizeof(int))];
@@ -74,12 +74,12 @@ NGINEZ_INLINE static int pp_sendmsg_helper(int through, int target) {
 	return 0;
 }
 
-NGINEZ_INLINE int pp_pingmsg(int socket) {
+NGINZ_INLINE int pp_pingmsg(int socket) {
 	printf("Sending fd %d to worker\n", socket);
 	return pp_sendmsg_helper(mchild, socket);
 }
 
-NGINEZ_INLINE int pp_pong(aroop_txt_t*pkt) {
+NGINZ_INLINE int pp_pong(aroop_txt_t*pkt) {
 	// sanity check
 	if(parent == -1)
 		return -1;
@@ -87,11 +87,11 @@ NGINEZ_INLINE int pp_pong(aroop_txt_t*pkt) {
 	return 0;
 }
 
-NGINEZ_INLINE int pp_pongmsg(int socket) {
+NGINZ_INLINE int pp_pongmsg(int socket) {
 	return pp_sendmsg_helper(mparent, socket);
 }
 
-NGINEZ_INLINE int is_master() {
+NGINZ_INLINE int is_master() {
 	return (parent == -1);
 }
 
@@ -99,7 +99,7 @@ NGINEZ_INLINE int is_master() {
 /********** Pipe event listeners ********************/
 /****************************************************/
 
-NGINEZ_INLINE static int pp_recvmsg_helper(int through, int*target) {
+NGINZ_INLINE static int pp_recvmsg_helper(int through, int*target) {
 	printf("There is new client, we need to accept it in worker process\n");
 	union {
 		int target;
@@ -141,7 +141,7 @@ NGINEZ_INLINE static int pp_recvmsg_helper(int through, int*target) {
 }
 
 static aroop_txt_t recv_buffer;
-static int on_ping(int events) {
+static int on_ping(int events, const void*unused) {
 	printf("There is ping from the parent\n");
 	aroop_txt_set_length(&recv_buffer, 1); // without it aroop_txt_to_string() will give NULL
 	//char rbuf[255];
@@ -167,22 +167,22 @@ static int on_ping(int events) {
 	}
 }
 
-static int on_pingmsg(int events) {
+static int on_pingmsg(int events, const void*unused) {
 	int acceptfd = -1;
 	if(pp_recvmsg_helper(mparent, &acceptfd)) {
 		return -1;
 	}
-	struct protostack*stack = protostack_get(NGINEZ_DEFAULT_PORT);
+	struct protostack*stack = protostack_get(NGINZ_DEFAULT_PORT);
 	stack->on_connect(acceptfd);
 	return 0;
 }
 
-static int on_pong(int events) {
+static int on_pong(int events, const void*unused) {
 	int count = recv(child, aroop_txt_to_string(&recv_buffer), aroop_txt_capacity(&recv_buffer), 0);
 	// TODO do something with the recv_buffer
 }
 
-static int on_pongmsg(int events) {
+static int on_pongmsg(int events, const void*unused) {
 	int acceptfd = -1;
 	if(pp_recvmsg_helper(mparent, &acceptfd)) {
 		return -1;
@@ -219,8 +219,8 @@ static int pp_fork_child_after_callback(aroop_txt_t*input, aroop_txt_t*output) {
 	/****************************************************/
 	parent = pipefd[1];
 	mparent = mpipefd[1];
-	event_loop_register_fd(parent, on_ping, NGINEZ_POLL_ALL_FLAGS);
-	event_loop_register_fd(mparent, on_pingmsg, NGINEZ_POLL_ALL_FLAGS);
+	event_loop_register_fd(parent, on_ping, NULL, NGINZ_POLL_ALL_FLAGS);
+	event_loop_register_fd(mparent, on_pingmsg, NULL, NGINZ_POLL_ALL_FLAGS);
 	aroop_assert(child == -1);
 	aroop_assert(mchild == -1);
 	child = -1;
@@ -239,8 +239,8 @@ static int pp_fork_parent_after_callback(aroop_txt_t*input, aroop_txt_t*output) 
 	child = pipefd[0];
 	mchild = mpipefd[0];
 	printf("child fds %d,%d\n", pipefd[0], mpipefd[0]);
-	event_loop_register_fd(child, on_pong, NGINEZ_POLL_ALL_FLAGS);
-	event_loop_register_fd(mchild, on_pongmsg, NGINEZ_POLL_ALL_FLAGS);
+	event_loop_register_fd(child, on_pong, NULL, NGINZ_POLL_ALL_FLAGS);
+	event_loop_register_fd(mchild, on_pongmsg, NULL, NGINZ_POLL_ALL_FLAGS);
 	//close(pipefd[1]);
 	return 0;
 }
@@ -265,6 +265,7 @@ int pp_module_init() {
 
 int pp_module_deinit() {
 	// TODO unregister all
+	aroop_txt_destroy(&recv_buffer);
 }
 
 C_CAPSULE_END

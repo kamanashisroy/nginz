@@ -7,7 +7,7 @@
 #include "aroop/opp/opp_any_obj.h"
 #include "aroop/opp/opp_str2.h"
 #include "aroop/aroop_memory_profiler.h"
-#include "nginez_config.h"
+#include "nginz_config.h"
 #include "plugin.h"
 #include "plugin_manager.h"
 #include "event_loop.h"
@@ -15,7 +15,7 @@
 
 C_CAPSULE_START
 
-static int on_shake_command(int events) {
+static int on_shake_command(int events, const void*unused) {
 	// read data from stdin
 	char mem[128]; 
 	char*cmd = fgets(mem, 128, stdin);
@@ -55,7 +55,7 @@ static int shake_stop_on_fork_desc(aroop_txt_t*plugin_space,aroop_txt_t*output) 
 int shake_module_init() {
 	aroop_txt_t plugin_space = {};
 	// register shake shell
-	event_loop_register_fd(STDIN_FILENO, on_shake_command, NGINEZ_POLL_ALL_FLAGS);
+	event_loop_register_fd(STDIN_FILENO, on_shake_command, NULL, NGINZ_POLL_ALL_FLAGS);
 	help_module_init();
 	aroop_txt_embeded_set_static_string(&plugin_space, "fork/child/after");
 	pm_plug_callback(&plugin_space, shake_stop_on_fork, shake_stop_on_fork_desc);

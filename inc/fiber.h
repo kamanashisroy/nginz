@@ -1,5 +1,5 @@
-#ifndef NGINEZ_FIBER_H
-#define NGINEZ_FIBER_H
+#ifndef NGINZ_FIBER_H
+#define NGINZ_FIBER_H
 
 C_CAPSULE_START
 
@@ -39,4 +39,4 @@ int fiber_module_deinit();
 
 C_CAPSULE_END
 
-#endif // NGINEZ_FIBER_H
+#endif // NGINZ_FIBER_H

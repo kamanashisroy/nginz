@@ -1,5 +1,5 @@
-#ifndef NGINEZ_PLUGIN_H
-#define NGINEZ_PLUGIN_H
+#ifndef NGINZ_PLUGIN_MANAGER_H
+#define NGINZ_PLUGIN_MANAGER_H
 
 C_CAPSULE_START
 
@@ -18,4 +18,4 @@ int pm_deinit();
 
 C_CAPSULE_END
 
-#endif // NGINEZ_PLUGIN_H
+#endif // NGINZ_PLUGIN_MANAGER_H

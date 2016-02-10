@@ -1,19 +1,25 @@
 
 #include "aroop/aroop_core.h"
-#include "nginez_config.h"
+#include "nginz_config.h"
 #include "event_loop.h"
 #include "fiber.h"
 
 C_CAPSULE_START
 
+struct event_callback {
+	int (*on_event)(int returned_events, const void*event_data);
+	const void*event_data;
+};
+
 static struct pollfd internal_fds[MAX_POLL_FD];
-static int (*internal_callback[MAX_POLL_FD])(int returned_events);
+static struct event_callback internal_callback[MAX_POLL_FD];
 static int internal_nfds = 0;
 
-int event_loop_register_fd(int fd, int (*on_event)(int returned_events), short requested_events) {
+int event_loop_register_fd(int fd, int (*on_event)(int returned_events, const void*event_data), const void*event_data, short requested_events) {
 	internal_fds[internal_nfds].fd = fd;
 	internal_fds[internal_nfds].events = requested_events;
-	internal_callback[internal_nfds] = on_event;
+	internal_callback[internal_nfds].on_event = on_event;
+	internal_callback[internal_nfds].event_data = event_data;
 	internal_nfds++;
 }
 
@@ -46,7 +52,7 @@ static int event_loop_step(int status) {
 			continue;
 		}
 		count--;
-		if(internal_callback[i](internal_fds[i].revents)) {
+		if(internal_callback[i].on_event(internal_fds[i].revents, internal_callback[i].event_data)) {
 			// fd is closed and may be removed.
 			return 0;
 		}

@@ -1,7 +1,7 @@
 
 #include <sys/socket.h>
 #include <aroop/aroop_core.h>
-#include "nginez_config.h"
+#include "nginz_config.h"
 #include "net/protostack.h"
 
 C_CAPSULE_START

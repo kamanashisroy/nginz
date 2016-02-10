@@ -5,7 +5,7 @@
 #include <aroop/opp/opp_factory_profiler.h>
 #include <aroop/opp/opp_any_obj.h>
 #include <aroop/opp/opp_str2.h>
-#include "nginez_config.h"
+#include "nginz_config.h"
 #include "plugin.h"
 #include "plugin_manager.h"
 #include "fork.h"

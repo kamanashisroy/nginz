@@ -1,7 +1,7 @@
 
 #include "aroop/aroop_core.h"
 #include "aroop/core/xtring.h"
-#include "nginez_config.h"
+#include "nginz_config.h"
 #include "plugin_manager.h"
 #include "fiber.h"
 #include "fork.h"
@@ -10,7 +10,7 @@
 
 C_CAPSULE_START
 
-static int nginez_main(char*args) {
+static int nginz_main(char*args) {
 	pm_init();
 	fiber_module_init();
 	shake_module_init();
@@ -31,7 +31,7 @@ static int nginez_main(char*args) {
 }
 
 int main(int argc, char**argv) {
-	aroop_main1(argc, argv, nginez_main);
+	aroop_main1(argc, argv, nginz_main);
 }
 
 C_CAPSULE_END

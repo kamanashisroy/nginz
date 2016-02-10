@@ -14,14 +14,13 @@
 #include "plugin.h"
 #include "plugin_manager.h"
 #include "event_loop.h"
-#include "nginez_config.h"
+#include "nginz_config.h"
 #include "net/tcp_listener.h"
 
 C_CAPSULE_START
 
 static int tcp_sock = -1;
-static int on_connection(int status) {
-	printf("New incoming connection\n");
+static int on_connection(int status, const void*unused) {
 	struct sockaddr_in client_addr;
 	socklen_t client_addr_len = sizeof(struct sockaddr_in);
 	int client_fd = accept(tcp_sock, (struct sockaddr *) &client_addr, &client_addr_len);
@@ -38,9 +37,7 @@ static int on_connection(int status) {
 	aroop_txt_t create_command = {};
 	aroop_txt_embeded_set_static_string(&create_command, "tcp/create"); 
 	binary_pack_string(&create_msg, &create_command);
-	printf("Sending create message to client\n");
 	pp_ping(&create_msg);
-	printf("Sending fd %d to worker1\n", client_fd);
 	pp_pingmsg(client_fd);
 	close(client_fd);
 	return 0;
@@ -66,7 +63,7 @@ int tcp_listener_init() {
 	struct sockaddr_in addr;
 	addr.sin_family = AF_INET;
 	inet_aton("0.0.0.0", &(addr.sin_addr));
-	addr.sin_port = htons(NGINEZ_DEFAULT_PORT);
+	addr.sin_port = htons(NGINZ_DEFAULT_PORT);
 	char sock_flag = 0;
 	setsockopt(tcp_sock, SOL_SOCKET, SO_REUSEADDR, (char*)&sock_flag, sizeof(sock_flag));
 	if(bind(tcp_sock, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
@@ -81,7 +78,7 @@ int tcp_listener_init() {
 		return -1;
 	}
 	printf("listening ...\n");
-	event_loop_register_fd(tcp_sock, on_connection, POLLIN | POLLPRI | POLLHUP);
+	event_loop_register_fd(tcp_sock, on_connection, NULL, POLLIN | POLLPRI | POLLHUP);
 	aroop_txt_t plugin_space = {};
 	aroop_txt_embeded_set_static_string(&plugin_space, "fork/child/after");
 	pm_plug_callback(&plugin_space, tcp_listener_stop_for_client, tcp_listener_stop_for_client_desc);

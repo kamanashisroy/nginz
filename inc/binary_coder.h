@@ -1,5 +1,5 @@
-#ifndef NGINEZ_BINARY_CODER_H
-#define NGINEZ_BINARY_CODER_H
+#ifndef NGINZ_BINARY_CODER_H
+#define NGINZ_BINARY_CODER_H
 
 C_CAPSULE_START
 /*
@@ -24,4 +24,4 @@ int binary_unpack_string(aroop_txt_t*buffer, int skip, aroop_txt_t*x);
 
 C_CAPSULE_END
 
-#endif // NGINEZ_BINARY_CODER_H
+#endif // NGINZ_BINARY_CODER_H

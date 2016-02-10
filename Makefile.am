@@ -1,14 +1,14 @@
 
-TARGET_BIN=nginez_main
-TARGET_O=libnginez.o
-TARGET_BASIC_O=libnginez_basic.o
-#TARGET_HAS_THREAD_O=libnginez_has_thread.o
-TARGET_LAR=libnginez.la
-TARGET_AR=libnginez.a libnginez_debug.a
+TARGET_BIN=nginz_main
+TARGET_O=libnginz.o
+TARGET_BASIC_O=libnginz_basic.o
+#TARGET_HAS_THREAD_O=libnginz_has_thread.o
+TARGET_LAR=libnginz.la
+TARGET_AR=libnginz.a libnginz_debug.a
 bin_PROGRAMS=$(TARGET_BIN) $(TARGET_O) $(TARGET_BASIC_O) $(TARGET_HAS_THREAD_O)
 lib_LTLIBRARIES=$(TARGET_LAR)
 lib_LIBRARIES=$(TARGET_AR)
-NGINEZ_SOURCE_FILES = \
+NGINZ_SOURCE_FILES = \
 src/fiber.c     src/plugin.c	src/plugin_manager.c	src/scanner.c \
 src/event_loop.c \
 src/binary_coder.c \
@@ -17,39 +17,39 @@ src/parallel/pipeline.c	src/parallel/fork.c \
 src/net/tcp_listener.c src/net/protostack.c \
 src/net/chat.c	src/net/chat/welcome.c
 
-pkgincludedir=$(includedir)/nginez@PACKAGE_SUFFIX@
+pkgincludedir=$(includedir)/nginz@PACKAGE_SUFFIX@
 nobase_pkginclude_HEADERS= \
 inc/event_loop.h \
 inc/fiber.h       inc/plugin.h	inc/plugin_manager.h	inc/scanner.h \
 inc/net/chat.h inc/net/chat/welcome.h
 
-NGINEZ_INCLUDES=-Iinc
-NGINEZ_CFLAGS=$(AROOP_CFLAGS)
+NGINZ_INCLUDES=-Iinc
+NGINZ_CFLAGS=$(AROOP_CFLAGS)
 
-libnginez_la_SOURCES = $(NGINEZ_SOURCE_FILES)
-libnginez_la_CPPFLAGS = $(NGINEZ_CFLAGS) $(NGINEZ_INCLUDES)
-#libnginez_static_a_SOURCES = $(NGINEZ_SOURCE_FILES)
-#libnginez_static_a_CPPFLAGS = $(NGINEZ_CFLAGS) $(NGINEZ_INCLUDES)
-libnginez_debug_a_SOURCES = $(NGINEZ_SOURCE_FILES)
-libnginez_debug_a_CPPFLAGS = $(NGINEZ_CFLAGS) -ggdb3 -DAROOP_OPP_PROFILE -DAROOP_OPP_DEBUG -DMTRACE -DOPP_DEBUG $(NGINEZ_INCLUDES) 
-#libnginez_debug_a_CPPFLAGS = -ggdb3 -DAROOP_OPP_PROFILE -DAROOP_OPP_DEBUG -DMTRACE $(NGINEZ_INCLUDES) 
-libnginez_o_SOURCES = $(NGINEZ_SOURCE_FILES)
-libnginez_o_CPPFLAGS = $(NGINEZ_CFLAGS) $(NGINEZ_INCLUDES)
-libnginez_basic_o_SOURCES = $(NGINEZ_SOURCE_FILES)
-libnginez_basic_o_CPPFLAGS= $(NGINEZ_CFLAGS)-DAROOP_BASIC $(NGINEZ_INCLUDES)
-#libnginez_has_thread_o_SOURCES = $(NGINEZ_SOURCE_FILES)
-#libnginez_has_thread_o_CPPFLAGS= $(NGINEZ_CFLAGS)-DHAS_THREAD $(NGINEZ_INCLUDES)
-nginez_main_SOURCES= $(NGINEZ_SOURCE_FILES) src/main.c
-#nginez_main_CPPFLAGS= $(NGINEZ_CFLAGS) -O2 $(NGINEZ_INCLUDES)
-nginez_main_CPPFLAGS= $(NGINEZ_CFLAGS) -ggdb3 -DAROOP_OPP_PROFILE -DAROOP_OPP_DEBUG -DMTRACE -DOPP_DEBUG $(NGINEZ_INCLUDES)
-#nginez_main_LDFLAGS= $(AROOP_LIBS)
-nginez_main_LDFLAGS= $(AROOP_DEBUG_LIBS)
+libnginz_la_SOURCES = $(NGINZ_SOURCE_FILES)
+libnginz_la_CPPFLAGS = $(NGINZ_CFLAGS) $(NGINZ_INCLUDES)
+#libnginz_static_a_SOURCES = $(NGINZ_SOURCE_FILES)
+#libnginz_static_a_CPPFLAGS = $(NGINZ_CFLAGS) $(NGINZ_INCLUDES)
+libnginz_debug_a_SOURCES = $(NGINZ_SOURCE_FILES)
+libnginz_debug_a_CPPFLAGS = $(NGINZ_CFLAGS) -ggdb3 -DAROOP_OPP_PROFILE -DAROOP_OPP_DEBUG -DMTRACE -DOPP_DEBUG $(NGINZ_INCLUDES) 
+#libnginz_debug_a_CPPFLAGS = -ggdb3 -DAROOP_OPP_PROFILE -DAROOP_OPP_DEBUG -DMTRACE $(NGINZ_INCLUDES) 
+libnginz_o_SOURCES = $(NGINZ_SOURCE_FILES)
+libnginz_o_CPPFLAGS = $(NGINZ_CFLAGS) $(NGINZ_INCLUDES)
+libnginz_basic_o_SOURCES = $(NGINZ_SOURCE_FILES)
+libnginz_basic_o_CPPFLAGS= $(NGINZ_CFLAGS)-DAROOP_BASIC $(NGINZ_INCLUDES)
+#libnginz_has_thread_o_SOURCES = $(NGINZ_SOURCE_FILES)
+#libnginz_has_thread_o_CPPFLAGS= $(NGINZ_CFLAGS)-DHAS_THREAD $(NGINZ_INCLUDES)
+nginz_main_SOURCES= $(NGINZ_SOURCE_FILES) src/main.c
+#nginz_main_CPPFLAGS= $(NGINZ_CFLAGS) -O2 $(NGINZ_INCLUDES)
+nginz_main_CPPFLAGS= $(NGINZ_CFLAGS) -ggdb3 -DAROOP_OPP_PROFILE -DAROOP_OPP_DEBUG -DMTRACE -DOPP_DEBUG $(NGINZ_INCLUDES)
+#nginz_main_LDFLAGS= $(AROOP_LIBS)
+nginz_main_LDFLAGS= $(AROOP_DEBUG_LIBS)
 
 
 pkgconfigdir = $(libdir)/pkgconfig
-pkgconfig_DATA = libnginez@PACKAGE_SUFFIX@.pc
+pkgconfig_DATA = libnginz@PACKAGE_SUFFIX@.pc
 
-libnginez@PACKAGE_SUFFIX@.pc: libnginez.pc
+libnginz@PACKAGE_SUFFIX@.pc: libnginz.pc
 	cp $< $@
 
-#MAINTAINERCLEANFILES = nginez.pc
+#MAINTAINERCLEANFILES = nginz.pc
