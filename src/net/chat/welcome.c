@@ -17,7 +17,7 @@ static int on_login_data(struct chat_connection*chat, aroop_txt_t*answer) {
 	aroop_txt_t input = {};
 	aroop_txt_embeded_txt_copy_shallow(&input, answer);
 	aroop_txt_t name = {}; // TODO save the user data somewhere
-	shotodol_scanner_next_token(answer, &name);
+	shotodol_scanner_next_token(&input, &name);
 	if(aroop_txt_is_empty_magical(&name)) // TODO say the name is not valid
 		return 0;
 	// say welcome
