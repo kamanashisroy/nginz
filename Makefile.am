@@ -11,14 +11,17 @@ lib_LIBRARIES=$(TARGET_AR)
 NGINEZ_SOURCE_FILES = \
 src/fiber.c     src/plugin.c	src/plugin_manager.c	src/scanner.c \
 src/event_loop.c \
+src/binary_coder.c \
 src/shake.c	src/shake/help.c \
 src/parallel/pipeline.c	src/parallel/fork.c \
-src/net/tcp_listener.c
+src/net/tcp_listener.c \
+src/net/chat.c	src/net/chat/welcome.c
 
 pkgincludedir=$(includedir)/nginez@PACKAGE_SUFFIX@
 nobase_pkginclude_HEADERS= \
 inc/event_loop.h \
-inc/fiber.h       inc/plugin.h	inc/plugin_manager.h	inc/scanner.h
+inc/fiber.h       inc/plugin.h	inc/plugin_manager.h	inc/scanner.h \
+inc/net/chat.h inc/net/chat/welcome.h
 
 NGINEZ_INCLUDES=-Iinc
 NGINEZ_CFLAGS=$(AROOP_CFLAGS)

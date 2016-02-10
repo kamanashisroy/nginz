@@ -18,33 +18,78 @@
 
 C_CAPSULE_START
 
+static int tcp_sock = -1;
 static int on_connection(int status) {
 	printf("New incoming connection\n");
+	struct sockaddr_in client_addr;
+	socklen_t client_addr_len = sizeof(struct sockaddr_in);
+	int client_fd = accept(tcp_sock, (struct sockaddr *) &client_addr, &client_addr_len);
+	if(client_fd < 0) {
+		perror("Accept failed\n");
+		event_loop_unregister_fd(tcp_sock);
+		close(tcp_sock);
+		close(client_fd);
+		return -1;
+	}
+	aroop_txt_t create_msg = {};
+	aroop_txt_embeded_stackbuffer(&create_msg, 255);
+	binary_coder_reset(&create_msg);
+	aroop_txt_t create_command = {};
+	aroop_txt_embeded_set_static_string(&create_command, "tcp/create"); 
+	binary_pack_string(&create_msg, &create_command);
+	printf("Sending create message to client\n");
+	pp_ping(&create_msg);
+	pp_pingmsg(client_fd);
+	close(client_fd);
+	return 0;
 }
 
+static int tcp_listener_stop_for_client(aroop_txt_t*input, aroop_txt_t*output) {
+	event_loop_unregister_fd(tcp_sock);
+	if(tcp_sock > 0)close(tcp_sock);
+}
+
+static int tcp_listener_stop_for_client_desc(aroop_txt_t*plugin_space,aroop_txt_t*output) {
+	return plugin_desc(output, "tcp_listener", "fork", plugin_space, __FILE__, "It stops tcp_listener in child process\n");
+}
+
+
 int tcp_listener_init() {
-	int sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	if(!is_master()) // we only start it in the master
+		return 0;
+	if((tcp_sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0) {
+		perror("Failed to create socket");
+		return -1;
+	}
 	struct sockaddr_in addr;
 	addr.sin_family = AF_INET;
 	inet_aton("0.0.0.0", &(addr.sin_addr));
-	addr.sin_port = htons(82);
+	addr.sin_port = htons(9399);
 	char sock_flag = 0;
-	setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (char*)&sock_flag, sizeof sock_flag);
-	if(bind(sock, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
-		printf("Failed to bind at %s\n", strerror(errno));
-		close(sock);
+	setsockopt(tcp_sock, SOL_SOCKET, SO_REUSEADDR, (char*)&sock_flag, sizeof(sock_flag));
+	if(bind(tcp_sock, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
+		perror("Failed to bind");
+		close(tcp_sock);
 		return -1;
 	}
 #define DEFAULT_SYN_BACKLOG 1024 /* XXX we are setting this too high */
-	if(listen(sock, DEFAULT_SYN_BACKLOG) < 0) {
-		printf("Failed to listen on %s\n", strerror(errno));
-		close(sock);
+	if(listen(tcp_sock, DEFAULT_SYN_BACKLOG) < 0) {
+		perror("Failed to listen");
+		close(tcp_sock);
 		return -1;
 	}
-	event_loop_register_fd(sock, on_connection, POLLIN | POLLPRI | POLLHUP);
+	printf("listening ...\n");
+	event_loop_register_fd(tcp_sock, on_connection, POLLIN | POLLPRI | POLLHUP);
+	aroop_txt_t plugin_space = {};
+	aroop_txt_embeded_set_static_string(&plugin_space, "fork/child/after");
+	pm_plug_callback(&plugin_space, tcp_listener_stop_for_client, tcp_listener_stop_for_client_desc);
+	return 0;
 }
 
 int tcp_listener_deinit() {
+	event_loop_unregister_fd(tcp_sock);
+	if(tcp_sock > 0)close(tcp_sock);
+	return 0;
 }
 
 C_CAPSULE_END

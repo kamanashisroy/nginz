@@ -46,7 +46,10 @@ static int event_loop_step(int status) {
 			continue;
 		}
 		count--;
-		internal_callback[i](internal_fds[i].revents);
+		if(internal_callback[i](internal_fds[i].revents)) {
+			// fd is closed and may be removed.
+			return 0;
+		}
 	}
 	return 0;
 }

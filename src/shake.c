@@ -43,6 +43,7 @@ static int on_shake_command(int events) {
 static int shake_stop_on_fork(aroop_txt_t*input, aroop_txt_t*output) {
 	//close(stdin);
 	event_loop_unregister_fd(STDIN_FILENO);
+	close(STDIN_FILENO);
 }
 
 static int shake_stop_on_fork_desc(aroop_txt_t*plugin_space,aroop_txt_t*output) {
