@@ -34,23 +34,32 @@ NGINEZ_INLINE int pp_ping(aroop_txt_t*pkt) {
 NGINEZ_INLINE static int pp_sendmsg_helper(int through, int target) {
 	union {
 		int target;
-		char buf[sizeof(int)];
+		char buf[CMSG_SPACE(sizeof(int))];
 	} intbuf;
 	intbuf.target = target;
 	struct msghdr msg;
 	struct iovec iov[1];
+	struct cmsghdr *control_message = NULL;
+	memset(&intbuf, 0, sizeof(intbuf));
+	char data[1];
 	// sanity check
 	if(through == -1)
 		return -1;
 	memset(&msg, 0, sizeof(msg));
 	memset(iov, 0, sizeof(iov));
 
-	iov[0].iov_base = intbuf.buf;
-	iov[0].iov_len  = sizeof(intbuf.target);
+	iov[0].iov_base = data;
+	iov[0].iov_len  = 1;
 	msg.msg_iov = iov;
 	msg.msg_iovlen = 1;
 	msg.msg_control = intbuf.buf;
-	msg.msg_controllen = sizeof(intbuf.target);
+	msg.msg_controllen = CMSG_SPACE(sizeof(int));
+	control_message = CMSG_FIRSTHDR(&msg);
+	control_message->cmsg_level = SOL_SOCKET;
+	control_message->cmsg_type = SCM_RIGHTS;
+	control_message->cmsg_len = CMSG_LEN(sizeof(int));
+	*((int *) CMSG_DATA(control_message)) = target;
+	printf("Sending fd %d to worker\n", target);
 	
 	if(sendmsg(through, &msg, 0) < 0) {
 		perror("Cannot send msg");
@@ -60,6 +69,7 @@ NGINEZ_INLINE static int pp_sendmsg_helper(int through, int target) {
 }
 
 NGINEZ_INLINE int pp_pingmsg(int socket) {
+	printf("Sending fd %d to worker\n", socket);
 	return pp_sendmsg_helper(mchild, socket);
 }
 
@@ -87,28 +97,40 @@ NGINEZ_INLINE static int pp_recvmsg_helper(int through, int*target) {
 	printf("There is new client, we need to accept it in worker process\n");
 	union {
 		int target;
-		char buf[sizeof(int)];
+		char buf[CMSG_SPACE(sizeof(int))];
 	} intbuf;
 	struct msghdr msg;
 	struct iovec iov[1];
+	struct cmsghdr *control_message = NULL;
+	memset(&intbuf, 0, sizeof(intbuf));
+	char data[1];
 	// sanity check
 	if(through == -1)
 		return -1;
 	memset(&msg, 0, sizeof(msg));
 	memset(iov, 0, sizeof(iov));
 
-	iov[0].iov_base = intbuf.buf;
-	iov[0].iov_len  = sizeof(intbuf.target);
+	iov[0].iov_base = data;
+	iov[0].iov_len  = 1;
 	msg.msg_iov = iov;
 	msg.msg_iovlen = 1;
 	msg.msg_control = intbuf.buf;
-	msg.msg_controllen = sizeof(intbuf.target);
+	msg.msg_controllen = CMSG_SPACE(sizeof(int));
 	
 	if(recvmsg(through, &msg, 0) < 0) {
 		perror("Cannot recv msg");
 		return -1;
 	}
-	*target = intbuf.target;
+	for(control_message = CMSG_FIRSTHDR(&msg);
+		control_message != NULL;
+		control_message = CMSG_NXTHDR(&msg,
+				   control_message)) {
+		if( (control_message->cmsg_level == SOL_SOCKET) &&
+		(control_message->cmsg_type == SCM_RIGHTS) )
+		{
+			*target = *((int *) CMSG_DATA(control_message));
+		}
+	}
 	return 0;
 }
 

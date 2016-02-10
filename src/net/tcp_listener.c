@@ -39,6 +39,7 @@ static int on_connection(int status) {
 	binary_pack_string(&create_msg, &create_command);
 	printf("Sending create message to client\n");
 	pp_ping(&create_msg);
+	printf("Sending fd %d to worker1\n", client_fd);
 	pp_pingmsg(client_fd);
 	close(client_fd);
 	return 0;
