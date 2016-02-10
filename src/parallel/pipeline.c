@@ -161,14 +161,21 @@ static int on_ping(int events) {
 	}
 }
 
+static aroop_txt_t chat_welcome = {};
 static int on_pingmsg(int events) {
 	int acceptfd = -1;
 	if(pp_recvmsg_helper(mparent, &acceptfd)) {
 		return -1;
 	}
 	printf("worker is saying hi to %d\n", acceptfd);
-	if(acceptfd != -1)
-		send(acceptfd, "Hi\n", 3, 0);
+	aroop_txt_t input = {};
+	aroop_txt_t output = {};
+	aroop_txt_embeded_stackbuffer(&input, 8);
+	aroop_txt_printf(&input, "%d", acceptfd);
+	pm_call(&chat_welcome, &input, &output);
+	if(acceptfd != -1 && aroop_txt_length(&output) != 0)
+		send(acceptfd, aroop_txt_to_string(&output), aroop_txt_length(&output), 0);
+	aroop_txt_destroy(&output);
 	return 0;
 }
 
@@ -248,6 +255,7 @@ static int pp_fork_callback_desc(aroop_txt_t*plugin_space,aroop_txt_t*output) {
 /****** Module constructors and destructors *********/
 /****************************************************/
 int pp_module_init() {
+	aroop_txt_embeded_set_static_string(&chat_welcome, "chat/welcome");
 	aroop_txt_embeded_buffer(&recv_buffer, 255);
 	aroop_txt_t plugin_space = {};
 	aroop_txt_embeded_set_static_string(&plugin_space, "fork/before");
