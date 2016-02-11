@@ -21,6 +21,8 @@ static int on_login_data(struct chat_connection*chat, aroop_txt_t*answer) {
 	shotodol_scanner_next_token(&input, &name);
 	if(aroop_txt_is_empty_magical(&name)) // TODO say the name is not valid
 		return 0;
+	// save name
+	aroop_txt_embeded_copy_on_demand(&chat->name, &name);
 	// say welcome
 	aroop_txt_set_length(&greet_on_login, 0);
 	aroop_txt_concat_string(&greet_on_login, "Welcome ");

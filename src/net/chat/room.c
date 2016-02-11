@@ -69,6 +69,10 @@ static int default_room_fork_child_after_callback(aroop_txt_t*input, aroop_txt_t
 	aroop_txt_zero_terminate(&pidstr);
 	printf("we are assigning room(%s) to a process(%s)\n", myroom, aroop_txt_to_string(&pidstr));
 	db_set(myroom, aroop_txt_to_string(&pidstr));
+	aroop_txt_t room_name = {};
+	aroop_txt_embeded_copy_string(&room_name, myroom);
+	broadcast_add_room(&room_name);
+	aroop_txt_destroy(&room_name);
 	internal_child_count++;
 	//aroop_txt_destroy(&pidstr);
 	return 0;

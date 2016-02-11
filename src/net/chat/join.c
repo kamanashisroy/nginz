@@ -70,6 +70,10 @@ static int chat_join_plug(int signature, void*given) {
 	aroop_txt_t room = {};
 	int pid = -1;
 	do {
+		if(aroop_txt_is_empty_magical(&chat->name)) {
+			aroop_txt_embeded_set_static_string(&join_info, "Please login first\n");
+			break;
+		}
 		if(aroop_txt_is_empty_magical(chat->request) || chat_join_get_room(chat->request, &room) || (pid = chat_join_search_pid(&room)) == -1) {
 			aroop_txt_embeded_set_static_string(&join_info, "The room is not avilable\n");
 			break;

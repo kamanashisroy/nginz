@@ -13,11 +13,14 @@ enum chat_state {
 };
 
 struct chat_connection {
+	//struct opp_object_ext _ext;
 	int fd;
 	enum chat_state state;
+	aroop_txt_t name;
 	aroop_txt_t*request;
 	int (*on_answer)(struct chat_connection*chat, aroop_txt_t*answer); // it is used for prompt
 	int (*on_broadcast)(struct chat_connection*chat, aroop_txt_t*msg); // it is used for prompt
+	const void*broadcast_data; // XXX do not unref/ref it ..
 };
 
 NGINZ_INLINE struct composite_plugin*chat_context_get();

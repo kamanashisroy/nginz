@@ -108,12 +108,14 @@ OPP_CB(chat_connection) {
 	struct chat_connection*chat = data;
 	switch(callback) {
 		case OPPN_ACTION_INITIALIZE:
+			aroop_memclean_raw2(&chat->name);
 			chat->on_answer = NULL;
 			chat->on_broadcast = NULL;
 			chat->state = CHAT_CONNECTED;
 			chat->request = NULL;
 		break;
 		case OPPN_ACTION_FINALIZE:
+			aroop_txt_destroy(&chat->name);
 		break;
 	}
 	return 0;
