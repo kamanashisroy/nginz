@@ -15,6 +15,7 @@ enum chat_state {
 struct chat_connection {
 	int fd;
 	enum chat_state state;
+	aroop_txt_t*request;
 	int (*on_answer)(struct chat_connection*chat, aroop_txt_t*answer); // it is used for prompt
 };
 

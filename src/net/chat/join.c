@@ -16,8 +16,38 @@ static int chat_join_plug(int signature, void*given) {
 	if(chat == NULL || chat->fd == -1) // sanity check
 		return 0;
 	aroop_txt_t join_info = {};
-	aroop_txt_embeded_set_static_string(&join_info, "There is no join\n");
+	aroop_txt_t db_data = {};
+	do {
+		if(chat->request == NULL) {
+			aroop_txt_embeded_set_static_string(&join_info, "There is no such room\n");
+			break;
+		}
+		// remove trailing newline
+		aroop_txt_t request_sandbox = {};
+		aroop_txt_t room = {};
+		int reqlen = aroop_txt_length(chat->request);
+		aroop_txt_embeded_stackbuffer(&request_sandbox, reqlen);
+		aroop_txt_concat(&request_sandbox, chat->request);
+		shotodol_scanner_next_token(&request_sandbox, &room);
+		aroop_txt_zero_terminate(&room);
+		if(aroop_txt_is_empty(&room)) {
+			aroop_txt_embeded_set_static_string(&join_info, "There is no such room\n");
+			break;
+		}
+		db_get(aroop_txt_to_string(&room), &db_data);
+		if(aroop_txt_is_empty(&db_data)) {
+			aroop_txt_embeded_set_static_string(&join_info, "There is no such room\n");
+			break;
+		}
+		int len = aroop_txt_length(&db_data)+32;
+		aroop_txt_embeded_stackbuffer(&join_info, len);
+		aroop_txt_concat_string(&join_info, "Switching to process ");
+		aroop_txt_concat(&join_info, &db_data);
+		aroop_txt_concat_char(&join_info, '\n');
+	} while(0);
 	send(chat->fd, aroop_txt_to_string(&join_info), aroop_txt_length(&join_info), 0);
+	aroop_txt_destroy(&join_info);
+	aroop_txt_destroy(&db_data);
 	return 0;
 }
 

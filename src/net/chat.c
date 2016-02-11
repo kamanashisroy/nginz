@@ -28,7 +28,7 @@ static int chat_command(struct chat_connection*chat, aroop_txt_t*given_request) 
 	// make a copy
 	aroop_txt_t request = {};
 	aroop_txt_embeded_txt_copy_shallow(&request, given_request);
-	aroop_txt_shift(&request, 1);
+	aroop_txt_shift(&request, 1); // skip '/' before command
 
 	// get the command token
 	aroop_txt_t ctoken = {};
@@ -39,12 +39,15 @@ static int chat_command(struct chat_connection*chat, aroop_txt_t*given_request) 
 			ret = -1;
 			break;
 		}
+		aroop_txt_shift(&request, 1); // skip SPACE after command
+		chat->request = &request;
 		aroop_txt_t plugin_space = {};
 		aroop_txt_embeded_stackbuffer(&plugin_space, 64);
 		aroop_txt_concat_string(&plugin_space, "chat/");
 		aroop_txt_concat(&plugin_space, &ctoken);
 		ret = composite_plugin_bridge_call(chat_plugin_manager_get(), &plugin_space, CHAT_SIGNATURE, chat);
 		aroop_txt_destroy(&plugin_space);
+		chat->request = NULL; // cleanup
 	} while(0);
 	aroop_txt_destroy(&ctoken);
 	aroop_txt_destroy(&request);
@@ -103,6 +106,7 @@ OPP_CB(chat_connection) {
 		case OPPN_ACTION_INITIALIZE:
 			chat->on_answer = NULL;
 			chat->state = CHAT_CONNECTED;
+			chat->request = NULL;
 		break;
 		case OPPN_ACTION_FINALIZE:
 		break;
