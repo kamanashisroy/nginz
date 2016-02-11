@@ -110,6 +110,8 @@ static int composite_plug_helper(struct composite_plugin*container
 	struct internal_plugin*root = opp_hash_table_get(&(container->table), plugin->plugin_space);
 	if(root) {
 		OPPREF(plugin);
+		while(root->next != NULL)
+			root = root->next;
 		root->next = plugin;
 	} else {
 		opp_hash_table_set(&(container->table), plugin->plugin_space, plugin);

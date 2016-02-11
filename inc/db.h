@@ -3,8 +3,8 @@
 
 C_CAPSULE_START
 
-int db_save(char*key, char*value);
-int db_get(char*key,aroop_txt_t*output);
+int db_set(const char*key, const char*value);
+int db_get(const char*key,aroop_txt_t*output);
 
 
 int db_module_init();

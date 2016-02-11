@@ -16,7 +16,7 @@ C_CAPSULE_START
 
 static memcached_server_st *internal_servers = NULL;
 static memcached_st *internal_memc = NULL;
-int db_save(char*key,char*value) {
+int db_set(const char*key,const char*value) {
 	if(internal_memc == NULL)
 		return -1;
 	memcached_return rc;
@@ -30,7 +30,7 @@ int db_save(char*key,char*value) {
 	return !(rc == MEMCACHED_SUCCESS);
 }
 
-int db_get(char*key,aroop_txt_t*output) {
+int db_get(const char*key,aroop_txt_t*output) {
 	if(internal_memc == NULL)
 		return -1;
 	size_t outlen = 0;
