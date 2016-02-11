@@ -5,32 +5,44 @@
 #include "plugin.h"
 #include "net/chat.h"
 #include "net/chat/chat_plugin_manager.h"
+#include "net/chat/user.h"
 #include "net/chat/welcome.h"
 
 C_CAPSULE_START
 
 aroop_txt_t greet_on_login = {};
 static int on_login_data(struct chat_connection*chat, aroop_txt_t*answer) {
-	// TODO authenticate
 	if(aroop_txt_is_empty_magical(answer))
 		return 0;
 	// remove the trailing space and new line
 	aroop_txt_t input = {};
 	aroop_txt_embeded_txt_copy_shallow(&input, answer);
-	aroop_txt_t name = {}; // TODO save the user data somewhere
+	aroop_txt_t name = {};
 	shotodol_scanner_next_token(&input, &name);
-	if(aroop_txt_is_empty_magical(&name)) // TODO say the name is not valid
-		return 0;
-	// save name
-	aroop_txt_embeded_copy_deep(&chat->name, &name);
-	// say welcome
-	aroop_txt_set_length(&greet_on_login, 0);
-	aroop_txt_concat_string(&greet_on_login, "Welcome ");
-	aroop_txt_concat(&greet_on_login, &name);
-	aroop_txt_concat_char(&greet_on_login, '!');
-	aroop_txt_concat_char(&greet_on_login, '\n');
+	do {
+		// check validity
+		if(aroop_txt_is_empty_magical(&name)) { // TODO allow only alphaneumeric characters and smaller than 32 bytes ..
+			aroop_txt_set_length(&greet_on_login, 0);
+			aroop_txt_concat_string(&greet_on_login, "Invalid name:(, try again\n");
+			break;
+		}
+		// check availability
+		if(try_login(&name)) {
+			aroop_txt_set_length(&greet_on_login, 0);
+			aroop_txt_concat_string(&greet_on_login, "Sorry, name taken.\n");
+			break;
+		}
+		// save name
+		aroop_txt_embeded_copy_deep(&chat->name, &name);
+		// say welcome
+		aroop_txt_set_length(&greet_on_login, 0);
+		aroop_txt_concat_string(&greet_on_login, "Welcome ");
+		aroop_txt_concat(&greet_on_login, &name);
+		aroop_txt_concat_char(&greet_on_login, '!');
+		aroop_txt_concat_char(&greet_on_login, '\n');
+		chat->on_answer = NULL;
+	} while(0);
 	send(chat->fd, aroop_txt_to_string(&greet_on_login), aroop_txt_length(&greet_on_login), 0);
-	chat->on_answer = NULL;
 	return 0;
 }
 

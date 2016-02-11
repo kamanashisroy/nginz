@@ -5,6 +5,7 @@
 #include "plugin.h"
 #include "net/chat.h"
 #include "net/chat/chat_plugin_manager.h"
+#include "net/chat/user.h"
 #include "net/chat/quit.h"
 
 C_CAPSULE_START
@@ -16,6 +17,7 @@ static int chat_quit_plug(int signature, void*given) {
 		return 0;
 	// chat->set_state(chat, CHAT_QUIT);
 	chat->state = CHAT_QUIT;
+	logoff_user(&chat->name);
 	return -1;
 }
 

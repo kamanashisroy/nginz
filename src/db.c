@@ -21,7 +21,7 @@ int db_set(const char*key,const char*value) {
 		return -1;
 	memcached_return rc;
 	printf("We are saving %s\n", key);
-	rc= memcached_set(internal_memc, key, strlen(key), value, strlen(value), (time_t)0, (uint32_t)0);
+	rc= memcached_set(internal_memc, key, strlen(key), value, value?strlen(value):0, (time_t)0, (uint32_t)0);
 	if(rc == MEMCACHED_SUCCESS)
 		printf("We saved the key successfully\n");
 	else
