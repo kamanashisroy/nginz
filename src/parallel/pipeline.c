@@ -12,6 +12,7 @@
 #include "plugin_manager.h"
 #include "event_loop.h"
 #include "parallel/pipeline.h"
+#include "parallel/ping.h"
 #include "net/protostack.h"
 
 struct connection {
@@ -261,9 +262,11 @@ int pp_module_init() {
 	pm_plug_callback(&plugin_space, pp_fork_child_after_callback, pp_fork_callback_desc);
 	aroop_txt_embeded_set_static_string(&plugin_space, "fork/parent/after");
 	pm_plug_callback(&plugin_space, pp_fork_parent_after_callback, pp_fork_callback_desc);
+	ping_module_init();
 }
 
 int pp_module_deinit() {
+	ping_module_deinit();
 	// TODO unregister all
 	aroop_txt_destroy(&recv_buffer);
 }

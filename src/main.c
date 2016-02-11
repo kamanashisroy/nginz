@@ -5,12 +5,14 @@
 #include "plugin_manager.h"
 #include "fiber.h"
 #include "fork.h"
+#include "db.h"
 #include "net/chat.h"
 #include "event_loop.h"
 
 C_CAPSULE_START
 
 static int nginz_main(char*args) {
+	db_module_init();
 	pm_init();
 	fiber_module_init();
 	shake_module_init();
@@ -27,6 +29,7 @@ static int nginz_main(char*args) {
 	shake_module_deinit();
 	fiber_module_deinit();
 	pm_deinit();
+	db_module_deinit();
 	return 0;
 }
 

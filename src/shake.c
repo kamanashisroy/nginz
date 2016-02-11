@@ -32,6 +32,8 @@ static int on_shake_command(int events, const void*unused) {
 	aroop_txt_concat_string(&plugin_space, "shake/");
 	aroop_txt_concat(&plugin_space, &target);
 	aroop_txt_t input = {};
+	aroop_txt_embeded_txt_copy_shallow(&input, &xcmd); // pass the command argument as input
+	aroop_txt_shift(&input, 1); // skip the white space
 	aroop_txt_t output = {};
 	pm_call(&plugin_space, &input, &output);
 	aroop_txt_zero_terminate(&output);

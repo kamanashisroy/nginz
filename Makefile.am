@@ -10,10 +10,11 @@ lib_LTLIBRARIES=$(TARGET_LAR)
 lib_LIBRARIES=$(TARGET_AR)
 NGINZ_SOURCE_FILES = \
 src/fiber.c     src/plugin.c	src/plugin_manager.c	src/scanner.c \
+src/db.c \
 src/event_loop.c \
 src/binary_coder.c \
 src/shake.c	src/shake/help.c \
-src/parallel/pipeline.c	src/parallel/fork.c \
+src/parallel/pipeline.c	src/parallel/fork.c	src/parallel/ping.c \
 src/net/tcp_listener.c src/net/protostack.c \
 src/net/chat.c	src/net/chat/chat_plugin_manager.c	src/net/chat/welcome.c	src/net/chat/room.c	src/net/chat/quit.c	src/net/chat/join.c
 
@@ -24,7 +25,7 @@ inc/fiber.h       inc/plugin.h	inc/plugin_manager.h	inc/scanner.h \
 inc/net/chat.h inc/net/chat/welcome.h
 
 NGINZ_INCLUDES=-Iinc
-NGINZ_CFLAGS=$(AROOP_CFLAGS)
+NGINZ_CFLAGS=$(AROOP_CFLAGS) $(MEMCACHED_CFLAGS)
 
 libnginz_la_SOURCES = $(NGINZ_SOURCE_FILES)
 libnginz_la_CPPFLAGS = $(NGINZ_CFLAGS) $(NGINZ_INCLUDES)
@@ -43,7 +44,7 @@ nginz_main_SOURCES= $(NGINZ_SOURCE_FILES) src/main.c
 #nginz_main_CPPFLAGS= $(NGINZ_CFLAGS) -O2 $(NGINZ_INCLUDES)
 nginz_main_CPPFLAGS= $(NGINZ_CFLAGS) -ggdb3 -DAROOP_OPP_PROFILE -DAROOP_OPP_DEBUG -DMTRACE -DOPP_DEBUG $(NGINZ_INCLUDES)
 #nginz_main_LDFLAGS= $(AROOP_LIBS)
-nginz_main_LDFLAGS= $(AROOP_DEBUG_LIBS)
+nginz_main_LDFLAGS= $(AROOP_DEBUG_LIBS) $(MEMCACHED_LIBS)
 
 
 pkgconfigdir = $(libdir)/pkgconfig
