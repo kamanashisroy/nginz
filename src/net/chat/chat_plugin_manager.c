@@ -14,6 +14,8 @@
 #include "net/chat/welcome.h"
 #include "net/chat/room.h"
 #include "net/chat/join.h"
+#include "net/chat/broadcast.h"
+#include "net/chat/leave.h"
 #include "net/chat/quit.h"
 
 C_CAPSULE_START
@@ -40,6 +42,8 @@ int chat_plugin_manager_module_init() {
 	welcome_module_init();
 	room_module_init();
 	join_module_init();
+	broadcast_module_init();
+	leave_module_init();
 	quit_module_init();
 	aroop_txt_t plugin_space = {};
 	aroop_txt_embeded_set_static_string(&plugin_space, "shake/chatplugin");
@@ -48,6 +52,8 @@ int chat_plugin_manager_module_init() {
 
 int chat_plugin_manager_module_deinit() {
 	quit_module_deinit();
+	leave_module_deinit();
+	broadcast_module_deinit();
 	join_module_deinit();
 	room_module_deinit();
 	welcome_module_deinit();

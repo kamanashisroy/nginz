@@ -26,11 +26,11 @@ int fork_processors(int nclients) {
 	pm_call(&plugin_space, &input, &output);
 	aroop_txt_destroy(&output);
 	pid = fork();
-	if(pid == 0) { // parent
+	if(pid > 0) { // parent
 		aroop_txt_embeded_set_static_string(&plugin_space, "fork/parent/after");
 		pm_call(&plugin_space, &input, &output);
 		aroop_txt_destroy(&output);
-	} else if(pid > 0) { // child
+	} else if(pid == 0) { // child
 		aroop_txt_embeded_set_static_string(&plugin_space, "fork/child/after");
 		pm_call(&plugin_space, &input, &output);
 		aroop_txt_destroy(&output);

@@ -81,6 +81,10 @@ static int on_client_data(int status, const void*cb_data) {
 		chat_destroy(chat);
 		return -1;
 	}
+	if(chat->on_broadcast != NULL) {
+		chat->on_broadcast(chat, &recv_buffer);
+		return 0;
+	}
 	// we cannot handle data
 	send(chat->fd, aroop_txt_to_string(&cannot_process), aroop_txt_length(&cannot_process), 0);
 	return 0;
@@ -105,6 +109,7 @@ OPP_CB(chat_connection) {
 	switch(callback) {
 		case OPPN_ACTION_INITIALIZE:
 			chat->on_answer = NULL;
+			chat->on_broadcast = NULL;
 			chat->state = CHAT_CONNECTED;
 			chat->request = NULL;
 		break;
