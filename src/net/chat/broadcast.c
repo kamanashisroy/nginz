@@ -26,17 +26,60 @@ static int broadcast_callback(struct chat_connection*chat, aroop_txt_t*msg) {
 		printf("We do not know how we can broadcast it\n");
 		return -1;
 	}
-	printf("found room to broadcast %s\n", aroop_txt_to_string(&rm->name));
+	// iterate all the user
+	aroop_txt_t resp = {};
+	aroop_txt_embeded_stackbuffer(&resp, 1024);
+	aroop_txt_concat(&resp, &chat->name); // show the message sender name
+	aroop_txt_concat_char(&resp, ':');
+	aroop_txt_concat(&resp, msg); // show the message
+
+	// iterate through all
 	struct opp_iterator iterator = {};
 	opp_iterator_create(&iterator, &rm->user_list, OPPN_ALL, 0, 0);
 	opp_pointer_ext_t*pt;
 	while(pt = opp_iterator_next(&iterator)) {
-		struct chat_connection*chat = (struct chat_connection*)pt->obj_data;
-		printf("Broadcasting to %s\n", aroop_txt_to_string(&chat->name));
-		send(chat->fd, aroop_txt_to_string(msg), aroop_txt_length(msg), NULL);
+		struct chat_connection*other = (struct chat_connection*)pt->obj_data;
+		if(chat == other)
+			continue; // do not broadcast to self
+
+		// broadcast message to others
+		send(other->fd, aroop_txt_to_string(msg), aroop_txt_length(msg), 0); // send it to other
 	}
 	opp_iterator_destroy(&iterator);
 	return 0;
+}
+
+static int broadcast_greet_to_room(struct chat_connection*chat, struct internal_room*rm) {
+	aroop_txt_t resp = {};
+	aroop_txt_embeded_stackbuffer(&resp, 1024);
+	aroop_txt_concat_string(&resp, "Entering room:");
+	aroop_txt_concat(&resp, &rm->name);
+	aroop_txt_concat_char(&resp, '\n');
+	send(chat->fd, aroop_txt_to_string(&resp), aroop_txt_length(&resp), 0);
+
+	// now print the user list ..
+	struct opp_iterator iterator = {};
+	opp_iterator_create(&iterator, &rm->user_list, OPPN_ALL, 0, 0);
+	opp_pointer_ext_t*pt;
+	while(pt = opp_iterator_next(&iterator)) {
+		struct chat_connection*other = (struct chat_connection*)pt->obj_data;
+		aroop_txt_set_length(&resp, 0);
+		aroop_txt_concat_char(&resp, '\t');
+		aroop_txt_concat_char(&resp, '*');
+		aroop_txt_concat(&resp, &other->name);
+		if(chat == other) {
+			// say it is you 
+			aroop_txt_concat_string(&resp, "(** this is you)");
+		}
+		aroop_txt_concat_char(&resp, '\n');
+		send(chat->fd, aroop_txt_to_string(&resp), aroop_txt_length(&resp), 0);
+	}
+	opp_iterator_destroy(&iterator);
+
+	// end
+	aroop_txt_set_length(&resp, 0);
+	aroop_txt_concat_string(&resp, "end of list\n");
+	send(chat->fd, aroop_txt_to_string(&resp), aroop_txt_length(&resp), 0);
 }
 
 int broadcast_assign_to_room(struct chat_connection*chat, aroop_txt_t*room_name) {
@@ -51,6 +94,8 @@ int broadcast_assign_to_room(struct chat_connection*chat, aroop_txt_t*room_name)
 	chat->broadcast_data = rm; // we are not doing OPPREF because it will overflow our reference counter as more people join one group ..
 	OPPUNREF(rm);
 	chat->on_broadcast = broadcast_callback;
+	// show room information 
+	broadcast_greet_to_room(chat, (struct internal_room*)chat->broadcast_data);
 	return 0;
 }
 
@@ -66,7 +111,7 @@ OPP_CB(internal_room) {
 	struct internal_room*room = data;
 	switch(callback) {
 		case OPPN_ACTION_INITIALIZE:
-			printf("creating user list\n");
+			//printf("creating user list\n");
 			OPP_LIST_CREATE_NOLOCK(&room->user_list, 64);
 		break;
 		case OPPN_ACTION_FINALIZE:
