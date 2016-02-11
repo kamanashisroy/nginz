@@ -43,7 +43,7 @@ static int broadcast_callback(struct chat_connection*chat, aroop_txt_t*msg) {
 			continue; // do not broadcast to self
 
 		// broadcast message to others
-		send(other->fd, aroop_txt_to_string(msg), aroop_txt_length(msg), 0); // send it to other
+		send(other->fd, aroop_txt_to_string(&resp), aroop_txt_length(&resp), 0); // send it to other
 	}
 	opp_iterator_destroy(&iterator);
 	return 0;
