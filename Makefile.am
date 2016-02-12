@@ -1,5 +1,5 @@
 
-TARGET_BIN=nginz_main
+TARGET_BIN=nginz_main nginz_main_debug
 TARGET_O=libnginz.o
 TARGET_BASIC_O=libnginz_basic.o
 #TARGET_HAS_THREAD_O=libnginz_has_thread.o
@@ -16,7 +16,7 @@ src/binary_coder.c \
 src/shake.c	src/shake/help.c	src/shake/test.c	src/shake/quitall.c \
 src/parallel/pipeline.c	src/parallel/fork.c	src/parallel/ping.c \
 src/net/tcp_listener.c src/net/protostack.c \
-src/net/chat.c	src/net/chat/chat_plugin_manager.c	src/net/chat/welcome.c	src/net/chat/room.c	src/net/chat/quit.c	src/net/chat/join.c	src/net/chat/broadcast.c	src/net/chat/leave.c	src/net/chat/user.c	src/net/chat/hiddenjoin.c	src/net/chat/uptime.c
+src/net/chat.c	src/net/chat/chat_plugin_manager.c	src/net/chat/welcome.c	src/net/chat/room.c	src/net/chat/quit.c	src/net/chat/join.c	src/net/chat/broadcast.c	src/net/chat/leave.c	src/net/chat/user.c	src/net/chat/hiddenjoin.c	src/net/chat/uptime.c	src/net/chat/profiler.c
 
 pkgincludedir=$(includedir)/nginz@PACKAGE_SUFFIX@
 nobase_pkginclude_HEADERS= \
@@ -37,14 +37,16 @@ libnginz_debug_a_CPPFLAGS = $(NGINZ_CFLAGS) -ggdb3 -DAROOP_OPP_PROFILE -DAROOP_O
 libnginz_o_SOURCES = $(NGINZ_SOURCE_FILES)
 libnginz_o_CPPFLAGS = $(NGINZ_CFLAGS) $(NGINZ_INCLUDES)
 libnginz_basic_o_SOURCES = $(NGINZ_SOURCE_FILES)
-libnginz_basic_o_CPPFLAGS= $(NGINZ_CFLAGS)-DAROOP_BASIC $(NGINZ_INCLUDES)
+libnginz_basic_o_CPPFLAGS= $(NGINZ_CFLAGS) -DAROOP_BASIC $(NGINZ_INCLUDES)
 #libnginz_has_thread_o_SOURCES = $(NGINZ_SOURCE_FILES)
 #libnginz_has_thread_o_CPPFLAGS= $(NGINZ_CFLAGS)-DHAS_THREAD $(NGINZ_INCLUDES)
 nginz_main_SOURCES= $(NGINZ_SOURCE_FILES) src/main.c
-#nginz_main_CPPFLAGS= $(NGINZ_CFLAGS) -O2 $(NGINZ_INCLUDES)
-nginz_main_CPPFLAGS= $(NGINZ_CFLAGS) -ggdb3 -DAROOP_OPP_PROFILE -DAROOP_OPP_DEBUG -DMTRACE -DOPP_DEBUG $(NGINZ_INCLUDES)
-#nginz_main_LDFLAGS= $(AROOP_LIBS)
-nginz_main_LDFLAGS= $(AROOP_DEBUG_LIBS) $(MEMCACHED_LIBS)
+nginz_main_CPPFLAGS= $(NGINZ_CFLAGS) -O2 $(NGINZ_INCLUDES)
+nginz_main_LDFLAGS= $(AROOP_LIBS) $(MEMCACHED_LIBS)
+# NOTE for debugging enable the following
+nginz_main_debug_SOURCES= $(NGINZ_SOURCE_FILES) src/main.c
+nginz_main_debug_CPPFLAGS= $(NGINZ_CFLAGS) -ggdb3 -DAROOP_OPP_PROFILE -DAROOP_OPP_DEBUG -DMTRACE -DOPP_DEBUG $(NGINZ_INCLUDES)
+nginz_main_debug_LDFLAGS= $(AROOP_DEBUG_LIBS) $(MEMCACHED_LIBS)
 
 
 pkgconfigdir = $(libdir)/pkgconfig

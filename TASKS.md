@@ -18,7 +18,7 @@ Tasks
 - [ ] Limit the username and chatroom length.
 - [ ] Add uname command
 - [x] Add uptime command
-- [ ] Add profiler command to show memory profiler
+- [x] Add profiler command to show memory profiler
 
 ### shake
 - [ ] Create memory profiler command to show memory usage.
