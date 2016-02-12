@@ -11,6 +11,91 @@
 
 C_CAPSULE_START
 
+static const char*ROOM_PID_KEY = "room/pid/";
+static const char*ROOM_USER_KEY = "room/user/";
+int chat_room_get_user_count(aroop_txt_t*my_room) {
+	if(aroop_txt_is_empty(my_room)) {
+		return -1;
+	}
+	// get the number of users in that room
+	aroop_txt_t db_room_key = {};
+	aroop_txt_embeded_stackbuffer(&db_room_key, 128);
+	aroop_txt_concat_string(&db_room_key, ROOM_USER_KEY);
+	aroop_txt_concat(&db_room_key, my_room);
+	aroop_txt_zero_terminate(&db_room_key);
+	return db_get_int(aroop_txt_to_string(&db_room_key));
+}
+
+int chat_room_set_user_count(aroop_txt_t*my_room, int user_count) {
+	if(aroop_txt_is_empty(my_room)) {
+		return -1;
+	}
+	// get the number of users in that room
+	aroop_txt_t db_room_key = {};
+	aroop_txt_embeded_stackbuffer(&db_room_key, 128);
+	aroop_txt_concat_string(&db_room_key, ROOM_USER_KEY);
+	aroop_txt_concat(&db_room_key, my_room);
+	aroop_txt_zero_terminate(&db_room_key);
+	return db_set_int(aroop_txt_to_string(&db_room_key), user_count);
+}
+
+int chat_room_get_pid(aroop_txt_t*my_room) {
+	if(aroop_txt_is_empty(my_room)) {
+		return -1;
+	}
+	// get the number of users in that room
+	aroop_txt_t db_room_key = {};
+	aroop_txt_embeded_stackbuffer(&db_room_key, 128);
+	aroop_txt_concat_string(&db_room_key, ROOM_PID_KEY);
+	aroop_txt_concat(&db_room_key, my_room);
+	aroop_txt_zero_terminate(&db_room_key);
+	return db_get_int(aroop_txt_to_string(&db_room_key));
+}
+
+static int chat_room_set_pid(const char*my_room, int pid) {
+	// get the number of users in that room
+	aroop_txt_t db_room_key = {};
+	aroop_txt_embeded_stackbuffer(&db_room_key, 128);
+	aroop_txt_concat_string(&db_room_key, ROOM_PID_KEY);
+	aroop_txt_concat_string(&db_room_key, my_room);
+	aroop_txt_zero_terminate(&db_room_key);
+	return db_set_int(aroop_txt_to_string(&db_room_key), pid);
+}
+
+
+static int chat_room_describe_helper(aroop_txt_t*my_room, aroop_txt_t*room_info) {
+	int count = chat_room_get_user_count(my_room);
+	if(count < 0)
+		count = 0; // fixup
+	// prepare output
+	aroop_txt_concat_char(room_info, '\t');
+	aroop_txt_concat_char(room_info, '*');
+	aroop_txt_concat_char(room_info, ' ');
+	aroop_txt_concat(room_info, my_room);
+	if(count) {
+		aroop_txt_t count_str = {};
+		aroop_txt_embeded_stackbuffer(&count_str, 32);
+		aroop_txt_printf(&count_str, " (%d)", count);
+		aroop_txt_concat(room_info, &count_str);
+	}
+	aroop_txt_concat_char(room_info, '\n');
+	return 0;
+}
+
+static int chat_room_describe(aroop_txt_t*roomstr, aroop_txt_t*room_info) {
+	aroop_txt_t next = {};
+	aroop_txt_concat_string(room_info, "Active rooms are:\n");
+	while(1) {
+		shotodol_scanner_next_token(roomstr, &next);
+		if(aroop_txt_is_empty(&next)) {
+			break;
+		}
+		chat_room_describe_helper(&next, room_info);
+	}
+	aroop_txt_concat_string(room_info, "end of list.\n");
+	return 0;
+}
+
 static const char*ROOM_KEY = "rooms";
 static int chat_room_lookup_plug(int signature, void*given) {
 	aroop_assert(signature == CHAT_SIGNATURE);
@@ -23,10 +108,11 @@ static int chat_room_lookup_plug(int signature, void*given) {
 	if(aroop_txt_is_empty(&db_data)) {
 		aroop_txt_embeded_set_static_string(&room_info, "There is no room\n");
 	} else {
-		int len = aroop_txt_length(&db_data)+4;
-		aroop_txt_embeded_stackbuffer(&room_info, len);
-		aroop_txt_concat(&room_info, &db_data);
-		aroop_txt_concat_char(&room_info, '\n');
+		int len = aroop_txt_length(&db_data)*8;
+		aroop_txt_embeded_stackbuffer(&room_info, len); // FIXME too many chatroom will cause stack overflow ..
+		chat_room_describe(&db_data, &room_info);
+		//aroop_txt_concat(&room_info, &db_data);
+		//aroop_txt_concat_char(&room_info, '\n');
 	}
 	send(chat->fd, aroop_txt_to_string(&room_info), aroop_txt_length(&room_info), 0);
 	aroop_txt_destroy(&room_info);
@@ -63,12 +149,8 @@ static int internal_child_count = 0;
 static int default_room_fork_child_after_callback(aroop_txt_t*input, aroop_txt_t*output) {
 	const char*myroom = default_rooms[internal_child_count];
 	int pid = getpid();
-	aroop_txt_t pidstr = {};
-	aroop_txt_embeded_stackbuffer(&pidstr, 32);
-	aroop_txt_printf(&pidstr, "%d", pid);
-	aroop_txt_zero_terminate(&pidstr);
-	printf("we are assigning room(%s) to a process(%s)\n", myroom, aroop_txt_to_string(&pidstr));
-	db_set(myroom, aroop_txt_to_string(&pidstr));
+	printf("we are assigning room(%s) to a process(%d)\n", myroom, pid);
+	chat_room_set_pid(myroom, pid);
 	aroop_txt_t room_name = {};
 	aroop_txt_embeded_copy_string(&room_name, myroom);
 	broadcast_add_room(&room_name);

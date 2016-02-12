@@ -66,25 +66,6 @@ static int chat_join_get_room(aroop_txt_t*request, aroop_txt_t*room) {
 	return 0;
 }
 
-static int chat_join_search_pid(aroop_txt_t*room) {
-	// remove trailing newline
-	if(aroop_txt_is_empty(room)) {
-		return -1;
-	}
-
-	// find the associated process to the room
-	aroop_txt_t db_data = {};
-	db_get(aroop_txt_to_string(room), &db_data);
-	if(aroop_txt_is_empty(&db_data)) {
-		aroop_txt_destroy(&db_data);
-		return -1;
-	}
-	int pid = aroop_txt_to_int(&db_data);
-	if(pid == 0)
-		return -1;
-	return pid;
-}
-
 static int chat_join_plug(int signature, void*given) {
 	aroop_assert(signature == CHAT_SIGNATURE);
 	struct chat_connection*chat = (struct chat_connection*)given;
@@ -98,7 +79,7 @@ static int chat_join_plug(int signature, void*given) {
 			aroop_txt_embeded_set_static_string(&join_info, "Please login first\n");
 			break;
 		}
-		if(aroop_txt_is_empty_magical(chat->request) || chat_join_get_room(chat->request, &room) || (pid = chat_join_search_pid(&room)) == -1) {
+		if(aroop_txt_is_empty_magical(chat->request) || chat_join_get_room(chat->request, &room) || (pid = chat_room_get_pid(&room)) == -1) {
 			aroop_txt_embeded_set_static_string(&join_info, "The room is not avilable\n");
 			break;
 		}

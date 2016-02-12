@@ -45,6 +45,23 @@ int db_get(const char*key,aroop_txt_t*output) {
 	return !(rc == MEMCACHED_SUCCESS);
 }
 
+int db_get_int(const char*key) {
+	aroop_txt_t output = {};
+	db_get(key, &output);
+	if(!aroop_txt_is_empty(&output)) {
+		aroop_txt_zero_terminate(&output);
+		return aroop_txt_to_int(&output);
+	}
+	return -1;
+}
+
+int db_set_int(const char*key, int value) {
+	aroop_txt_t valstr = {};
+	aroop_txt_embeded_stackbuffer(&valstr, 32);
+	aroop_txt_printf(&valstr, "%d", value);
+	return db_set(key, aroop_txt_to_string(&valstr));
+}
+
 int db_module_init() {
 	memcached_return rc;
 	//memcached_server_st *memcached_servers_parse (char *server_strings);

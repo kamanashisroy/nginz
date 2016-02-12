@@ -66,6 +66,7 @@ static int broadcast_room_greet(struct chat_connection*chat, struct internal_roo
 		aroop_txt_set_length(&resp, 0);
 		aroop_txt_concat_char(&resp, '\t');
 		aroop_txt_concat_char(&resp, '*');
+		aroop_txt_concat_char(&resp, ' ');
 		aroop_txt_concat(&resp, &other->name);
 		if(chat == other) {
 			// say it is you 
@@ -107,6 +108,7 @@ int broadcast_room_join(struct chat_connection*chat, aroop_txt_t*room_name) {
 	chat->on_broadcast = broadcast_callback;
 	// show room information 
 	broadcast_room_greet(chat, (struct internal_room*)chat->broadcast_data);
+	chat_room_set_user_count(room_name, OPP_FACTORY_USE_COUNT(&((struct internal_room*)chat->broadcast_data)->user_list));
 	return 0;
 }
 
@@ -132,6 +134,7 @@ int broadcast_room_leave(struct chat_connection*chat) {
 
 	chat->on_broadcast = NULL;
 	chat->broadcast_data = NULL;
+	chat_room_set_user_count(&rm->name, OPP_FACTORY_USE_COUNT(&rm->user_list));
 	return 0;
 }
 
