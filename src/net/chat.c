@@ -80,14 +80,14 @@ static int on_client_data(int status, const void*cb_data) {
 			chat->on_broadcast(chat, &recv_buffer);
 			break;
 		}
-		if(chat->state == CHAT_QUIT) {
+		if(chat->state == CHAT_QUIT || chat->state == CHAT_SOFT_QUIT) {
 			// time to quit
 			break;
 		}
 		// we cannot handle data
 		send(chat->fd, aroop_txt_to_string(&cannot_process), aroop_txt_length(&cannot_process), 0);
 	} while(0);
-	if(chat->state == CHAT_QUIT) {
+	if(chat->state == CHAT_QUIT || chat->state == CHAT_SOFT_QUIT) {
 		printf("Client quited\n");
 		chat_destroy(chat);
 		return -1;
@@ -115,6 +115,7 @@ static int chat_on_guest_hookup(int fd, aroop_txt_t*cmd) {
 	}
 
 	composite_plugin_bridge_call(chat_plugin_manager_get(), &plugin_space, CHAT_SIGNATURE, chat);
+	printf("adding guest client to event loop\n");
 	event_loop_register_fd(fd, on_client_data, chat, NGINZ_POLL_ALL_FLAGS);
 	return 0;
 }

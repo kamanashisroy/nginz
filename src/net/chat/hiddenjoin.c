@@ -47,9 +47,10 @@ static int chat_hiddenjoin_plug(int signature, void*given) {
 			break;
 		}
 		aroop_txt_embeded_copy_deep(&chat->name, &name);
-		printf("doing hidden join to %s\n", aroop_txt_to_string(&room));
-		broadcast_room_join(chat, room);
+		printf("doing hidden join to [%s] name [%s]\n", aroop_txt_to_string(&room), aroop_txt_to_string(&name));
+		broadcast_room_join(chat, &room);
 	} while(0);
+	printf("hiddenjoin complete\n");
 	aroop_txt_destroy(&room);
 	aroop_txt_destroy(&name);
 	return 0;

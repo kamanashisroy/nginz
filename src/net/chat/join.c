@@ -12,6 +12,8 @@ C_CAPSULE_START
 static int chat_join_transfer(struct chat_connection*chat, aroop_txt_t*room, int pid) {
 	// leave current chatroom
 	broadcast_room_leave(chat);
+	// remove it from listener
+	event_loop_unregister_fd(chat->fd); // XXX do I need it ??
 	printf("transfering with command\n");
 	aroop_txt_t cmd = {};
 	aroop_txt_embeded_stackbuffer(&cmd, 128);

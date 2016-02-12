@@ -15,6 +15,11 @@ static struct pollfd internal_fds[MAX_POLL_FD];
 static struct event_callback internal_callback[MAX_POLL_FD];
 static int internal_nfds = 0;
 
+
+int event_loop_fd_count() {
+	return internal_nfds;
+}
+
 int event_loop_register_fd(int fd, int (*on_event)(int returned_events, const void*event_data), const void*event_data, short requested_events) {
 	internal_fds[internal_nfds].fd = fd;
 	internal_fds[internal_nfds].events = requested_events;

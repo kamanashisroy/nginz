@@ -2,6 +2,8 @@
 Tasks
 ========
 
+- [ ] Quit all child process.
+
 ### Aroop
 - [ ] Turn of the HAS_THREAD from aroop core. We do not need threading or locking.
 - [ ] use OPP_PFACTORY_CREATE_FULL to tune all the flags.
@@ -13,7 +15,7 @@ Tasks
 ### chat
 - [ ] Limit the username and chatroom length.
 - [ ] Add uname command
-- [ ] Add uptime command
+- [x] Add uptime command
 - [ ] Add profiler command to show memory profiler
 
 ### shake

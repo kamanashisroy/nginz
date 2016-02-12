@@ -18,6 +18,7 @@
 #include "net/chat/broadcast.h"
 #include "net/chat/leave.h"
 #include "net/chat/quit.h"
+#include "net/chat/uptime.h"
 
 C_CAPSULE_START
 
@@ -47,12 +48,14 @@ int chat_plugin_manager_module_init() {
 	hiddenjoin_module_init();
 	leave_module_init();
 	quit_module_init();
+	uptime_module_init();
 	aroop_txt_t plugin_space = {};
 	aroop_txt_embeded_set_static_string(&plugin_space, "shake/chatplugin");
 	pm_plug_callback(&plugin_space, chat_plugin_command, chat_plugin_command_desc);
 }
 
 int chat_plugin_manager_module_deinit() {
+	uptime_module_deinit();
 	quit_module_deinit();
 	leave_module_deinit();
 	hiddenjoin_module_deinit();
