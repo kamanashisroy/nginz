@@ -280,6 +280,9 @@ static int pp_fork_child_after_callback(aroop_txt_t*input, aroop_txt_t*output) {
 	mparent = mpipefd[1];
 	event_loop_register_fd(parent, on_ping, NULL, NGINZ_POLL_ALL_FLAGS);
 	event_loop_register_fd(mparent, on_pingmsg, NULL, NGINZ_POLL_ALL_FLAGS);
+	// cleanup child
+	event_loop_unregister_fd(child);
+	event_loop_unregister_fd(mchild);
 	aroop_assert(child == -1);
 	aroop_assert(mchild == -1);
 	child = -1;
