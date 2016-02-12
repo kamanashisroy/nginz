@@ -99,7 +99,9 @@ int broadcast_room_join(struct chat_connection*chat, aroop_txt_t*room_name) {
 		printf("Cannot find room %s\n", aroop_txt_to_string(room_name));
 		return -1;
 	}
-	opp_list_add_noref(&rm->user_list, chat); // XXX we avoid circular reference ..
+	opp_list_add_noref(&rm->user_list, chat);
+	OPPREF(chat);
+	// XXX we avoid circular reference ..
 	chat->broadcast_data = rm; // we are not doing OPPREF because it will overflow our reference counter as more people join one group ..
 	OPPUNREF(rm);
 	chat->on_broadcast = broadcast_callback;
@@ -114,7 +116,20 @@ int broadcast_room_leave(struct chat_connection*chat) {
 	if(!rm)
 		return 0;
 	broadcast_room_bye(chat, rm);
-	opp_list_prune_does_not_work(&rm->user_list, chat, OPPN_ALL, 0, 0); // TODO add user hash to make it faster ..
+
+	// prune the user from the list
+	struct opp_iterator iterator = {};
+	opp_iterator_create(&iterator, &rm->user_list, OPPN_ALL, 0, 0);
+	opp_pointer_ext_t*pt = NULL;
+	while(pt = opp_iterator_next(&iterator)) {
+		struct chat_connection*other = (struct chat_connection*)pt->obj_data;
+		if(chat == other) {
+			OPPUNREF(pt);
+			break;
+		}
+	}
+	opp_iterator_destroy(&iterator);
+
 	chat->on_broadcast = NULL;
 	chat->broadcast_data = NULL;
 	return 0;
