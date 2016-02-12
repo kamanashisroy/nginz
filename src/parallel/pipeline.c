@@ -188,18 +188,20 @@ static int on_pingmsg(int events, const void*unused) {
 		if(pp_recvmsg_helper(mparent, &acceptfd, &cmd)) {
 			break;
 		}
-		binary_unpack_string(&cmd, 0, &destpid);
+		binary_coder_fixup(&cmd);
+		//binary_coder_debug_dump(&cmd);
+		binary_unpack_int(&cmd, 0, &destpid);
 		if(destpid > 0 && destpid != getpid()) {
 			// it is not ours
-			printf("It(%d) is not ours(%d) on ping doing pong\n", destpid, getpid());
-			if(destpid > getpid()) {
+			printf("It(%d) is not ours(%d) on ping doing more ping\n", destpid, getpid());
+			if(destpid < getpid()) {
 				printf("BUG, it cannot happen, we not not ponging anymore\n");
 				break;
 			}
 			pp_pingmsg(acceptfd, &cmd);
 			break;
 		}
-		if(destpid <= 0 && mparent != -1 && load_take()) {
+		if(destpid <= 0 && mchild != -1 && load_take()) {
 			printf("balancing load on %d\n", getpid());
 			pp_pingmsg(acceptfd, &cmd);
 			break;
@@ -224,18 +226,20 @@ static int on_pongmsg(int events, const void*unused) {
 		if(pp_recvmsg_helper(mchild, &acceptfd, &cmd)) {
 			break;
 		}
-		binary_unpack_string(&cmd, 0, &destpid);
+		binary_coder_fixup(&cmd);
+		//binary_coder_debug_dump(&cmd);
+		binary_unpack_int(&cmd, 0, &destpid);
 		if(destpid > 0 && destpid != getpid()) {
 			printf("It(%d) is not ours(%d) on pong doing ping\n", destpid, getpid());
 			// it is not ours
-			if(destpid < getpid()) {
+			if(destpid > getpid()) {
 				printf("BUG, it cannot happen, we not not pinging anymore\n");
 				break;
 			}
 			pp_pongmsg(acceptfd, &cmd);
 			break;
 		}
-		if(destpid <= 0 && mchild != -1 && load_take()) {
+		if(destpid <= 0 && mparent != -1 && load_take()) {
 			printf("balancing load on %d\n", getpid());
 			pp_pongmsg(acceptfd, &cmd);
 			break;

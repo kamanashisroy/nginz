@@ -24,6 +24,9 @@ int binary_pack_string(aroop_txt_t*buffer, aroop_txt_t*x);
 int binary_unpack_string(aroop_txt_t*buffer, int skip, aroop_txt_t*x);
 int binary_unpack_int(aroop_txt_t*buffer, int skip, int*intval);
 
+int binary_coder_fixup(aroop_txt_t*buffer);
+int binary_coder_debug_dump(aroop_txt_t*buffer);
+
 C_CAPSULE_END
 
 #endif // NGINZ_BINARY_CODER_H

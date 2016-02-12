@@ -43,6 +43,7 @@ int binary_pack_string(aroop_txt_t*buffer, aroop_txt_t*x) {
 	blen = (mychar_t)aroop_txt_length(buffer);
 	// update base header
 	aroop_txt_set_char_at(buffer, 0, blen);
+	printf("packed to %d bytes\n", blen);
 	return 0;
 }
 
@@ -53,7 +54,6 @@ int binary_unpack_string(aroop_txt_t*buffer, int skip, aroop_txt_t*x) {
 		return 0;
 	// do not trust the blen use my blen
 	blen = (mychar_t)aroop_txt_char_at(buffer, 0);
-	printf("given blen:%d, data available:%d\n", blen, aroop_txt_length(buffer));
 	if(blen > (aroop_txt_length(buffer))) {
 		printf("Error in buffer data, may be the socket is corrupted 1\n");
 		return -1;
@@ -66,15 +66,17 @@ int binary_unpack_string(aroop_txt_t*buffer, int skip, aroop_txt_t*x) {
 			printf("Error in buffer data, may be the socket is corrupted 2\n");
 			return -1;
 		}
+		if(skip) {
+			pos += nlen+1;
+			skip--;
+			continue;
+		}
 		aroop_txt_embeded_txt_copy_shallow(x,buffer);
 		pos++;
-		nlen;
 		aroop_txt_shift(x, pos);
 		aroop_txt_set_length(x, nlen);
 		pos+= nlen;
-		if(!skip)
-			return 0;
-		skip--;
+		break;
 	} while(pos < blen);
 	return 0;
 }
@@ -82,7 +84,9 @@ int binary_unpack_string(aroop_txt_t*buffer, int skip, aroop_txt_t*x) {
 
 int binary_unpack_int(aroop_txt_t*buffer, int skip, int*intval) {
 	aroop_txt_t x = {};
-	binary_unpack_string(buffer, skip, &x);
+	if(binary_unpack_string(buffer, skip, &x)) {
+		return -1;
+	}
 	aroop_txt_t sandbox = {};
 	aroop_txt_embeded_stackbuffer(&sandbox, 32);
 	aroop_txt_concat(&sandbox, &x);
@@ -93,30 +97,66 @@ int binary_unpack_int(aroop_txt_t*buffer, int skip, int*intval) {
 	return 0;
 }
 
+int binary_coder_fixup(aroop_txt_t*buffer) {
+	mychar_t blen = (mychar_t)aroop_txt_length(buffer);
+	if(blen == 1)
+		return 0;
+	// do not trust the blen use my blen
+	blen = (mychar_t)aroop_txt_char_at(buffer, 0);
+	if(blen != aroop_txt_length(buffer)) {
+		printf("Fixing .. given blen:%d, data available:%d\n", blen, aroop_txt_length(buffer));
+		aroop_txt_set_length(buffer, blen);
+	}
+	return 0;
+}
 
-static int binary_coder_test(aroop_txt_t*input, aroop_txt_t*output) {
-	int expval = 32;
+int binary_coder_debug_dump(aroop_txt_t*buffer) {
+	int skip = 0;
+	do {
+		aroop_txt_t x = {};
+		if(binary_unpack_string(buffer, skip, &x)) {
+			return -1;
+		}
+		skip++;
+		if(aroop_txt_is_empty(&x))
+			break;
+		aroop_txt_t sandbox = {};
+		aroop_txt_embeded_stackbuffer(&sandbox, 32);
+		aroop_txt_concat(&sandbox, &x);
+		aroop_txt_zero_terminate(&sandbox);
+		printf("%s\n", aroop_txt_to_string(&sandbox));
+		aroop_txt_destroy(&x);
+	}while(1);
+	return 0;
+}
+
+static int binary_coder_test_helper(int expval) {
 	aroop_txt_t bin = {};
 	aroop_txt_embeded_stackbuffer(&bin, 255);
 	binary_coder_reset_for_pid(&bin, expval);
 	aroop_txt_t str = {};
 	aroop_txt_embeded_set_static_string(&str, "test"); 
 	binary_pack_string(&bin, &str);
+	binary_coder_debug_dump(&bin);
 
 	int intval = 0;
 	aroop_txt_t strval = {};
 	binary_unpack_int(&bin, 0, &intval);
 	binary_unpack_string(&bin, 1, &strval);
 	
-	int success = (intval == expval && aroop_txt_equals(&strval, &str));
+	aroop_txt_zero_terminate(&strval);
+	aroop_txt_zero_terminate(&str);
+	printf(" [%s!=%s] and [%d!=%d]\n", aroop_txt_to_string(&strval), aroop_txt_to_string(&str), intval, expval);
+	return !(intval == expval && aroop_txt_equals(&strval, &str));
+}
 
+static int binary_coder_test(aroop_txt_t*input, aroop_txt_t*output) {
 	aroop_txt_embeded_buffer(output, 512);
-	if(success) {
-		aroop_txt_concat_string(output, "successful\n");
+	if(binary_coder_test_helper(32) || binary_coder_test_helper(0)) {
+		//aroop_txt_printf(output, "FAILED [%s!=%s] and [%d!=%d]\n", aroop_txt_to_string(&strval), aroop_txt_to_string(&str), intval, expval);
+		aroop_txt_printf(output, "FAILED\n");
 	} else {
-		aroop_txt_zero_terminate(&strval);
-		aroop_txt_zero_terminate(&str);
-		aroop_txt_printf(output, "FAILED [%s!=%s] and [%d!=%d]\n", aroop_txt_to_string(&strval), aroop_txt_to_string(&str), intval, expval);
+		aroop_txt_concat_string(output, "successful\n");
 	}
 	return 0;
 }
@@ -124,7 +164,6 @@ static int binary_coder_test(aroop_txt_t*input, aroop_txt_t*output) {
 static int binary_coder_test_desc(aroop_txt_t*plugin_space, aroop_txt_t*output) {
 	return plugin_desc(output, "binary_coder_test", "test", plugin_space, __FILE__, "It is test code for binary coder.\n");
 }
-
 
 int binary_coder_module_init() {
 	aroop_txt_t binary_coder_plug;
