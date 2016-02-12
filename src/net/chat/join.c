@@ -84,10 +84,14 @@ static int chat_join_plug(int signature, void*given) {
 			break;
 		}
 		aroop_txt_embeded_stackbuffer(&join_info, 64);
-		aroop_txt_printf(&join_info, "Switching to process %d\n", pid);
+		aroop_txt_printf(&join_info, "Trying ...(%d)\n", pid);
+		send(chat->fd, aroop_txt_to_string(&join_info), aroop_txt_length(&join_info), 0);
+		aroop_txt_set_length(&join_info, 0);
 		chat_join_helper(chat, &room, pid);
 	} while(0);
-	send(chat->fd, aroop_txt_to_string(&join_info), aroop_txt_length(&join_info), 0);
+	if(!aroop_txt_is_empty(&join_info)) {
+		send(chat->fd, aroop_txt_to_string(&join_info), aroop_txt_length(&join_info), 0);
+	}
 	aroop_txt_destroy(&room);
 	aroop_txt_destroy(&join_info);
 	return 0;

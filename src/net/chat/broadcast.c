@@ -20,6 +20,22 @@ struct internal_room {
 };
 static struct opp_factory room_factory;
 
+static int broadcast_callback_helper(struct chat_connection*chat, struct internal_room*rm, aroop_txt_t*msg) {
+	// iterate through all
+	struct opp_iterator iterator = {};
+	opp_iterator_create(&iterator, &rm->user_list, OPPN_ALL, 0, 0);
+	opp_pointer_ext_t*pt;
+	while(pt = opp_iterator_next(&iterator)) {
+		struct chat_connection*other = (struct chat_connection*)pt->obj_data;
+		if(chat == other)
+			continue; // do not broadcast to self
+
+		// broadcast message to others
+		send(other->fd, aroop_txt_to_string(msg), aroop_txt_length(msg), 0); // send it to other
+	}
+	opp_iterator_destroy(&iterator);
+	return 0;
+}
 static int broadcast_callback(struct chat_connection*chat, aroop_txt_t*msg) {
 	struct internal_room*rm = (struct internal_room*)(chat->broadcast_data);
 	if(!rm) {
@@ -32,21 +48,7 @@ static int broadcast_callback(struct chat_connection*chat, aroop_txt_t*msg) {
 	aroop_txt_concat(&resp, &chat->name); // show the message sender name
 	aroop_txt_concat_char(&resp, ':');
 	aroop_txt_concat(&resp, msg); // show the message
-
-	// iterate through all
-	struct opp_iterator iterator = {};
-	opp_iterator_create(&iterator, &rm->user_list, OPPN_ALL, 0, 0);
-	opp_pointer_ext_t*pt;
-	while(pt = opp_iterator_next(&iterator)) {
-		struct chat_connection*other = (struct chat_connection*)pt->obj_data;
-		if(chat == other)
-			continue; // do not broadcast to self
-
-		// broadcast message to others
-		send(other->fd, aroop_txt_to_string(&resp), aroop_txt_length(&resp), 0); // send it to other
-	}
-	opp_iterator_destroy(&iterator);
-	return 0;
+	return broadcast_callback_helper(chat, rm, &resp);
 }
 
 static int broadcast_room_greet(struct chat_connection*chat, struct internal_room*rm) {
@@ -87,9 +89,9 @@ static int broadcast_room_bye(struct chat_connection*chat, struct internal_room*
 	aroop_txt_t resp = {};
 	aroop_txt_embeded_stackbuffer(&resp, 1024);
 	aroop_txt_concat_string(&resp, "\t* user has left chat:");
-	aroop_txt_concat(&resp, &rm->name);
+	aroop_txt_concat(&resp, &chat->name);
 	aroop_txt_concat_char(&resp, '\n');
-	broadcast_callback(chat, &resp);
+	broadcast_callback_helper(NULL/* do not ommit the user */, rm, &resp);
 }
 
 int broadcast_room_join(struct chat_connection*chat, aroop_txt_t*room_name) {
