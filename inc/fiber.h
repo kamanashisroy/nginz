@@ -32,6 +32,10 @@ int fiber_module_step();
  */
 int fiber_module_run();
 
+/**
+ * It stops all the fibers, eventually quiting the application
+ */
+int fiber_quit();
 // TODO fiber suspend function
 
 int fiber_module_init();

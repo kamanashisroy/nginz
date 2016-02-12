@@ -61,12 +61,14 @@ int shake_module_init() {
 	event_loop_register_fd(STDIN_FILENO, on_shake_command, NULL, NGINZ_POLL_ALL_FLAGS);
 	test_module_init();
 	help_module_init();
+	shake_quit_module_init();
 	aroop_txt_embeded_set_static_string(&plugin_space, "fork/child/after");
 	pm_plug_callback(&plugin_space, shake_stop_on_fork, shake_stop_on_fork_desc);
 }
 
 int shake_module_deinit() {
 	event_loop_unregister_fd(STDIN_FILENO);
+	shake_quit_module_deinit();
 	help_module_deinit();
 	test_module_deinit();
 }

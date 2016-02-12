@@ -165,15 +165,17 @@ static int on_ping(int events, const void*unused) {
 	//aroop_txt_embeded_rebuild_and_set_content(&recv_buffer, rbuf)
 	aroop_txt_t x = {};
 	printf("There is ping from the parent, %d, (count=%d)\n", (int)aroop_txt_char_at(&recv_buffer, 0), count);
-	binary_unpack_string(&recv_buffer, 1, &x);
-	if(aroop_txt_length(&x)) {
-		printf("request from parent %s\n", aroop_txt_to_string(&x));
-		aroop_txt_t input = {};
-		aroop_txt_t output = {};
-		pm_call(&x, &input, &output);
-		//aroop_txt_destroy(&input);
-		aroop_txt_destroy(&output);
+	binary_unpack_string(&recv_buffer, 0, &x);
+	if(aroop_txt_is_empty(&x)) {
+		return 0;
 	}
+	printf("request from parent %s\n", aroop_txt_to_string(&x));
+	aroop_txt_t input = {};
+	aroop_txt_t output = {};
+	pm_call(&x, &input, &output);
+	//aroop_txt_destroy(&input);
+	aroop_txt_destroy(&output);
+	return 0;
 }
 
 static int load_take() {
