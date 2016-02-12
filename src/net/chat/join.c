@@ -14,7 +14,6 @@ static int chat_join_transfer(struct chat_connection*chat, aroop_txt_t*room, int
 	broadcast_room_leave(chat);
 	// remove it from listener
 	event_loop_unregister_fd(chat->fd); // XXX do I need it ??
-	printf("transfering with command\n");
 	aroop_txt_t cmd = {};
 	aroop_txt_embeded_stackbuffer(&cmd, 128);
 	aroop_txt_concat_string(&cmd, "chat/_hiddenjoin ");
@@ -25,12 +24,14 @@ static int chat_join_transfer(struct chat_connection*chat, aroop_txt_t*room, int
 	aroop_txt_zero_terminate(&cmd);
 	aroop_txt_t bin = {};
 	aroop_txt_embeded_stackbuffer(&bin, 255);
-	binary_coder_reset(&bin);
+	binary_coder_reset_for_pid(&bin, pid);
 	binary_pack_string(&bin, &cmd);
 	int mypid = getpid();
 	if(pid > mypid) {
+		printf("transfering to %d ping\n", pid);
 		pp_pingmsg(chat->fd, &bin);
 	} else {
+		printf("transfering to %d pong\n", pid);
 		pp_pongmsg(chat->fd, &bin);
 	}
 	chat->state = CHAT_SOFT_QUIT; // quit the user from this process

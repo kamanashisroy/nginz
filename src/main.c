@@ -14,12 +14,13 @@ C_CAPSULE_START
 static int nginz_main(char*args) {
 	db_module_init();
 	pm_init();
+	binary_coder_module_init();
 	fiber_module_init();
 	shake_module_init();
 	event_loop_module_init();
 	chat_module_init();
 	pp_module_init();
-	fork_processors(NUMBER_OF_PROCESSORS);
+	fork_processors(NGINZ_NUMBER_OF_PROCESSORS);
 	tcp_listener_init();
 	fiber_module_run();
 	tcp_listener_deinit();
@@ -28,6 +29,7 @@ static int nginz_main(char*args) {
 	event_loop_module_deinit();
 	shake_module_deinit();
 	fiber_module_deinit();
+	binary_coder_module_deinit();
 	pm_deinit();
 	db_module_deinit();
 	return 0;

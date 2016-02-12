@@ -24,7 +24,7 @@ static int chat_uptime_plug(int signature, void*given) {
 	int hour = (int)(diff/3600);
 	int minute = (int)(diff/60 - hour*60);
 	int second = (int)(diff - hour*3600 - minute*60);
-	aroop_txt_printf(&uptime, "%2d:%2d:%2d, %d users\n", hour, minute, second, event_loop_fd_count());
+	aroop_txt_printf(&uptime, "%2d:%2d:%2d, %d users, %d\n", hour, minute, second, event_loop_fd_count(), getpid());
 	send(chat->fd, aroop_txt_to_string(&uptime), aroop_txt_length(&uptime), 0);
 	return 0;
 }

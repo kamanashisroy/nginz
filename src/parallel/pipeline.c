@@ -88,6 +88,8 @@ NGINZ_INLINE int pp_pong(aroop_txt_t*pkt) {
 }
 
 NGINZ_INLINE int pp_pongmsg(int socket, aroop_txt_t*cmd) {
+	if(mparent == -1)
+		return -1;
 	return pp_sendmsg_helper(mparent, socket, cmd);
 }
 
@@ -127,7 +129,7 @@ NGINZ_INLINE static int pp_recvmsg_helper(int through, int*target, aroop_txt_t*c
 	
 	int recvlen = 0;
 	if(recvlen = recvmsg(through, &msg, 0) < 0) {
-		perror("Cannot recv msg");
+		printf("Cannot recv msg\n");
 		return -1;
 	}
 	if(msg.msg_iovlen == 1 && iov[0].iov_len > 0) {
@@ -162,7 +164,7 @@ static int on_ping(int events, const void*unused) {
 	//aroop_txt_embeded_rebuild_and_set_content(&recv_buffer, rbuf)
 	aroop_txt_t x = {};
 	printf("There is ping from the parent, %d, (count=%d)\n", (int)aroop_txt_char_at(&recv_buffer, 0), count);
-	binary_unpack_string(&recv_buffer, 0, &x);
+	binary_unpack_string(&recv_buffer, 1, &x);
 	if(aroop_txt_length(&x)) {
 		printf("request from parent %s\n", aroop_txt_to_string(&x));
 		aroop_txt_t input = {};
@@ -173,11 +175,33 @@ static int on_ping(int events, const void*unused) {
 	}
 }
 
+static int load_take() {
+	int load = event_loop_fd_count();
+	return (load % (NGINZ_NUMBER_OF_PROCESSORS-1));
+}
+
 static int on_pingmsg(int events, const void*unused) {
+	int destpid = 0;
 	int acceptfd = -1;
 	aroop_txt_t cmd = {};
 	do {
 		if(pp_recvmsg_helper(mparent, &acceptfd, &cmd)) {
+			break;
+		}
+		binary_unpack_string(&cmd, 0, &destpid);
+		if(destpid > 0 && destpid != getpid()) {
+			// it is not ours
+			printf("It(%d) is not ours(%d) on ping doing pong\n", destpid, getpid());
+			if(destpid > getpid()) {
+				printf("BUG, it cannot happen, we not not ponging anymore\n");
+				break;
+			}
+			pp_pingmsg(acceptfd, &cmd);
+			break;
+		}
+		if(destpid <= 0 && mparent != -1 && load_take()) {
+			printf("balancing load on %d\n", getpid());
+			pp_pingmsg(acceptfd, &cmd);
 			break;
 		}
 		struct protostack*stack = protostack_get(NGINZ_DEFAULT_PORT);
@@ -193,10 +217,27 @@ static int on_pong(int events, const void*unused) {
 }
 
 static int on_pongmsg(int events, const void*unused) {
+	int destpid = 0;
 	int acceptfd = -1;
 	aroop_txt_t cmd = {};
 	do {
 		if(pp_recvmsg_helper(mchild, &acceptfd, &cmd)) {
+			break;
+		}
+		binary_unpack_string(&cmd, 0, &destpid);
+		if(destpid > 0 && destpid != getpid()) {
+			printf("It(%d) is not ours(%d) on pong doing ping\n", destpid, getpid());
+			// it is not ours
+			if(destpid < getpid()) {
+				printf("BUG, it cannot happen, we not not pinging anymore\n");
+				break;
+			}
+			pp_pongmsg(acceptfd, &cmd);
+			break;
+		}
+		if(destpid <= 0 && mchild != -1 && load_take()) {
+			printf("balancing load on %d\n", getpid());
+			pp_pongmsg(acceptfd, &cmd);
 			break;
 		}
 		struct protostack*stack = protostack_get(NGINZ_DEFAULT_PORT);

@@ -100,7 +100,7 @@ static int chat_on_guest_hookup(int fd, aroop_txt_t*cmd) {
 	struct chat_connection*chat = OPP_ALLOC1(&chat_factory);
 	chat->fd = fd;
 	aroop_txt_t x = {};
-	binary_unpack_string(cmd, 0, &x);
+	binary_unpack_string(cmd, 1, &x);
 	chat->request = &x;
 	aroop_txt_t plugin_space = {};
 	int reqlen = aroop_txt_length(chat->request);
