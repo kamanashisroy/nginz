@@ -39,19 +39,27 @@ int binary_unpack_string(aroop_txt_t*buffer, int skip, aroop_txt_t*x) {
 	mychar_t blen = (mychar_t)aroop_txt_length(buffer);
 	if(blen == 1)
 		return 0;
+	// do not trust the blen use my blen
+	blen = (mychar_t)aroop_txt_char_at(buffer, 0);
+	printf("given blen:%d, data available:%d\n", blen, aroop_txt_length(buffer));
+	if(blen > (aroop_txt_length(buffer))) {
+		printf("Error in buffer data, may be the socket is corrupted 1\n");
+		return -1;
+	}
 	do {
 		mychar_t nlen = (mychar_t)aroop_txt_char_at(buffer, pos);
+		printf("pos %d, nlen %d, blen %d\n", pos, nlen, blen);
 		if(pos + nlen > blen) {
 			// error
-			printf("Error in buffer data, may be the socket is corrupted\n");
+			printf("Error in buffer data, may be the socket is corrupted 2\n");
 			return -1;
 		}
 		aroop_txt_embeded_txt_copy_shallow(x,buffer);
 		pos++;
-		nlen--;
+		nlen;
 		aroop_txt_shift(x, pos);
 		aroop_txt_set_length(x, nlen);
-		pos+= nlen;
+		pos+= nlen + 1;
 		if(!skip)
 			return 0;
 		skip--;

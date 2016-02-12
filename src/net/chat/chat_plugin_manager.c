@@ -13,6 +13,7 @@
 #include "net/chat/chat_plugin_manager.h"
 #include "net/chat/welcome.h"
 #include "net/chat/room.h"
+#include "net/chat/hiddenjoin.h"
 #include "net/chat/join.h"
 #include "net/chat/broadcast.h"
 #include "net/chat/leave.h"
@@ -43,6 +44,7 @@ int chat_plugin_manager_module_init() {
 	broadcast_module_init(); // XXX we have to load broadcast module before room module
 	room_module_init();
 	join_module_init();
+	hiddenjoin_module_init();
 	leave_module_init();
 	quit_module_init();
 	aroop_txt_t plugin_space = {};
@@ -53,6 +55,7 @@ int chat_plugin_manager_module_init() {
 int chat_plugin_manager_module_deinit() {
 	quit_module_deinit();
 	leave_module_deinit();
+	hiddenjoin_module_deinit();
 	join_module_deinit();
 	room_module_deinit();
 	broadcast_module_deinit();

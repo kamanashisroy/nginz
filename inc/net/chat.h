@@ -9,7 +9,8 @@ enum chat_state {
 	CHAT_CONNECTED = 0,
 	CHAT_LOGGED_IN,
 	CHAT_IN_ROOM,
-	CHAT_QUIT
+	CHAT_QUIT,
+	CHAT_SOFT_QUIT
 };
 
 struct chat_connection {
@@ -19,6 +20,7 @@ struct chat_connection {
 	aroop_txt_t name;
 	aroop_txt_t*request;
 	int (*on_answer)(struct chat_connection*chat, aroop_txt_t*answer); // it is used for prompt
+	const void*answer_data; // XXX do not unref/ref it ..
 	int (*on_broadcast)(struct chat_connection*chat, aroop_txt_t*msg); // it is used for prompt
 	const void*broadcast_data; // XXX do not unref/ref it ..
 };

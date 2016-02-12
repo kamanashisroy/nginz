@@ -21,9 +21,14 @@ static int on_login_data(struct chat_connection*chat, aroop_txt_t*answer) {
 	shotodol_scanner_next_token(&input, &name);
 	do {
 		// check validity
-		if(aroop_txt_is_empty_magical(&name)) { // TODO allow only alphaneumeric characters and smaller than 32 bytes ..
+		if(aroop_txt_is_empty_magical(&name)) {
 			aroop_txt_set_length(&greet_on_login, 0);
 			aroop_txt_concat_string(&greet_on_login, "Invalid name:(, try again\n");
+			break;
+		}
+		if(aroop_txt_length(&name) >= NGINZ_MAX_USER_NAME_SIZE) { // TODO allow only alphaneumeric characters
+			aroop_txt_set_length(&greet_on_login, 0);
+			aroop_txt_concat_string(&greet_on_login, "The name is too big\n");
 			break;
 		}
 		// check availability
@@ -48,9 +53,13 @@ static int on_login_data(struct chat_connection*chat, aroop_txt_t*answer) {
 
 static int chat_welcome_plug(int signature, void*given) {
 	aroop_assert(signature == CHAT_SIGNATURE);
+	printf("executing welcome \n");
 	struct chat_connection*chat = (struct chat_connection*)given;
-	if(chat == NULL || chat->fd == -1) // sanity check
+	if(chat == NULL || chat->fd == -1) { // sanity check
+		printf("BUG: no chat interface to welcome\n");
 		return 0;
+	}
+	printf("sending welcome \n");
 	aroop_txt_t greet = {};
 	aroop_txt_embeded_set_static_string(&greet, "Welcome to NginZ chat server\nLogin name?\n");
 	chat->on_answer = on_login_data;

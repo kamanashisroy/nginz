@@ -11,6 +11,7 @@ Tasks
 ### parallel
 
 ### chat
+- [ ] Limit the username and chatroom length.
 - [ ] Add uname command
 - [ ] Add uptime command
 - [ ] Add profiler command to show memory profiler

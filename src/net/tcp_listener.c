@@ -31,14 +31,14 @@ static int on_connection(int status, const void*unused) {
 		close(client_fd);
 		return -1;
 	}
-	aroop_txt_t create_msg = {};
-	aroop_txt_embeded_stackbuffer(&create_msg, 255);
-	binary_coder_reset(&create_msg);
-	aroop_txt_t create_command = {};
-	aroop_txt_embeded_set_static_string(&create_command, "tcp/create"); 
-	binary_pack_string(&create_msg, &create_command);
-	pp_ping(&create_msg);
-	pp_pingmsg(client_fd);
+	aroop_txt_t bin = {};
+	aroop_txt_embeded_stackbuffer(&bin, 255);
+	binary_coder_reset(&bin);
+	aroop_txt_t welcome_command = {};
+	aroop_txt_embeded_set_static_string(&welcome_command, "chat/welcome"); 
+	binary_pack_string(&bin, &welcome_command);
+	//pp_ping(&create_msg);
+	pp_pingmsg(client_fd, &bin);
 	close(client_fd);
 	return 0;
 }

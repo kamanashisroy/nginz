@@ -1,6 +1,7 @@
 
 #include <sys/socket.h>
 #include <aroop/aroop_core.h>
+#include <aroop/core/xtring.h>
 #include "nginz_config.h"
 #include "net/protostack.h"
 

@@ -17,7 +17,7 @@ C_CAPSULE_START
 static int chat_destroy(struct chat_connection*chat) {
 	// cleanup socket
 	event_loop_unregister_fd(chat->fd);
-	if(chat->fd != -1)close(chat->fd);
+	if(chat->fd != -1 && chat->state != CHAT_SOFT_QUIT)close(chat->fd);
 	chat->fd = -1;
 	// free data
 	OPPUNREF(chat);
@@ -70,38 +70,57 @@ static int on_client_data(int status, const void*cb_data) {
 		chat->on_answer(chat, &recv_buffer);
 		return 0;
 	}
-	// check if it is a command
-	if(aroop_txt_char_at(&recv_buffer, 0) == '/') {
-		if(!chat_command(chat, &recv_buffer)) {
-			return 0;
+	do {
+		// check if it is a command
+		if(aroop_txt_char_at(&recv_buffer, 0) == '/') {
+			if(!chat_command(chat, &recv_buffer)) {
+				break;
+			}
+		} else if(chat->on_broadcast != NULL) {
+			chat->on_broadcast(chat, &recv_buffer);
+			break;
 		}
-	}
+		if(chat->state == CHAT_QUIT) {
+			// time to quit
+			break;
+		}
+		// we cannot handle data
+		send(chat->fd, aroop_txt_to_string(&cannot_process), aroop_txt_length(&cannot_process), 0);
+	} while(0);
 	if(chat->state == CHAT_QUIT) {
 		printf("Client quited\n");
 		chat_destroy(chat);
 		return -1;
 	}
-	if(chat->on_broadcast != NULL) {
-		chat->on_broadcast(chat, &recv_buffer);
-		return 0;
-	}
-	// we cannot handle data
-	send(chat->fd, aroop_txt_to_string(&cannot_process), aroop_txt_length(&cannot_process), 0);
 	return 0;
 }
 
 static struct opp_factory chat_factory;
-static aroop_txt_t chat_welcome = {};
-static int chat_on_connect(int fd) {
+static int chat_on_guest_hookup(int fd, aroop_txt_t*cmd) {
 	struct chat_connection*chat = OPP_ALLOC1(&chat_factory);
 	chat->fd = fd;
-	composite_plugin_bridge_call(chat_plugin_manager_get(), &chat_welcome, CHAT_SIGNATURE, chat);
+	aroop_txt_t x = {};
+	binary_unpack_string(cmd, 0, &x);
+	chat->request = &x;
+	aroop_txt_t plugin_space = {};
+	int reqlen = aroop_txt_length(chat->request);
+	aroop_txt_t request_sandbox = {};
+	aroop_txt_embeded_stackbuffer(&request_sandbox, reqlen);
+	aroop_txt_concat(&request_sandbox, chat->request);
+	shotodol_scanner_next_token(&request_sandbox, &plugin_space);
+	if(aroop_txt_is_empty(&plugin_space)) {
+		aroop_txt_zero_terminate(&request_sandbox);
+		printf("Possible BUG , cannot handle request %s", aroop_txt_to_string(&request_sandbox));
+		return -1;
+	}
+
+	composite_plugin_bridge_call(chat_plugin_manager_get(), &plugin_space, CHAT_SIGNATURE, chat);
 	event_loop_register_fd(fd, on_client_data, chat, NGINZ_POLL_ALL_FLAGS);
 	return 0;
 }
 
 struct protostack chat_protostack = {
-	.on_connect = chat_on_connect,
+	.on_guest_hookup = chat_on_guest_hookup,
 };
 
 OPP_CB(chat_connection) {
@@ -126,7 +145,6 @@ OPP_CB(chat_connection) {
 int chat_module_init() {
 	chat_plugin_manager_module_init();
 	OPP_PFACTORY_CREATE(&chat_factory, 64, sizeof(struct chat_connection), OPP_CB_FUNC(chat_connection));
-	aroop_txt_embeded_set_static_string(&chat_welcome, "chat/welcome");
 	aroop_txt_embeded_set_static_string(&cannot_process, "Cannot process the request\n");
 	aroop_txt_embeded_buffer(&recv_buffer, 255);
 	protostack_set(NGINZ_DEFAULT_PORT, &chat_protostack);

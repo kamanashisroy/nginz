@@ -9,8 +9,29 @@
 
 C_CAPSULE_START
 
-static int chat_join_transfer(struct chat_connection*chat, int pid) {
-	printf("I do not know how to transfer\n");
+static int chat_join_transfer(struct chat_connection*chat, aroop_txt_t*room, int pid) {
+	// leave current chatroom
+	broadcast_room_leave(chat);
+	printf("transfering with command\n");
+	aroop_txt_t cmd = {};
+	aroop_txt_embeded_stackbuffer(&cmd, 128);
+	aroop_txt_concat_string(&cmd, "chat/_hiddenjoin ");
+	aroop_txt_concat(&cmd, room);
+	aroop_txt_concat_string(&cmd, " ");
+	aroop_txt_concat(&cmd, &chat->name);
+	aroop_txt_concat_string(&cmd, "\n");
+	aroop_txt_zero_terminate(&cmd);
+	aroop_txt_t bin = {};
+	aroop_txt_embeded_stackbuffer(&bin, 255);
+	binary_coder_reset(&bin);
+	binary_pack_string(&bin, &cmd);
+	int mypid = getpid();
+	if(pid > mypid) {
+		pp_pingmsg(chat->fd, &bin);
+	} else {
+		pp_pongmsg(chat->fd, &bin);
+	}
+	chat->state = CHAT_SOFT_QUIT; // quit the user from this process
 	return 0;
 }
 
@@ -18,12 +39,12 @@ static int chat_join_helper(struct chat_connection*chat, aroop_txt_t*room, int p
 	// check if it is same process
 	printf("target pid=%d, my pid = %d\n", pid, getpid());
 	if(pid != getpid()) {
-		chat_join_transfer(chat, pid);
+		chat_join_transfer(chat, room, pid);
 		return 0;
 	}
 	printf("assiging to room %s\n", aroop_txt_to_string(room));
 	// otherwise assign to the room
-	broadcast_assign_to_room(chat, room);
+	broadcast_room_join(chat, room);
 	return 0;
 }
 

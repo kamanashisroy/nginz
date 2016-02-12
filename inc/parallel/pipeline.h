@@ -12,7 +12,7 @@ NGINZ_INLINE int pp_ping(aroop_txt_t*pkt);
  * It sends socket to the next process
  * @param socket is the file descriptor
  */
-NGINZ_INLINE int pp_pingmsg(int socket);
+NGINZ_INLINE int pp_pingmsg(int socket, aroop_txt_t*cmd);
 
 /*
  * It responds to the ping message to the parent process
@@ -23,7 +23,7 @@ NGINZ_INLINE int pp_pong(aroop_txt_t*pkt);
  * It responds to the ping message to the parent process with returning socket.
  * @param socket is the file descriptor
  */
-NGINZ_INLINE int pp_pongmsg(int socket);
+NGINZ_INLINE int pp_pongmsg(int socket, aroop_txt_t*cmd);
 
 /*
  * It checks if the process is master process.

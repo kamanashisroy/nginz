@@ -49,7 +49,7 @@ static int broadcast_callback(struct chat_connection*chat, aroop_txt_t*msg) {
 	return 0;
 }
 
-static int broadcast_greet_to_room(struct chat_connection*chat, struct internal_room*rm) {
+static int broadcast_room_greet(struct chat_connection*chat, struct internal_room*rm) {
 	aroop_txt_t resp = {};
 	aroop_txt_embeded_stackbuffer(&resp, 1024);
 	aroop_txt_concat_string(&resp, "Entering room:");
@@ -82,7 +82,16 @@ static int broadcast_greet_to_room(struct chat_connection*chat, struct internal_
 	send(chat->fd, aroop_txt_to_string(&resp), aroop_txt_length(&resp), 0);
 }
 
-int broadcast_assign_to_room(struct chat_connection*chat, aroop_txt_t*room_name) {
+static int broadcast_room_bye(struct chat_connection*chat, struct internal_room*rm) {
+	aroop_txt_t resp = {};
+	aroop_txt_embeded_stackbuffer(&resp, 1024);
+	aroop_txt_concat_string(&resp, "\t* user has left chat:");
+	aroop_txt_concat(&resp, &rm->name);
+	aroop_txt_concat_char(&resp, '\n');
+	broadcast_callback(chat, &resp);
+}
+
+int broadcast_room_join(struct chat_connection*chat, aroop_txt_t*room_name) {
 	// find the chatroom
 	struct internal_room*rm = NULL;
 	opp_search(&room_factory, aroop_txt_get_hash(room_name), NULL, NULL, (void**)&rm);
@@ -95,7 +104,19 @@ int broadcast_assign_to_room(struct chat_connection*chat, aroop_txt_t*room_name)
 	OPPUNREF(rm);
 	chat->on_broadcast = broadcast_callback;
 	// show room information 
-	broadcast_greet_to_room(chat, (struct internal_room*)chat->broadcast_data);
+	broadcast_room_greet(chat, (struct internal_room*)chat->broadcast_data);
+	return 0;
+}
+
+int broadcast_room_leave(struct chat_connection*chat) {
+	// find the chatroom
+	struct internal_room*rm = (struct internal_room*)chat->broadcast_data;
+	if(!rm)
+		return 0;
+	broadcast_room_bye(chat, rm);
+	opp_list_prune_does_not_work(&rm->user_list, chat, OPPN_ALL, 0, 0); // TODO add user hash to make it faster ..
+	chat->on_broadcast = NULL;
+	chat->broadcast_data = NULL;
 	return 0;
 }
 

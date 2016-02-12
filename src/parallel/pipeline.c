@@ -38,7 +38,7 @@ NGINZ_INLINE int pp_ping(aroop_txt_t*pkt) {
 	return 0;
 }
 
-NGINZ_INLINE static int pp_sendmsg_helper(int through, int target) {
+NGINZ_INLINE static int pp_sendmsg_helper(int through, int target, aroop_txt_t*cmd) {
 	union {
 		int target;
 		char buf[CMSG_SPACE(sizeof(int))];
@@ -48,15 +48,14 @@ NGINZ_INLINE static int pp_sendmsg_helper(int through, int target) {
 	struct iovec iov[1];
 	struct cmsghdr *control_message = NULL;
 	memset(&intbuf, 0, sizeof(intbuf));
-	char data[1];
 	// sanity check
 	if(through == -1)
 		return -1;
 	memset(&msg, 0, sizeof(msg));
 	memset(iov, 0, sizeof(iov));
 
-	iov[0].iov_base = data;
-	iov[0].iov_len  = 1;
+	iov[0].iov_base = aroop_txt_to_string(cmd);
+	iov[0].iov_len  = aroop_txt_length(cmd);
 	msg.msg_iov = iov;
 	msg.msg_iovlen = 1;
 	msg.msg_control = intbuf.buf;
@@ -75,9 +74,9 @@ NGINZ_INLINE static int pp_sendmsg_helper(int through, int target) {
 	return 0;
 }
 
-NGINZ_INLINE int pp_pingmsg(int socket) {
-	printf("Sending fd %d to worker\n", socket);
-	return pp_sendmsg_helper(mchild, socket);
+NGINZ_INLINE int pp_pingmsg(int socket, aroop_txt_t*cmd) {
+	printf("Sending fd %d to child\n", socket);
+	return pp_sendmsg_helper(mchild, socket, cmd);
 }
 
 NGINZ_INLINE int pp_pong(aroop_txt_t*pkt) {
@@ -88,8 +87,8 @@ NGINZ_INLINE int pp_pong(aroop_txt_t*pkt) {
 	return 0;
 }
 
-NGINZ_INLINE int pp_pongmsg(int socket) {
-	return pp_sendmsg_helper(mparent, socket);
+NGINZ_INLINE int pp_pongmsg(int socket, aroop_txt_t*cmd) {
+	return pp_sendmsg_helper(mparent, socket, cmd);
 }
 
 NGINZ_INLINE int is_master() {
@@ -100,7 +99,7 @@ NGINZ_INLINE int is_master() {
 /********** Pipe event listeners ********************/
 /****************************************************/
 
-NGINZ_INLINE static int pp_recvmsg_helper(int through, int*target) {
+NGINZ_INLINE static int pp_recvmsg_helper(int through, int*target, aroop_txt_t*cmd) {
 	printf("There is new client, we need to accept it in worker process\n");
 	union {
 		int target;
@@ -110,23 +109,29 @@ NGINZ_INLINE static int pp_recvmsg_helper(int through, int*target) {
 	struct iovec iov[1];
 	struct cmsghdr *control_message = NULL;
 	memset(&intbuf, 0, sizeof(intbuf));
-	char data[1];
 	// sanity check
 	if(through == -1)
 		return -1;
 	memset(&msg, 0, sizeof(msg));
 	memset(iov, 0, sizeof(iov));
 
-	iov[0].iov_base = data;
-	iov[0].iov_len  = 1;
+	if(aroop_txt_capacity(cmd) < 128) {
+		aroop_txt_embeded_buffer(cmd, 128);
+	}
+	iov[0].iov_base = aroop_txt_to_string(cmd);
+	iov[0].iov_len  = aroop_txt_capacity(cmd);
 	msg.msg_iov = iov;
 	msg.msg_iovlen = 1;
 	msg.msg_control = intbuf.buf;
 	msg.msg_controllen = CMSG_SPACE(sizeof(int));
 	
-	if(recvmsg(through, &msg, 0) < 0) {
+	int recvlen = 0;
+	if(recvlen = recvmsg(through, &msg, 0) < 0) {
 		perror("Cannot recv msg");
 		return -1;
+	}
+	if(msg.msg_iovlen == 1 && iov[0].iov_len > 0) {
+		aroop_txt_set_length(cmd, iov[0].iov_len);
 	}
 	for(control_message = CMSG_FIRSTHDR(&msg);
 		control_message != NULL;
@@ -170,11 +175,15 @@ static int on_ping(int events, const void*unused) {
 
 static int on_pingmsg(int events, const void*unused) {
 	int acceptfd = -1;
-	if(pp_recvmsg_helper(mparent, &acceptfd)) {
-		return -1;
-	}
-	struct protostack*stack = protostack_get(NGINZ_DEFAULT_PORT);
-	stack->on_connect(acceptfd);
+	aroop_txt_t cmd = {};
+	do {
+		if(pp_recvmsg_helper(mparent, &acceptfd, &cmd)) {
+			break;
+		}
+		struct protostack*stack = protostack_get(NGINZ_DEFAULT_PORT);
+		stack->on_guest_hookup(acceptfd, &cmd);
+	} while(0);
+	aroop_txt_destroy(&cmd);
 	return 0;
 }
 
@@ -185,11 +194,15 @@ static int on_pong(int events, const void*unused) {
 
 static int on_pongmsg(int events, const void*unused) {
 	int acceptfd = -1;
-	if(pp_recvmsg_helper(mparent, &acceptfd)) {
-		return -1;
-	}
-	if(acceptfd != -1)
-		send(acceptfd, "Hi again\n", 3, 0);
+	aroop_txt_t cmd = {};
+	do {
+		if(pp_recvmsg_helper(mchild, &acceptfd, &cmd)) {
+			break;
+		}
+		struct protostack*stack = protostack_get(NGINZ_DEFAULT_PORT);
+		stack->on_guest_hookup(acceptfd, &cmd);
+	} while(0);
+	aroop_txt_destroy(&cmd);
 	return 0;
 }
 
