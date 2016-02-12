@@ -7,4 +7,9 @@ NginZ is a scalable application server. It is useful for instant messaging and a
 Note
 ====
 
-Plase update the port in inc/nginz_config.h
+Plase update the port in inc/nginz\_config.h
+
+Requirements
+=============
+
+Aroop\_core project is needed to compile this project.
