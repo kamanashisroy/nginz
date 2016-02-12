@@ -16,6 +16,7 @@ static int chat_quit_plug(int signature, void*given) {
 	struct chat_connection*chat = (struct chat_connection*)given;
 	if(chat == NULL || chat->fd == -1) // sanity check
 		return 0;
+	broadcast_room_leave(chat);
 	// chat->set_state(chat, CHAT_QUIT);
 	chat->state = CHAT_QUIT;
 	logoff_user(&chat->name);
