@@ -44,6 +44,7 @@ static int on_connection(int status, const void*unused) {
 static int tcp_listener_stop_for_client(aroop_txt_t*input, aroop_txt_t*output) {
 	event_loop_unregister_fd(tcp_sock);
 	if(tcp_sock > 0)close(tcp_sock);
+	tcp_sock = -1;
 }
 
 static int tcp_listener_stop_for_client_desc(aroop_txt_t*plugin_space,aroop_txt_t*output) {
@@ -54,6 +55,7 @@ static int tcp_listener_stop_for_client_desc(aroop_txt_t*plugin_space,aroop_txt_
 int tcp_listener_init() {
 	if(!is_master()) // we only start it in the master
 		return 0;
+	aroop_assert(tcp_sock == -1);
 	if((tcp_sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0) {
 		perror("Failed to create socket");
 		return -1;
@@ -62,7 +64,7 @@ int tcp_listener_init() {
 	addr.sin_family = AF_INET;
 	inet_aton("0.0.0.0", &(addr.sin_addr));
 	addr.sin_port = htons(NGINZ_DEFAULT_PORT);
-	char sock_flag = 0;
+	int sock_flag = 1;
 	setsockopt(tcp_sock, SOL_SOCKET, SO_REUSEADDR, (char*)&sock_flag, sizeof(sock_flag));
 	if(bind(tcp_sock, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
 		perror("Failed to bind");
@@ -86,6 +88,7 @@ int tcp_listener_init() {
 int tcp_listener_deinit() {
 	event_loop_unregister_fd(tcp_sock);
 	if(tcp_sock > 0)close(tcp_sock);
+	tcp_sock = -1;
 	return 0;
 }
 
