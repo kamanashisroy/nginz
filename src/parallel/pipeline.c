@@ -71,6 +71,7 @@ NGINZ_INLINE static int pp_sendmsg_helper(int through, int target, aroop_txt_t*c
 		perror("Cannot send msg");
 		return -1;
 	}
+	close(target); // we do not own this fd anymore
 	return 0;
 }
 

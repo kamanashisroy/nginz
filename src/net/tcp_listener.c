@@ -39,7 +39,7 @@ static int on_connection(int status, const void*unused) {
 	binary_pack_string(&bin, &welcome_command);
 	//pp_ping(&create_msg);
 	pp_pingmsg(client_fd, &bin);
-	close(client_fd);
+	//close(client_fd);
 	return 0;
 }
 
