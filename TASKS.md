@@ -2,12 +2,13 @@
 Tasks
 ========
 
-- [ ] Quit all child process.
-- [ ] Do soft-quit to logoff and disconnect all the users.
+- [x] Quit all child process.
+- [x] Do soft-quit to logoff and disconnect all the users.
+- [ ] Load test and report the result.
 
 ### Aroop
-- [ ] Turn of the HAS_THREAD from aroop core. We do not need threading or locking.
-- [ ] use OPP_PFACTORY_CREATE_FULL to tune all the flags.
+- [ ] Turn off the HAS_THREAD from aroop core. We do not need threading or locking.
+- [ ] Use OPP_PFACTORY_CREATE_FULL to tune all the flags.
 
 ### net
 
@@ -21,4 +22,7 @@ Tasks
 
 ### shake
 - [ ] Create memory profiler command to show memory usage.
+
+### logging
+- [ ] Do some logging to destined location.
 

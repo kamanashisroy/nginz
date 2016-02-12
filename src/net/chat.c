@@ -14,6 +14,7 @@
 
 C_CAPSULE_START
 
+static int chat_module_is_quiting = 0;
 static int chat_destroy(struct chat_connection*chat) {
 	// cleanup socket
 	event_loop_unregister_fd(chat->fd);
@@ -57,6 +58,8 @@ static int chat_command(struct chat_connection*chat, aroop_txt_t*given_request) 
 static aroop_txt_t cannot_process = {};
 static aroop_txt_t recv_buffer = {};
 static int on_client_data(int status, const void*cb_data) {
+	if(chat_module_is_quiting)
+		return 0;
 	struct chat_connection*chat = (struct chat_connection*)cb_data;
 	aroop_txt_set_length(&recv_buffer, 1); // without it aroop_txt_to_string() will give NULL
 	int count = recv(chat->fd, aroop_txt_to_string(&recv_buffer), aroop_txt_capacity(&recv_buffer), 0);
@@ -97,6 +100,8 @@ static int on_client_data(int status, const void*cb_data) {
 
 static struct opp_factory chat_factory;
 static int chat_on_guest_hookup(int fd, aroop_txt_t*cmd) {
+	if(chat_module_is_quiting)
+		return 0;
 	struct chat_connection*chat = OPP_ALLOC1(&chat_factory);
 	chat->fd = fd;
 	aroop_txt_t x = {};
@@ -141,6 +146,26 @@ OPP_CB(chat_connection) {
 	return 0;
 }
 
+static int chat_module_softquitall_plug(aroop_txt_t*plugin_space, aroop_txt_t*output) {
+	chat_module_is_quiting = 1;
+	// iterate through all
+	struct opp_iterator iterator = {};
+	opp_iterator_create(&iterator, &chat_factory, OPPN_ALL, 0, 0);
+	struct chat_connection*chat = NULL;
+	while(chat = opp_iterator_next(&iterator)) {
+		// TODO remove from the rooms too
+		event_loop_unregister_fd(chat->fd);
+		close(chat->fd);
+		chat->fd = -1;
+	}
+	opp_iterator_destroy(&iterator);
+	return 0;
+}
+
+static int chat_module_softquitall_plug_helper(aroop_txt_t*plugin_space, aroop_txt_t*output) {
+	return plugin_desc(output, "softquitall", "shake", plugin_space, __FILE__, "It tries to destroy all the connections.\n");
+}
+
 
 
 int chat_module_init() {
@@ -149,6 +174,9 @@ int chat_module_init() {
 	aroop_txt_embeded_set_static_string(&cannot_process, "Cannot process the request\n");
 	aroop_txt_embeded_buffer(&recv_buffer, 255);
 	protostack_set(NGINZ_DEFAULT_PORT, &chat_protostack);
+	aroop_txt_t plugin_space = {};
+	aroop_txt_embeded_set_static_string(&plugin_space, "shake/softquitall");
+	pm_plug_callback(&plugin_space, chat_module_softquitall_plug, chat_module_softquitall_plug_helper);
 }
 
 int chat_module_deinit() {
@@ -163,7 +191,6 @@ int chat_module_deinit() {
 		event_loop_unregister_fd(chat->fd);
 		close(chat->fd);
 		chat->fd = -1;
-		//OPPUNREF(plugin);
 	} while(1);
 	opp_iterator_destroy(&iterator);
 	OPP_PFACTORY_DESTROY(&chat_factory);

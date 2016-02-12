@@ -43,7 +43,7 @@ int binary_pack_string(aroop_txt_t*buffer, aroop_txt_t*x) {
 	blen = (mychar_t)aroop_txt_length(buffer);
 	// update base header
 	aroop_txt_set_char_at(buffer, 0, blen);
-	printf("packed to %d bytes\n", blen);
+	//printf("packed to %d bytes\n", blen);
 	return 0;
 }
 
@@ -91,7 +91,7 @@ int binary_unpack_int(aroop_txt_t*buffer, int skip, int*intval) {
 	aroop_txt_embeded_stackbuffer(&sandbox, 32);
 	aroop_txt_concat(&sandbox, &x);
 	aroop_txt_zero_terminate(&sandbox);
-	printf(" pid = %s", aroop_txt_to_string(&sandbox));
+	//printf(" pid = %s", aroop_txt_to_string(&sandbox));
 	*intval = aroop_txt_to_int(&sandbox);
 	aroop_txt_destroy(&x);
 	return 0;
@@ -104,7 +104,7 @@ int binary_coder_fixup(aroop_txt_t*buffer) {
 	// do not trust the blen use my blen
 	blen = (mychar_t)aroop_txt_char_at(buffer, 0);
 	if(blen != aroop_txt_length(buffer)) {
-		printf("Fixing .. given blen:%d, data available:%d\n", blen, aroop_txt_length(buffer));
+		//printf("Fixing .. given blen:%d, data available:%d\n", blen, aroop_txt_length(buffer));
 		aroop_txt_set_length(buffer, blen);
 	}
 	return 0;
@@ -146,7 +146,7 @@ static int binary_coder_test_helper(int expval) {
 	
 	aroop_txt_zero_terminate(&strval);
 	aroop_txt_zero_terminate(&str);
-	printf(" [%s!=%s] and [%d!=%d]\n", aroop_txt_to_string(&strval), aroop_txt_to_string(&str), intval, expval);
+	//printf(" [%s!=%s] and [%d!=%d]\n", aroop_txt_to_string(&strval), aroop_txt_to_string(&str), intval, expval);
 	return !(intval == expval && aroop_txt_equals(&strval, &str));
 }
 

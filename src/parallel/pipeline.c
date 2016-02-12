@@ -65,7 +65,7 @@ NGINZ_INLINE static int pp_sendmsg_helper(int through, int target, aroop_txt_t*c
 	control_message->cmsg_type = SCM_RIGHTS;
 	control_message->cmsg_len = CMSG_LEN(sizeof(int));
 	*((int *) CMSG_DATA(control_message)) = target;
-	printf("Sending fd %d to worker\n", target);
+	//printf("Sending fd %d to worker\n", target);
 	
 	if(sendmsg(through, &msg, 0) < 0) {
 		perror("Cannot send msg");
@@ -76,7 +76,7 @@ NGINZ_INLINE static int pp_sendmsg_helper(int through, int target, aroop_txt_t*c
 }
 
 NGINZ_INLINE int pp_pingmsg(int socket, aroop_txt_t*cmd) {
-	printf("Sending fd %d to child\n", socket);
+	//printf("Sending fd %d to child\n", socket);
 	return pp_sendmsg_helper(mchild, socket, cmd);
 }
 
@@ -103,7 +103,7 @@ NGINZ_INLINE int is_master() {
 /****************************************************/
 
 NGINZ_INLINE static int pp_recvmsg_helper(int through, int*target, aroop_txt_t*cmd) {
-	printf("There is new client, we need to accept it in worker process\n");
+	//printf("There is new client, we need to accept it in worker process\n");
 	union {
 		int target;
 		char buf[CMSG_SPACE(sizeof(int))];
@@ -151,7 +151,7 @@ NGINZ_INLINE static int pp_recvmsg_helper(int through, int*target, aroop_txt_t*c
 
 static aroop_txt_t recv_buffer;
 static int on_ping(int events, const void*unused) {
-	printf("There is ping from the parent\n");
+	//printf("There is ping from the parent\n");
 	aroop_txt_set_length(&recv_buffer, 1); // without it aroop_txt_to_string() will give NULL
 	//char rbuf[255];
 	//int count = recv(parent, rbuf, sizeof(rbuf), 0);
@@ -164,12 +164,12 @@ static int on_ping(int events, const void*unused) {
 	aroop_txt_set_length(&recv_buffer, count);
 	//aroop_txt_embeded_rebuild_and_set_content(&recv_buffer, rbuf)
 	aroop_txt_t x = {};
-	printf("There is ping from the parent, %d, (count=%d)\n", (int)aroop_txt_char_at(&recv_buffer, 0), count);
+	//printf("There is ping from the parent, %d, (count=%d)\n", (int)aroop_txt_char_at(&recv_buffer, 0), count);
 	binary_unpack_string(&recv_buffer, 0, &x);
 	if(aroop_txt_is_empty(&x)) {
 		return 0;
 	}
-	printf("request from parent %s\n", aroop_txt_to_string(&x));
+	//printf("request from parent %s\n", aroop_txt_to_string(&x));
 	aroop_txt_t input = {};
 	aroop_txt_t output = {};
 	pm_call(&x, &input, &output);
@@ -196,7 +196,7 @@ static int on_pingmsg(int events, const void*unused) {
 		binary_unpack_int(&cmd, 0, &destpid);
 		if(destpid > 0 && destpid != getpid()) {
 			// it is not ours
-			printf("It(%d) is not ours(%d) on ping doing more ping\n", destpid, getpid());
+			//printf("It(%d) is not ours(%d) on ping doing more ping\n", destpid, getpid());
 			if(destpid < getpid()) {
 				printf("BUG, it cannot happen, we not not ponging anymore\n");
 				break;
@@ -205,7 +205,7 @@ static int on_pingmsg(int events, const void*unused) {
 			break;
 		}
 		if(destpid <= 0 && mchild != -1 && load_take()) {
-			printf("balancing load on %d\n", getpid());
+			//printf("balancing load on %d\n", getpid());
 			pp_pingmsg(acceptfd, &cmd);
 			break;
 		}
@@ -233,7 +233,7 @@ static int on_pongmsg(int events, const void*unused) {
 		//binary_coder_debug_dump(&cmd);
 		binary_unpack_int(&cmd, 0, &destpid);
 		if(destpid > 0 && destpid != getpid()) {
-			printf("It(%d) is not ours(%d) on pong doing ping\n", destpid, getpid());
+			//printf("It(%d) is not ours(%d) on pong doing ping\n", destpid, getpid());
 			// it is not ours
 			if(destpid > getpid()) {
 				printf("BUG, it cannot happen, we not not pinging anymore\n");
@@ -243,7 +243,7 @@ static int on_pongmsg(int events, const void*unused) {
 			break;
 		}
 		if(destpid <= 0 && mparent != -1 && load_take()) {
-			printf("balancing load on %d\n", getpid());
+			//printf("balancing load on %d\n", getpid());
 			pp_pongmsg(acceptfd, &cmd);
 			break;
 		}
@@ -303,7 +303,7 @@ static int pp_fork_parent_after_callback(aroop_txt_t*input, aroop_txt_t*output) 
 	aroop_assert(mchild == -1);
 	child = pipefd[0];
 	mchild = mpipefd[0];
-	printf("child fds %d,%d\n", pipefd[0], mpipefd[0]);
+	//printf("child fds %d,%d\n", pipefd[0], mpipefd[0]);
 	event_loop_register_fd(child, on_pong, NULL, NGINZ_POLL_ALL_FLAGS);
 	event_loop_register_fd(mchild, on_pongmsg, NULL, NGINZ_POLL_ALL_FLAGS);
 	//close(pipefd[1]);

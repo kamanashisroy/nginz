@@ -41,13 +41,13 @@ static int on_connection(int status, const void*unused) {
 	return 0;
 }
 
-static int tcp_listener_stop_for_client(aroop_txt_t*input, aroop_txt_t*output) {
+static int tcp_listener_stop(aroop_txt_t*input, aroop_txt_t*output) {
 	event_loop_unregister_fd(tcp_sock);
 	if(tcp_sock > 0)close(tcp_sock);
 	tcp_sock = -1;
 }
 
-static int tcp_listener_stop_for_client_desc(aroop_txt_t*plugin_space,aroop_txt_t*output) {
+static int tcp_listener_stop_desc(aroop_txt_t*plugin_space,aroop_txt_t*output) {
 	return plugin_desc(output, "tcp_listener", "fork", plugin_space, __FILE__, "It stops tcp_listener in child process\n");
 }
 
@@ -81,7 +81,9 @@ int tcp_listener_init() {
 	event_loop_register_fd(tcp_sock, on_connection, NULL, POLLIN | POLLPRI | POLLHUP);
 	aroop_txt_t plugin_space = {};
 	aroop_txt_embeded_set_static_string(&plugin_space, "fork/child/after");
-	pm_plug_callback(&plugin_space, tcp_listener_stop_for_client, tcp_listener_stop_for_client_desc);
+	pm_plug_callback(&plugin_space, tcp_listener_stop, tcp_listener_stop_desc);
+	aroop_txt_embeded_set_static_string(&plugin_space, "shake/softquitall");
+	pm_plug_callback(&plugin_space, tcp_listener_stop, tcp_listener_stop_desc);
 	return 0;
 }
 
@@ -89,6 +91,8 @@ int tcp_listener_deinit() {
 	event_loop_unregister_fd(tcp_sock);
 	if(tcp_sock > 0)close(tcp_sock);
 	tcp_sock = -1;
+	pm_unplug_callback(0, tcp_listener_stop);
+	pm_unplug_callback(0, tcp_listener_stop);
 	return 0;
 }
 
