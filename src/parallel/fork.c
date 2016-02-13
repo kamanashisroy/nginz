@@ -6,6 +6,7 @@
 #include <aroop/opp/opp_any_obj.h>
 #include <aroop/opp/opp_str2.h>
 #include "nginz_config.h"
+#include "log.h"
 #include "plugin.h"
 #include "plugin_manager.h"
 #include "fork.h"
@@ -36,7 +37,7 @@ int fork_processors(int nclients) {
 		aroop_txt_destroy(&output);
 		fork_processors(nclients); // fork more
 	} else {
-		//perror();
+		syslog(LOG_ERR, "Failed to fork:%s\n", strerror(errno));
 		return -1;
 	}
 	return 0;

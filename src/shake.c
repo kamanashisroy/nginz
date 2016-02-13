@@ -56,7 +56,7 @@ static int on_shake_connection(int status, const void*unused) {
 		return 0;
 	int client_fd = accept(internal_unix_socket, NULL, NULL);
 	if(client_fd < 0) {
-		perror("Accept failed\n");
+		syslog(LOG_ERR, "Shake: Accept failed:%s\n", strerror(errno));
 		close(client_fd);
 		return -1;
 	}
@@ -68,7 +68,7 @@ static int on_shake_connection(int status, const void*unused) {
 static int shake_listen_on_unix_socket() {
 	aroop_assert(internal_unix_socket == -1);
 	if((internal_unix_socket = socket(AF_UNIX, SOCK_STREAM, 0)) < 0) {
-		perror("shake:Failed to create unix socket");
+		syslog(LOG_ERR, "Shake: failed to create unix socket:%s\n", strerror(errno));
 		return -1;
 	}
 	struct sockaddr_un addr;
@@ -76,12 +76,12 @@ static int shake_listen_on_unix_socket() {
 	addr.sun_family = AF_UNIX;
 	strncpy(addr.sun_path, "/tmp/nginz.sock", sizeof(addr.sun_path)-1);
 	if(bind(internal_unix_socket, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
-		perror("Failed to bind");
+		syslog(LOG_ERR, "shake:Failed bind:%s\n", strerror(errno));
 		close(internal_unix_socket);
 		return -1;
 	}
 	if(listen(internal_unix_socket, 5) < 0) {
-		perror("Failed to listen");
+		syslog(LOG_ERR, "shake:Failed to listen:%s\n", strerror(errno));
 		close(internal_unix_socket);
 		return -1;
 	}
@@ -103,7 +103,6 @@ static int shake_stop_on_fork_desc(aroop_txt_t*plugin_space,aroop_txt_t*output) 
 }
 
 int shake_module_init() {
-	shake_quitall_module_init();
 	if(!is_master()) {
 		return 0;
 	}
@@ -117,7 +116,6 @@ int shake_module_init() {
 }
 
 int shake_module_deinit() {
-	shake_quitall_module_deinit();
 	if(!is_master()) {
 		return 0;
 	}

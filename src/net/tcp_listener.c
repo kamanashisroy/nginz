@@ -26,7 +26,7 @@ static int on_connection(int status, const void*unused) {
 	socklen_t client_addr_len = sizeof(struct sockaddr_in);
 	int client_fd = accept(tcp_sock, (struct sockaddr *) &client_addr, &client_addr_len);
 	if(client_fd < 0) {
-		perror("Accept failed\n");
+		syslog(LOG_ERR, "Accept failed:%s\n", strerror(errno));
 		event_loop_unregister_fd(tcp_sock);
 		close(tcp_sock);
 		close(client_fd);
@@ -58,7 +58,7 @@ int tcp_listener_init() {
 		return 0;
 	aroop_assert(tcp_sock == -1);
 	if((tcp_sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0) {
-		perror("Failed to create socket");
+		syslog(LOG_ERR, "Failed to create socket:%s\n", strerror(errno));
 		return -1;
 	}
 	struct sockaddr_in addr;

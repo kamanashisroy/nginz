@@ -69,7 +69,7 @@ NGINZ_INLINE static int pp_sendmsg_helper(int through, int target, aroop_txt_t*c
 	//printf("Sending fd %d to worker\n", target);
 	
 	if(sendmsg(through, &msg, 0) < 0) {
-		perror("Cannot send msg");
+		syslog(LOG_ERR, "Cannot send message to child:%s\n", strerror(errno));
 		return -1;
 	}
 	close(target); // we do not own this fd anymore
@@ -131,7 +131,7 @@ NGINZ_INLINE static int pp_recvmsg_helper(int through, int*target, aroop_txt_t*c
 	
 	int recvlen = 0;
 	if(recvlen = recvmsg(through, &msg, 0) < 0) {
-		syslog(LOG_ERR, "Cannot recv msg\n");
+		syslog(LOG_ERR, "Cannot recv msg:%s\n", strerror(errno));
 		return -1;
 	}
 	if(msg.msg_iovlen == 1 && iov[0].iov_len > 0) {
@@ -158,7 +158,7 @@ static int on_ping(int events, const void*unused) {
 	//int count = recv(parent, rbuf, sizeof(rbuf), 0);
 	int count = recv(parent, aroop_txt_to_string(&recv_buffer), aroop_txt_capacity(&recv_buffer), 0);
 	if(count <= 0) {
-		perror("Error receiving ping");
+		syslog(LOG_ERR, "Error receiving ping:%s\n", strerror(errno));
 		return 0;
 	}
 
@@ -263,7 +263,7 @@ static int mpipefd[2];
 static int pp_fork_before_callback(aroop_txt_t*input, aroop_txt_t*output) {
 	//if(pipe(pipefd) || pipe(mpipefd)) {
 	if(socketpair(AF_UNIX, SOCK_DGRAM, 0, pipefd) || socketpair(AF_UNIX, SOCK_DGRAM, 0, mpipefd)) {
-		perror("Faild to create pipe");
+		syslog(LOG_ERR, "Failed to create pipe:%s\n", strerror(errno));
 		return -1;
 	}
 	return 0;

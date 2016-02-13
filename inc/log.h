@@ -3,6 +3,7 @@
 
 C_CAPSULE_START
 
+#include <errno.h>
 #include <syslog.h>
 
 C_CAPSULE_END

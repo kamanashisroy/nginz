@@ -32,10 +32,30 @@ And the output binary is `nginz_main`, `nginz_debug_main`, `nginz_profiler_main`
 Features
 ========
 
-NginZ is equiped to serve as production applications. It has,
+NginZ is equiped to serve as communication applications. It has,
 
-- Plugin and dependency injection.
-- Parallel processing support based on token-ring and pipeline pattern.
+- [Plugin](src/plugin.c) and dependency injection.
+- Parallel processing support based on [token-ring and pipeline pattern](src/parallel/pipeline.c).
 - It has scalability features. The requests are load-balanced in the worker processes.
-- It has memory profiler.
+- It has [memory profiler](src/net/chat/profiler.c).
+- It has [event-loop](src/event_loop.c) module to handle user data in [fibers](src/fiber.c).
+- It has [command shell](src/shake.c) to diagnose the server.
+
+livedemo
+========
+
+```
+telnet ec2-54-191-149-216.us-west-2.compute.amazonaws.com 9399
+```
+
+Command shell
+=============
+
+```
+socat - UNIX-CLIENT:/tmp/nginz.sock
+help
+plugin	shake	shake/plugin	src/plugin_manager.c
+It dumps the avilable plugins
+....
+```
 
