@@ -6,6 +6,7 @@
 #include "aroop/opp/opp_factory_profiler.h"
 #include "nginz_config.h"
 #include "event_loop.h"
+#include "log.h"
 #include "plugin.h"
 #include "plugin_manager.h"
 #include "net/protostack.h"
@@ -38,6 +39,49 @@ static int chat_plugin_command_desc(aroop_txt_t*plugin_space, aroop_txt_t*output
 	return plugin_desc(output, "chatplugin", "shake", plugin_space, __FILE__, "It dumps the avilable plugins\n");
 }
 
+static int chat_help_plug_helper(
+	int category
+	, aroop_txt_t*plugin_space
+	, int(*callback)(aroop_txt_t*input, aroop_txt_t*output)
+	, int(*bridge)(int signature, void*x)
+	, struct composite_plugin*inner
+	, int(*desc)(aroop_txt_t*plugin_space, aroop_txt_t*output)
+	, void*visitor_data
+) {
+	aroop_txt_t prefix = {};
+	aroop_txt_t*output = (aroop_txt_t*)visitor_data;
+	aroop_txt_t xdesc = {};
+	aroop_txt_embeded_copy_on_demand(&prefix, plugin_space);
+	aroop_txt_set_length(&prefix, 5);
+	if(!aroop_txt_equals_static(&prefix, "chat/"))
+		return 0;
+	aroop_txt_set_length(&prefix, 6);
+	if(aroop_txt_equals_static(&prefix, "chat/_")) // hide the hidden commands
+		return 0;
+	desc(plugin_space, &xdesc);
+	aroop_txt_concat(output, &xdesc);
+	aroop_txt_destroy(&xdesc);
+}
+
+static int chat_help_plug(int signature, void*given) {
+	aroop_assert(signature == CHAT_SIGNATURE);
+	struct chat_connection*chat = (struct chat_connection*)given;
+	if(chat == NULL || chat->fd == -1) // sanity check
+		return 0;
+	if(!chat_plugin_manager_get()) { // sanity check
+		return 0;
+	}
+	aroop_txt_t output = {};
+	aroop_txt_embeded_buffer(&output, 512);
+	composite_plugin_visit_all(chat_plugin_manager_get(), chat_help_plug_helper, &output);
+	send(chat->fd, aroop_txt_to_string(&output), aroop_txt_length(&output), 0);
+	return 0;
+}
+
+static int chat_help_plug_desc(aroop_txt_t*plugin_space, aroop_txt_t*output) {
+	return plugin_desc(output, "help", "chat", plugin_space, __FILE__, "It shows available commands.\n");
+}
+
 int chat_plugin_manager_module_init() {
 	aroop_assert(chat_plug == NULL);
 	chat_plug = composite_plugin_create();
@@ -51,6 +95,8 @@ int chat_plugin_manager_module_init() {
 	uptime_module_init();
 	chat_profiler_module_init();
 	aroop_txt_t plugin_space = {};
+	aroop_txt_embeded_set_static_string(&plugin_space, "chat/help");
+	composite_plug_bridge(chat_plugin_manager_get(), &plugin_space, chat_help_plug, chat_help_plug_desc);
 	aroop_txt_embeded_set_static_string(&plugin_space, "shake/chatplugin");
 	pm_plug_callback(&plugin_space, chat_plugin_command, chat_plugin_command_desc);
 }
@@ -65,6 +111,7 @@ int chat_plugin_manager_module_deinit() {
 	room_module_deinit();
 	broadcast_module_deinit();
 	welcome_module_deinit();
+	composite_unplug_bridge(chat_plugin_manager_get(), 0, chat_help_plug);
 	composite_plugin_destroy(chat_plug);
 }
 

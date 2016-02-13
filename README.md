@@ -46,6 +46,39 @@ livedemo
 
 ```
 telnet ec2-54-191-149-216.us-west-2.compute.amazonaws.com 9399
+Trying 54.191.149.216...
+Connected to ec2-54-191-149-216.us-west-2.compute.amazonaws.com.
+Escape character is '^]'.
+Welcome to NginZ chat server
+Login name?
+foo
+Welcome foo!
+/rooms
+Active rooms are:
+	* ONE (1)
+	* TWO
+	* THREE
+	* FOUR
+	* FIVE
+end of list.
+/join ONE
+Trying ...(14364)
+Entering room:ONE
+	* Shuva
+	* foo(** this is you)
+end of list
+Shuva:hi foo
+Shuva:I have to leave
+Shuva:Have a nice day
+	* user has left chat:Shuva
+/uptime
+....
+/profiler
+...
+/quit
+	* user has left chat:foo
+BYE
+Connection closed by foreign host.
 ```
 
 Command shell

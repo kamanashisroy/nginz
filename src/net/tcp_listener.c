@@ -36,7 +36,7 @@ static int on_connection(int status, const void*unused) {
 	aroop_txt_embeded_stackbuffer(&bin, 255);
 	binary_coder_reset_for_pid(&bin, 0);
 	aroop_txt_t welcome_command = {};
-	aroop_txt_embeded_set_static_string(&welcome_command, "chat/welcome"); 
+	aroop_txt_embeded_set_static_string(&welcome_command, "chat/_welcome"); 
 	binary_pack_string(&bin, &welcome_command);
 	pp_pingmsg(client_fd, &bin);
 	return 0;

@@ -84,6 +84,13 @@ static int broadcast_room_greet(struct chat_connection*chat, struct internal_roo
 	aroop_txt_set_length(&resp, 0);
 	aroop_txt_concat_string(&resp, "end of list\n");
 	send(chat->fd, aroop_txt_to_string(&resp), aroop_txt_length(&resp), 0);
+
+	// broadcast that there is new user
+	aroop_txt_set_length(&resp, 0);
+	aroop_txt_concat_string(&resp, "\t* user joined chat:");
+	aroop_txt_concat(&resp, &chat->name);
+	aroop_txt_concat_char(&resp, '\n');
+	broadcast_callback_helper(chat, rm, &resp);
 }
 
 static int broadcast_room_bye(struct chat_connection*chat, struct internal_room*rm) {

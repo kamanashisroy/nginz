@@ -73,7 +73,7 @@ static int chat_welcome_plug_desc(aroop_txt_t*plugin_space, aroop_txt_t*output) 
 int welcome_module_init() {
 	aroop_txt_embeded_buffer(&greet_on_login, 128);
 	aroop_txt_t plugin_space = {};
-	aroop_txt_embeded_set_static_string(&plugin_space, "chat/welcome");
+	aroop_txt_embeded_set_static_string(&plugin_space, "chat/_welcome");
 	composite_plug_bridge(chat_plugin_manager_get(), &plugin_space, chat_welcome_plug, chat_welcome_plug_desc);
 }
 
