@@ -31,6 +31,8 @@ static int chat_command(struct chat_connection*chat, aroop_txt_t*given_request) 
 	aroop_txt_t request = {};
 	aroop_txt_embeded_txt_copy_shallow(&request, given_request);
 	aroop_txt_shift(&request, 1); // skip '/' before command
+	if(aroop_txt_char_at(&request, 0) == '_') // do now allow hidden commands
+		return 0;
 
 	// get the command token
 	aroop_txt_t ctoken = {};

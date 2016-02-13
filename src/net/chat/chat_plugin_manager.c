@@ -55,8 +55,7 @@ static int chat_help_plug_helper(
 	aroop_txt_set_length(&prefix, 5);
 	if(!aroop_txt_equals_static(&prefix, "chat/"))
 		return 0;
-	aroop_txt_set_length(&prefix, 6);
-	if(aroop_txt_equals_static(&prefix, "chat/_")) // hide the hidden commands
+	if(aroop_txt_char_at(&prefix, 5) == '_') // hide the hidden commands
 		return 0;
 	desc(plugin_space, &xdesc);
 	aroop_txt_concat(output, &xdesc);

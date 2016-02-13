@@ -20,7 +20,7 @@ NginZ depends on the following packages,
 - [Aroop Core](https://github.com/kamanashisroy/aroop_core)
 - libmemcached
 
-It it tested in Linux and Mac/OSx platform.
+It it tested in Linux platform.
 
 Building
 ========
@@ -53,6 +53,8 @@ Welcome to NginZ chat server
 Login name?
 foo
 Welcome foo!
+/help
+...
 /rooms
 Active rooms are:
 	* ONE (1)
@@ -72,7 +74,7 @@ Shuva:I have to leave
 Shuva:Have a nice day
 	* user has left chat:Shuva
 /uptime
-....
+...
 /profiler
 ...
 /quit
