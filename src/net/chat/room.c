@@ -149,7 +149,7 @@ static int internal_child_count = 0;
 static int default_room_fork_child_after_callback(aroop_txt_t*input, aroop_txt_t*output) {
 	const char*myroom = default_rooms[internal_child_count];
 	int pid = getpid();
-	printf("we are assigning room(%s) to a process(%d)\n", myroom, pid);
+	//printf("we are assigning room(%s) to a process(%d)\n", myroom, pid);
 	chat_room_set_pid(myroom, pid);
 	aroop_txt_t room_name = {};
 	aroop_txt_embeded_copy_string(&room_name, myroom);

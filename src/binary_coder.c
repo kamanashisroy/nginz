@@ -7,6 +7,7 @@
 #include <aroop/opp/opp_any_obj.h>
 #include <aroop/opp/opp_str2.h>
 #include <aroop/aroop_memory_profiler.h>
+#include "log.h"
 #include "plugin.h"
 #include "plugin_manager.h"
 #include "binary_coder.h"
@@ -55,15 +56,15 @@ int binary_unpack_string(aroop_txt_t*buffer, int skip, aroop_txt_t*x) {
 	// do not trust the blen use my blen
 	blen = (mychar_t)aroop_txt_char_at(buffer, 0);
 	if(blen > (aroop_txt_length(buffer))) {
-		printf("Error in buffer data, may be the socket is corrupted 1\n");
+		syslog(LOG_ERR, "Error in buffer data, may be the socket is corrupted 1\n");
 		return -1;
 	}
 	do {
 		mychar_t nlen = (mychar_t)aroop_txt_char_at(buffer, pos);
-		printf("pos %d, nlen %d, blen %d\n", pos, nlen, blen);
+		//printf("pos %d, nlen %d, blen %d\n", pos, nlen, blen);
 		if(pos + nlen > blen) {
 			// error
-			printf("Error in buffer data, may be the socket is corrupted 2\n");
+			syslog(LOG_ERR, "Error in buffer data, may be the socket is corrupted 2\n");
 			return -1;
 		}
 		if(skip) {

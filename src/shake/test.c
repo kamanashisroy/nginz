@@ -38,7 +38,8 @@ static int test_command_tester(
 static int test_command(aroop_txt_t*input, aroop_txt_t*output) {
 	aroop_txt_embeded_buffer(output, 512);
 	composite_plugin_visit_all(pm_get(), test_command_tester, output);
-	printf("test complete\n");
+	aroop_txt_concat_string(output, "\nTests Complete\n");
+	return 0;
 }
 
 static int test_command_desc(aroop_txt_t*plugin_space, aroop_txt_t*output) {

@@ -3,6 +3,7 @@
 #include <aroop/core/xtring.h>
 #include "nginz_config.h"
 #include "plugin.h"
+#include "log.h"
 #include "net/chat.h"
 #include "net/chat/chat_plugin_manager.h"
 #include "net/chat/hiddenjoin.h"
@@ -43,7 +44,7 @@ static int chat_hiddenjoin_plug(int signature, void*given) {
 	int pid = -1;
 	do {
 		if(aroop_txt_is_empty_magical(chat->request) || chat_hiddenjoin_get_room_and_name(chat->request, &room, &name)) {
-			printf("Bug in the server code :(\n");
+			syslog(LOG_ERR, "Bug in the server code :(\n");
 			break;
 		}
 		aroop_txt_embeded_copy_deep(&chat->name, &name);

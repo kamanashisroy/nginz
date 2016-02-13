@@ -7,6 +7,7 @@
 #include <aroop/opp/opp_list.h>
 #include "nginz_config.h"
 #include "plugin.h"
+#include "log.h"
 #include "net/chat.h"
 #include "net/chat/chat_plugin_manager.h"
 #include "net/chat/broadcast.h"
@@ -39,7 +40,7 @@ static int broadcast_callback_helper(struct chat_connection*chat, struct interna
 static int broadcast_callback(struct chat_connection*chat, aroop_txt_t*msg) {
 	struct internal_room*rm = (struct internal_room*)(chat->broadcast_data);
 	if(!rm) {
-		printf("We do not know how we can broadcast it\n");
+		syslog(LOG_ERR, "We do not know how we can broadcast it\n");
 		return -1;
 	}
 	// iterate all the user
@@ -99,7 +100,7 @@ int broadcast_room_join(struct chat_connection*chat, aroop_txt_t*room_name) {
 	struct internal_room*rm = NULL;
 	opp_search(&room_factory, aroop_txt_get_hash(room_name), NULL, NULL, (void**)&rm);
 	if(rm == NULL) {
-		printf("Cannot find room %s\n", aroop_txt_to_string(room_name));
+		syslog(LOG_ERR, "Cannot find room %s\n", aroop_txt_to_string(room_name));
 		return -1;
 	}
 	opp_list_add_noref(&rm->user_list, chat);

@@ -9,6 +9,7 @@
 #include <aroop/opp/opp_str2.h>
 #include <aroop/aroop_memory_profiler.h>
 #include "nginz_config.h"
+#include "log.h"
 #include "plugin_manager.h"
 #include "event_loop.h"
 #include "parallel/pipeline.h"
@@ -130,7 +131,7 @@ NGINZ_INLINE static int pp_recvmsg_helper(int through, int*target, aroop_txt_t*c
 	
 	int recvlen = 0;
 	if(recvlen = recvmsg(through, &msg, 0) < 0) {
-		printf("Cannot recv msg\n");
+		syslog(LOG_ERR, "Cannot recv msg\n");
 		return -1;
 	}
 	if(msg.msg_iovlen == 1 && iov[0].iov_len > 0) {
@@ -198,7 +199,7 @@ static int on_pingmsg(int events, const void*unused) {
 			// it is not ours
 			//printf("It(%d) is not ours(%d) on ping doing more ping\n", destpid, getpid());
 			if(destpid < getpid()) {
-				printf("BUG, it cannot happen, we not not ponging anymore\n");
+				syslog(LOG_ERR, "BUG, it cannot happen, we not not ponging anymore\n");
 				break;
 			}
 			pp_pingmsg(acceptfd, &cmd);
@@ -236,7 +237,7 @@ static int on_pongmsg(int events, const void*unused) {
 			//printf("It(%d) is not ours(%d) on pong doing ping\n", destpid, getpid());
 			// it is not ours
 			if(destpid > getpid()) {
-				printf("BUG, it cannot happen, we not not pinging anymore\n");
+				syslog(LOG_ERR, "BUG, it cannot happen, we not not pinging anymore\n");
 				break;
 			}
 			pp_pongmsg(acceptfd, &cmd);

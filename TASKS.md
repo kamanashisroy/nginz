@@ -24,5 +24,5 @@ Tasks
 - [ ] Create memory profiler command to show memory usage.
 
 ### logging
-- [ ] Do some logging to destined location.
+- [x] Use syslog.
 

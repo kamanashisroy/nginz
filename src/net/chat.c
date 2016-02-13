@@ -7,6 +7,7 @@
 #include "nginz_config.h"
 #include "event_loop.h"
 #include "plugin.h"
+#include "log.h"
 #include "plugin_manager.h"
 #include "net/protostack.h"
 #include "net/chat.h"
@@ -64,7 +65,7 @@ static int on_client_data(int status, const void*cb_data) {
 	aroop_txt_set_length(&recv_buffer, 1); // without it aroop_txt_to_string() will give NULL
 	int count = recv(chat->fd, aroop_txt_to_string(&recv_buffer), aroop_txt_capacity(&recv_buffer), 0);
 	if(count == 0) {
-		printf("Client disconnected\n");
+		syslog(LOG_INFO, "Client disconnected\n");
 		chat_destroy(chat);
 		return -1;
 	}
@@ -91,7 +92,7 @@ static int on_client_data(int status, const void*cb_data) {
 		send(chat->fd, aroop_txt_to_string(&cannot_process), aroop_txt_length(&cannot_process), 0);
 	} while(0);
 	if(chat->state == CHAT_QUIT || chat->state == CHAT_SOFT_QUIT) {
-		printf("Client quited\n");
+		syslog(LOG_INFO, "Client quited\n");
 		chat_destroy(chat);
 		return -1;
 	}
@@ -115,12 +116,11 @@ static int chat_on_guest_hookup(int fd, aroop_txt_t*cmd) {
 	shotodol_scanner_next_token(&request_sandbox, &plugin_space);
 	if(aroop_txt_is_empty(&plugin_space)) {
 		aroop_txt_zero_terminate(&request_sandbox);
-		printf("Possible BUG , cannot handle request %s", aroop_txt_to_string(&request_sandbox));
+		syslog(LOG_ERR, "Possible BUG , cannot handle request %s", aroop_txt_to_string(&request_sandbox));
 		return -1;
 	}
 
 	composite_plugin_bridge_call(chat_plugin_manager_get(), &plugin_space, CHAT_SIGNATURE, chat);
-	printf("adding guest client to event loop\n");
 	event_loop_register_fd(fd, on_client_data, chat, NGINZ_POLL_ALL_FLAGS);
 	return 0;
 }

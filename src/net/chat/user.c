@@ -4,6 +4,7 @@
 #include <aroop/core/thread.h>
 #include <aroop/core/xtring.h>
 #include "db.h"
+#include "log.h"
 #include "net/chat/user.h"
 
 C_CAPSULE_START
@@ -25,7 +26,7 @@ int try_login(aroop_txt_t*name) {
 	aroop_txt_t result = {};
 	db_get(aroop_txt_to_string(&name_key), &result);
 	if(!aroop_txt_is_empty(&result)) {
-		printf(" user value %s\n", aroop_txt_to_string(&result));
+		//syslog(LOG_INFO, "User already exists %s\n", aroop_txt_to_string(&result));
 		ret = -1;
 	} else {
 		aroop_txt_embeded_rebuild_and_set_static_string(&result, "1");

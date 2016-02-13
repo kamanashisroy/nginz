@@ -2,6 +2,7 @@
 #include "aroop/aroop_core.h"
 #include "aroop/core/xtring.h"
 #include "nginz_config.h"
+#include "log.h"
 #include "plugin_manager.h"
 #include "fiber.h"
 #include "fork.h"
@@ -12,6 +13,9 @@
 C_CAPSULE_START
 
 static int nginz_main(char*args) {
+	daemon(0,0);
+	setlogmask (LOG_UPTO (LOG_NOTICE));
+	openlog ("nginz", LOG_CONS | LOG_PID | LOG_NDELAY, LOG_LOCAL1);
 	db_module_init();
 	pm_init();
 	binary_coder_module_init();
@@ -32,6 +36,7 @@ static int nginz_main(char*args) {
 	binary_coder_module_deinit();
 	pm_deinit();
 	db_module_deinit();
+	closelog();
 	return 0;
 }
 

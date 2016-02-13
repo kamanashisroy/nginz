@@ -3,6 +3,7 @@
 #include <aroop/core/xtring.h>
 #include "nginz_config.h"
 #include "plugin.h"
+#include "log.h"
 #include "net/chat.h"
 #include "net/chat/chat_plugin_manager.h"
 #include "net/chat/user.h"
@@ -53,13 +54,11 @@ static int on_login_data(struct chat_connection*chat, aroop_txt_t*answer) {
 
 static int chat_welcome_plug(int signature, void*given) {
 	aroop_assert(signature == CHAT_SIGNATURE);
-	printf("executing welcome \n");
 	struct chat_connection*chat = (struct chat_connection*)given;
 	if(chat == NULL || chat->fd == -1) { // sanity check
-		printf("BUG: no chat interface to welcome\n");
+		syslog(LOG_ERR, "BUG: no chat interface to welcome\n");
 		return 0;
 	}
-	printf("sending welcome \n");
 	aroop_txt_t greet = {};
 	aroop_txt_embeded_set_static_string(&greet, "Welcome to NginZ chat server\nLogin name?\n");
 	chat->on_answer = on_login_data;

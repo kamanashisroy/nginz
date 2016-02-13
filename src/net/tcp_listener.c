@@ -12,6 +12,7 @@
 #include <netinet/in.h>
 #include <errno.h>
 #include "plugin.h"
+#include "log.h"
 #include "plugin_manager.h"
 #include "event_loop.h"
 #include "nginz_config.h"
@@ -61,23 +62,24 @@ int tcp_listener_init() {
 		return -1;
 	}
 	struct sockaddr_in addr;
+	memset(&addr, 0, sizeof(addr));
 	addr.sin_family = AF_INET;
 	inet_aton("0.0.0.0", &(addr.sin_addr));
 	addr.sin_port = htons(NGINZ_DEFAULT_PORT);
 	int sock_flag = 1;
 	setsockopt(tcp_sock, SOL_SOCKET, SO_REUSEADDR, (char*)&sock_flag, sizeof(sock_flag));
 	if(bind(tcp_sock, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
-		perror("Failed to bind");
+		syslog(LOG_ERR, "Failed to bind:%s\n", strerror(errno));
 		close(tcp_sock);
 		return -1;
 	}
 #define DEFAULT_SYN_BACKLOG 1024 /* XXX we are setting this too high */
 	if(listen(tcp_sock, DEFAULT_SYN_BACKLOG) < 0) {
-		perror("Failed to listen");
+		syslog(LOG_ERR, "Failed to listen:%s\n", strerror(errno));
 		close(tcp_sock);
 		return -1;
 	}
-	printf("listening ...\n");
+	syslog(LOG_INFO, "listening ...\n");
 	event_loop_register_fd(tcp_sock, on_connection, NULL, POLLIN | POLLPRI | POLLHUP);
 	aroop_txt_t plugin_space = {};
 	aroop_txt_embeded_set_static_string(&plugin_space, "fork/child/after");

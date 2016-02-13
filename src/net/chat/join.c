@@ -2,6 +2,7 @@
 #include <aroop/aroop_core.h>
 #include <aroop/core/xtring.h>
 #include "nginz_config.h"
+#include "log.h"
 #include "plugin.h"
 #include "net/chat.h"
 #include "net/chat/chat_plugin_manager.h"
@@ -28,10 +29,10 @@ static int chat_join_transfer(struct chat_connection*chat, aroop_txt_t*room, int
 	binary_pack_string(&bin, &cmd);
 	int mypid = getpid();
 	if(pid > mypid) {
-		printf("transfering to %d ping\n", pid);
+		syslog(LOG_INFO, "transfering to %d ping\n", pid);
 		pp_pingmsg(chat->fd, &bin);
 	} else {
-		printf("transfering to %d pong\n", pid);
+		syslog(LOG_INFO, "transfering to %d pong\n", pid);
 		pp_pongmsg(chat->fd, &bin);
 	}
 	chat->state = CHAT_SOFT_QUIT; // quit the user from this process
@@ -40,12 +41,12 @@ static int chat_join_transfer(struct chat_connection*chat, aroop_txt_t*room, int
 
 static int chat_join_helper(struct chat_connection*chat, aroop_txt_t*room, int pid) {
 	// check if it is same process
-	printf("target pid=%d, my pid = %d\n", pid, getpid());
+	//printf("target pid=%d, my pid = %d\n", pid, getpid());
 	if(pid != getpid()) {
 		chat_join_transfer(chat, room, pid);
 		return 0;
 	}
-	printf("assiging to room %s\n", aroop_txt_to_string(room));
+	//printf("assiging to room %s\n", aroop_txt_to_string(room));
 	// otherwise assign to the room
 	broadcast_room_join(chat, room);
 	return 0;

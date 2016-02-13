@@ -7,6 +7,7 @@
 #include <aroop/opp/opp_any_obj.h>
 #include <aroop/opp/opp_str2.h>
 #include <aroop/aroop_memory_profiler.h>
+#include "log.h"
 #include "plugin.h"
 #include "plugin_manager.h"
 #include "db.h"
@@ -20,12 +21,9 @@ int db_set(const char*key,const char*value) {
 	if(internal_memc == NULL)
 		return -1;
 	memcached_return rc;
-	printf("We are saving %s\n", key);
 	rc= memcached_set(internal_memc, key, strlen(key), value, value?strlen(value):0, (time_t)0, (uint32_t)0);
-	if(rc == MEMCACHED_SUCCESS)
-		printf("We saved the key successfully\n");
-	else
-		printf("Couldn't add server: %s\n",memcached_strerror(internal_memc, rc));
+	if(rc != MEMCACHED_SUCCESS)
+		syslog(LOG_ERR, "Couldn't add server: %s\n",memcached_strerror(internal_memc, rc));
 		
 	return !(rc == MEMCACHED_SUCCESS);
 }
@@ -66,13 +64,13 @@ int db_module_init() {
 	memcached_return rc;
 	//memcached_server_st *memcached_servers_parse (char *server_strings);
 	internal_memc= memcached_create(NULL);
-	printf("creating memcached server\n");
+	syslog(LOG_INFO, "creating memcached server\n");
 	internal_servers= memcached_server_list_append(internal_servers, "localhost"/* server name */, 11211/* port */, &rc); 
 	rc= memcached_server_push(internal_memc, internal_servers);
 	if (rc == MEMCACHED_SUCCESS)
-		printf("Added server successfully\n");
+		syslog(LOG_INFO, "Added server successfully\n");
 	else
-		fprintf(stderr,"Couldn't add server: %s\n",memcached_strerror(internal_memc, rc));
+		syslog(LOG_ERR, "Couldn't add server: %s\n",memcached_strerror(internal_memc, rc));
 	return 0;
 }
 
