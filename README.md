@@ -40,6 +40,27 @@ NginZ is equiped to serve as communication applications. It has,
 - It has [memory profiler](src/net/chat/profiler.c).
 - It has [event-loop](src/event_loop.c) module to handle user data in [fibers](src/fiber.c).
 - It has [command shell](src/shake.c) to diagnose the server.
+- Writing new feature for chat server needs very less code(see the following ..). 
+
+Dependency injection
+====================
+
+As a framework it supports dependency injection by plugin-spaces/extension-points. It makes less coupling and strong cohesion possible. And the result is less code and easily maintainable source for each features.
+
+| Module/Source | Lines of code |
+| --- | --- |
+| ./src/net/chat/room.c | 182 |
+| ./src/net/chat/quit.c | 43 |
+| ./src/net/chat/leave.c | 34 |
+| ./src/net/chat/broadcast.c | 182 |
+| ./src/net/chat/join.c | 116 |
+| ./src/net/chat/uptime.c | 48 |
+| ./src/net/chat/profiler.c | 51 |
+| ./src/net/chat/chat\_plugin\_manager.c | 118 |
+| ./src/net/chat/welcome.c | 86 |
+| ./src/net/chat/hiddenjoin.c | 75 |
+| ./src/net/chat/user.c | 56 |
+
 
 livedemo
 ========
