@@ -51,9 +51,10 @@ static int on_shake_connection_helper(int fd) {
 	return 0;
 }
 
-static int on_shake_connection(int status, const void*unused) {
+static int on_shake_connection(int fd, int status, const void*unused) {
 	if(internal_unix_socket == -1)
 		return 0;
+	aroop_assert(internal_unix_socket == fd);
 	int client_fd = accept(internal_unix_socket, NULL, NULL);
 	if(client_fd < 0) {
 		syslog(LOG_ERR, "Shake: Accept failed:%s\n", strerror(errno));

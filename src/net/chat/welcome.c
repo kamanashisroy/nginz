@@ -27,7 +27,7 @@ static int on_login_data(struct chat_connection*chat, aroop_txt_t*answer) {
 			aroop_txt_concat_string(&greet_on_login, "Invalid name:(, try again\n");
 			break;
 		}
-		if(aroop_txt_length(&name) >= NGINZ_MAX_USER_NAME_SIZE) { // TODO allow only alphaneumeric characters
+		if(aroop_txt_length(&name) >= NGINZ_MAX_CHAT_USER_NAME_SIZE) { // TODO allow only alphaneumeric characters
 			aroop_txt_set_length(&greet_on_login, 0);
 			aroop_txt_concat_string(&greet_on_login, "The name is too big\n");
 			break;

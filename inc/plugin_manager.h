@@ -21,6 +21,9 @@ int plugin_command_helper(
 #define pm_plug_callback(plugin_space, callback, desc) ({composite_plug_callback(pm_get(), plugin_space, callback, desc);})
 #define pm_unplug_callback(plugin_id, callback) ({composite_unplug_callback(pm_get(), plugin_id, callback);})
 
+#define pm_plug_bridge(target, bridge, desc) ({composite_plug_bridge(pm_get(), target, bridge, desc);})
+#define pm_unplug_bridge(plugin_id, bridge) ({composite_unplug_bridge(pm_get(), plugin_id, bridge);})
+
 int pm_init();
 int pm_deinit();
 

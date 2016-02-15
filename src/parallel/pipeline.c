@@ -31,7 +31,7 @@ int mchild = -1;
 int parent = -1;
 int mparent = -1;
 
-NGINZ_INLINE int pp_ping(aroop_txt_t*pkt) {
+NGINZ_INLINE int pp_bubble_down(aroop_txt_t*pkt) {
 	// sanity check
 	if(child == -1)
 		return -1;
@@ -76,12 +76,12 @@ NGINZ_INLINE static int pp_sendmsg_helper(int through, int target, aroop_txt_t*c
 	return 0;
 }
 
-NGINZ_INLINE int pp_pingmsg(int socket, aroop_txt_t*cmd) {
+NGINZ_INLINE int pp_bubble_downmsg(int socket, aroop_txt_t*cmd) {
 	//printf("Sending fd %d to child\n", socket);
 	return pp_sendmsg_helper(mchild, socket, cmd);
 }
 
-NGINZ_INLINE int pp_pong(aroop_txt_t*pkt) {
+NGINZ_INLINE int pp_bubble_up(aroop_txt_t*pkt) {
 	// sanity check
 	if(parent == -1)
 		return -1;
@@ -89,7 +89,7 @@ NGINZ_INLINE int pp_pong(aroop_txt_t*pkt) {
 	return 0;
 }
 
-NGINZ_INLINE int pp_pongmsg(int socket, aroop_txt_t*cmd) {
+NGINZ_INLINE int pp_bubble_upmsg(int socket, aroop_txt_t*cmd) {
 	if(mparent == -1)
 		return -1;
 	return pp_sendmsg_helper(mparent, socket, cmd);
@@ -151,21 +151,22 @@ NGINZ_INLINE static int pp_recvmsg_helper(int through, int*target, aroop_txt_t*c
 }
 
 static aroop_txt_t recv_buffer;
-static int on_ping(int events, const void*unused) {
-	//printf("There is ping from the parent\n");
+static int on_bubble_down(int fd, int events, const void*unused) {
+	//printf("There is bubble_down from the parent\n");
 	aroop_txt_set_length(&recv_buffer, 1); // without it aroop_txt_to_string() will give NULL
 	//char rbuf[255];
 	//int count = recv(parent, rbuf, sizeof(rbuf), 0);
-	int count = recv(parent, aroop_txt_to_string(&recv_buffer), aroop_txt_capacity(&recv_buffer), 0);
+	aroop_assert(fd == parent);
+	int count = recv(fd, aroop_txt_to_string(&recv_buffer), aroop_txt_capacity(&recv_buffer), 0);
 	if(count <= 0) {
-		syslog(LOG_ERR, "Error receiving ping:%s\n", strerror(errno));
+		syslog(LOG_ERR, "Error receiving bubble_down:%s\n", strerror(errno));
 		return 0;
 	}
 
 	aroop_txt_set_length(&recv_buffer, count);
 	//aroop_txt_embeded_rebuild_and_set_content(&recv_buffer, rbuf)
 	aroop_txt_t x = {};
-	//printf("There is ping from the parent, %d, (count=%d)\n", (int)aroop_txt_char_at(&recv_buffer, 0), count);
+	//printf("There is bubble_down from the parent, %d, (count=%d)\n", (int)aroop_txt_char_at(&recv_buffer, 0), count);
 	binary_unpack_string(&recv_buffer, 0, &x);
 	if(aroop_txt_is_empty(&x)) {
 		return 0;
@@ -184,12 +185,13 @@ static int load_take() {
 	return (load % (NGINZ_NUMBER_OF_PROCESSORS-1));
 }
 
-static int on_pingmsg(int events, const void*unused) {
+static int on_bubble_downmsg(int fd, int events, const void*unused) {
 	int destpid = 0;
 	int acceptfd = -1;
 	aroop_txt_t cmd = {};
+	aroop_assert(fd == mparent);
 	do {
-		if(pp_recvmsg_helper(mparent, &acceptfd, &cmd)) {
+		if(pp_recvmsg_helper(fd, &acceptfd, &cmd)) {
 			break;
 		}
 		binary_coder_fixup(&cmd);
@@ -197,59 +199,62 @@ static int on_pingmsg(int events, const void*unused) {
 		binary_unpack_int(&cmd, 0, &destpid);
 		if(destpid > 0 && destpid != getpid()) {
 			// it is not ours
-			//printf("It(%d) is not ours(%d) on ping doing more ping\n", destpid, getpid());
+			//printf("It(%d) is not ours(%d) on bubble_down doing more bubble_down\n", destpid, getpid());
 			if(destpid < getpid()) {
-				syslog(LOG_ERR, "BUG, it cannot happen, we not not ponging anymore\n");
+				syslog(LOG_ERR, "BUG, it cannot happen, we not not bubble_uping anymore\n");
 				break;
 			}
-			pp_pingmsg(acceptfd, &cmd);
+			pp_bubble_downmsg(acceptfd, &cmd);
 			break;
 		}
 		if(destpid <= 0 && mchild != -1 && load_take()) {
 			//printf("balancing load on %d\n", getpid());
-			pp_pingmsg(acceptfd, &cmd);
+			pp_bubble_downmsg(acceptfd, &cmd);
 			break;
 		}
 		struct protostack*stack = protostack_get(NGINZ_DEFAULT_PORT);
-		stack->on_guest_hookup(acceptfd, &cmd);
+		stack->on_connection_bubble(acceptfd, &cmd);
 	} while(0);
 	aroop_txt_destroy(&cmd);
 	return 0;
 }
 
-static int on_pong(int events, const void*unused) {
-	int count = recv(child, aroop_txt_to_string(&recv_buffer), aroop_txt_capacity(&recv_buffer), 0);
+static int on_bubble_up(int fd, int events, const void*unused) {
+	aroop_assert(fd == child);
+	aroop_txt_set_length(&recv_buffer, 1); // without it aroop_txt_to_string() will give NULL
+	int count = recv(fd, aroop_txt_to_string(&recv_buffer), aroop_txt_capacity(&recv_buffer), 0);
 	// TODO do something with the recv_buffer
 }
 
-static int on_pongmsg(int events, const void*unused) {
+static int on_bubble_upmsg(int fd, int events, const void*unused) {
 	int destpid = 0;
 	int acceptfd = -1;
 	aroop_txt_t cmd = {};
+	aroop_assert(fd == mchild);
 	do {
-		if(pp_recvmsg_helper(mchild, &acceptfd, &cmd)) {
+		if(pp_recvmsg_helper(fd, &acceptfd, &cmd)) {
 			break;
 		}
 		binary_coder_fixup(&cmd);
 		//binary_coder_debug_dump(&cmd);
 		binary_unpack_int(&cmd, 0, &destpid);
 		if(destpid > 0 && destpid != getpid()) {
-			//printf("It(%d) is not ours(%d) on pong doing ping\n", destpid, getpid());
+			//printf("It(%d) is not ours(%d) on bubble_up doing bubble_down\n", destpid, getpid());
 			// it is not ours
 			if(destpid > getpid()) {
-				syslog(LOG_ERR, "BUG, it cannot happen, we not not pinging anymore\n");
+				syslog(LOG_ERR, "BUG, it cannot happen, we not not bubble_downing anymore\n");
 				break;
 			}
-			pp_pongmsg(acceptfd, &cmd);
+			pp_bubble_upmsg(acceptfd, &cmd);
 			break;
 		}
 		if(destpid <= 0 && mparent != -1 && load_take()) {
 			//printf("balancing load on %d\n", getpid());
-			pp_pongmsg(acceptfd, &cmd);
+			pp_bubble_upmsg(acceptfd, &cmd);
 			break;
 		}
 		struct protostack*stack = protostack_get(NGINZ_DEFAULT_PORT);
-		stack->on_guest_hookup(acceptfd, &cmd);
+		stack->on_connection_bubble(acceptfd, &cmd);
 	} while(0);
 	aroop_txt_destroy(&cmd);
 	return 0;
@@ -282,8 +287,8 @@ static int pp_fork_child_after_callback(aroop_txt_t*input, aroop_txt_t*output) {
 	/****************************************************/
 	parent = pipefd[1];
 	mparent = mpipefd[1];
-	event_loop_register_fd(parent, on_ping, NULL, NGINZ_POLL_ALL_FLAGS);
-	event_loop_register_fd(mparent, on_pingmsg, NULL, NGINZ_POLL_ALL_FLAGS);
+	event_loop_register_fd(parent, on_bubble_down, NULL, NGINZ_POLL_ALL_FLAGS);
+	event_loop_register_fd(mparent, on_bubble_downmsg, NULL, NGINZ_POLL_ALL_FLAGS);
 	// cleanup child
 	event_loop_unregister_fd(child);
 	event_loop_unregister_fd(mchild);
@@ -305,8 +310,8 @@ static int pp_fork_parent_after_callback(aroop_txt_t*input, aroop_txt_t*output) 
 	child = pipefd[0];
 	mchild = mpipefd[0];
 	//printf("child fds %d,%d\n", pipefd[0], mpipefd[0]);
-	event_loop_register_fd(child, on_pong, NULL, NGINZ_POLL_ALL_FLAGS);
-	event_loop_register_fd(mchild, on_pongmsg, NULL, NGINZ_POLL_ALL_FLAGS);
+	event_loop_register_fd(child, on_bubble_up, NULL, NGINZ_POLL_ALL_FLAGS);
+	event_loop_register_fd(mchild, on_bubble_upmsg, NULL, NGINZ_POLL_ALL_FLAGS);
 	//close(pipefd[1]);
 	return 0;
 }

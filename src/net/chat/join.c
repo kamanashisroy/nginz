@@ -29,11 +29,11 @@ static int chat_join_transfer(struct chat_connection*chat, aroop_txt_t*room, int
 	binary_pack_string(&bin, &cmd);
 	int mypid = getpid();
 	if(pid > mypid) {
-		syslog(LOG_INFO, "transfering to %d ping\n", pid);
-		pp_pingmsg(chat->fd, &bin);
+		//syslog(LOG_INFO, "transfering to %d bubble_down\n", pid);
+		pp_bubble_downmsg(chat->fd, &bin);
 	} else {
-		syslog(LOG_INFO, "transfering to %d pong\n", pid);
-		pp_pongmsg(chat->fd, &bin);
+		//syslog(LOG_INFO, "transfering to %d bubble_up\n", pid);
+		pp_bubble_upmsg(chat->fd, &bin);
 	}
 	chat->state = CHAT_SOFT_QUIT; // quit the user from this process
 	return 0;

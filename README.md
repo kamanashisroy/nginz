@@ -115,3 +115,11 @@ It dumps the avilable plugins
 ....
 ```
 
+Benchmarking
+============
+
+TODO
+
+```
+ab -r -n 10 -c 3 http://ec2-54-191-149-216.us-west-2.compute.amazonaws.com:80/
+```

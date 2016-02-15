@@ -8,7 +8,8 @@ C_CAPSULE_START
  */
 
 struct protostack {
-	int (*on_guest_hookup)(int fd, aroop_txt_t*cmd);
+	int (*on_tcp_connection)(int fd);
+	int (*on_connection_bubble)(int fd, aroop_txt_t*cmd);
 };
 struct protostack*protostack_get(int port);
 int protostack_set(int port, struct protostack*x);

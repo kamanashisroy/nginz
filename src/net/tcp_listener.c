@@ -16,71 +16,83 @@
 #include "plugin_manager.h"
 #include "event_loop.h"
 #include "nginz_config.h"
+#include "net/protostack.h"
 #include "net/tcp_listener.h"
 
 C_CAPSULE_START
 
-static int tcp_sock = -1;
-static int on_connection(int status, const void*unused) {
+static int tcp_ports[NGINZ_MAX_PROTO] = {NGINZ_DEFAULT_PORT, NGINZ_HTTP_PORT, 0, 0};
+static int tcp_sockets[NGINZ_MAX_PROTO] = { -1, -1, -1, -1};
+
+static int on_connection(int fd, int status, const void*pstack) {
 	struct sockaddr_in client_addr;
 	socklen_t client_addr_len = sizeof(struct sockaddr_in);
-	int client_fd = accept(tcp_sock, (struct sockaddr *) &client_addr, &client_addr_len);
+	int client_fd = accept(fd, (struct sockaddr *) &client_addr, &client_addr_len);
 	if(client_fd < 0) {
 		syslog(LOG_ERR, "Accept failed:%s\n", strerror(errno));
-		event_loop_unregister_fd(tcp_sock);
-		close(tcp_sock);
+		event_loop_unregister_fd(fd);
+		close(fd);
 		close(client_fd);
 		return -1;
 	}
-	aroop_txt_t bin = {};
-	aroop_txt_embeded_stackbuffer(&bin, 255);
-	binary_coder_reset_for_pid(&bin, 0);
-	aroop_txt_t welcome_command = {};
-	aroop_txt_embeded_set_static_string(&welcome_command, "chat/_welcome"); 
-	binary_pack_string(&bin, &welcome_command);
-	pp_pingmsg(client_fd, &bin);
+	struct protostack*stack = (struct protostack*)pstack;
+	stack->on_tcp_connection(client_fd);
 	return 0;
 }
 
 static int tcp_listener_stop(aroop_txt_t*input, aroop_txt_t*output) {
-	event_loop_unregister_fd(tcp_sock);
-	if(tcp_sock > 0)close(tcp_sock);
-	tcp_sock = -1;
+	int i = 0;
+	int count = sizeof(tcp_sockets)/sizeof(*tcp_sockets);
+	for(i = 0; i < count && tcp_sockets[i] != -1; i++) {
+		event_loop_unregister_fd(tcp_sockets[i]);
+		if(tcp_sockets[i] > 0)close(tcp_sockets[i]);
+		tcp_sockets[i] = -1;
+	}
+	return 0;
 }
 
 static int tcp_listener_stop_desc(aroop_txt_t*plugin_space,aroop_txt_t*output) {
 	return plugin_desc(output, "tcp_listener", "fork", plugin_space, __FILE__, "It stops tcp_listener in child process\n");
 }
 
+static int tcp_listener_start() {
+	int i = 0;
+	int count = sizeof(tcp_sockets)/sizeof(*tcp_sockets);
+	for(i = 0; i < count && tcp_ports[i] != 0; i++) {
+		aroop_assert(tcp_sockets[i] == -1);
+		if((tcp_sockets[i] = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0) {
+			syslog(LOG_ERR, "Failed to create socket:%s\n", strerror(errno));
+			continue;
+		}
+		struct sockaddr_in addr;
+		memset(&addr, 0, sizeof(addr));
+		addr.sin_family = AF_INET;
+		inet_aton("0.0.0.0", &(addr.sin_addr));
+		addr.sin_port = htons(tcp_ports[i]);
+		int sock_flag = 1;
+		setsockopt(tcp_sockets[i], SOL_SOCKET, SO_REUSEADDR, (char*)&sock_flag, sizeof(sock_flag));
+		if(bind(tcp_sockets[i], (struct sockaddr*)&addr, sizeof(addr)) < 0) {
+			syslog(LOG_ERR, "Failed to bind:%s\n", strerror(errno));
+			close(tcp_sockets[i]);
+			continue;
+		}
+		if(listen(tcp_sockets[i], NGINZ_TCP_LISTENER_BACKLOG) < 0) {
+			syslog(LOG_ERR, "Failed to listen:%s\n", strerror(errno));
+			close(tcp_sockets[i]);
+			continue;
+		}
+		syslog(LOG_INFO, "tcp_listener.c: listening to port %d\n", tcp_ports[i]);
+		struct protostack*stack = protostack_get(tcp_ports[i]);
+		event_loop_register_fd(tcp_sockets[i], on_connection, stack, NGINZ_POLL_LISTEN_FLAGS);
+
+	}
+	return 0;
+}
 
 int tcp_listener_init() {
 	if(!is_master()) // we only start it in the master
 		return 0;
-	aroop_assert(tcp_sock == -1);
-	if((tcp_sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0) {
-		syslog(LOG_ERR, "Failed to create socket:%s\n", strerror(errno));
-		return -1;
-	}
-	struct sockaddr_in addr;
-	memset(&addr, 0, sizeof(addr));
-	addr.sin_family = AF_INET;
-	inet_aton("0.0.0.0", &(addr.sin_addr));
-	addr.sin_port = htons(NGINZ_DEFAULT_PORT);
-	int sock_flag = 1;
-	setsockopt(tcp_sock, SOL_SOCKET, SO_REUSEADDR, (char*)&sock_flag, sizeof(sock_flag));
-	if(bind(tcp_sock, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
-		syslog(LOG_ERR, "Failed to bind:%s\n", strerror(errno));
-		close(tcp_sock);
-		return -1;
-	}
-#define DEFAULT_SYN_BACKLOG 1024 /* XXX we are setting this too high */
-	if(listen(tcp_sock, DEFAULT_SYN_BACKLOG) < 0) {
-		syslog(LOG_ERR, "Failed to listen:%s\n", strerror(errno));
-		close(tcp_sock);
-		return -1;
-	}
-	syslog(LOG_INFO, "listening ...\n");
-	event_loop_register_fd(tcp_sock, on_connection, NULL, POLLIN | POLLPRI | POLLHUP);
+	tcp_listener_start();
 	aroop_txt_t plugin_space = {};
 	aroop_txt_embeded_set_static_string(&plugin_space, "fork/child/after");
 	pm_plug_callback(&plugin_space, tcp_listener_stop, tcp_listener_stop_desc);
@@ -90,9 +102,7 @@ int tcp_listener_init() {
 }
 
 int tcp_listener_deinit() {
-	event_loop_unregister_fd(tcp_sock);
-	if(tcp_sock > 0)close(tcp_sock);
-	tcp_sock = -1;
+	tcp_listener_stop(NULL, NULL);
 	pm_unplug_callback(0, tcp_listener_stop);
 	pm_unplug_callback(0, tcp_listener_stop);
 	return 0;

@@ -10,7 +10,7 @@ C_CAPSULE_START
 /**
  * @param requested_events the events to listen for
  */
-int event_loop_register_fd(int fd, int (*on_event)(int returned_events, const void*event_data), const void*event_data, short requested_events);
+int event_loop_register_fd(int fd, int (*on_event)(int fd, int returned_events, const void*event_data), const void*event_data, short requested_events);
 int event_loop_unregister_fd(int fd); // NOTE the implementation is costly (may be it is better to do batch operation ..)
 
 int event_loop_fd_count();

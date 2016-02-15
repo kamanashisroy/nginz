@@ -16,14 +16,15 @@ Tasks
 
 ### chat
 - [ ] Limit the username and chatroom length.
-- [ ] Limit user input length.
+- [x] Limit user input length.
 - [x] Disallow hidden command from user.
 - [ ] Add uname command
 - [x] Add uptime command
+- [ ] Show number of users served
 - [x] Add profiler command to show memory profiler
 
 ### shake
-- [ ] Create memory profiler command to show memory usage.
+- [-] Create memory profiler command to show memory usage.
 
 ### logging
 - [x] Use syslog.

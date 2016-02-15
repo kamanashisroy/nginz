@@ -3,17 +3,46 @@
 
 C_CAPSULE_START
 
-#define MAX_POLL_FD 10000
 #define NGINZ_INLINE inline
+
+/**
+ * Parallel computing
+ */
 #define NGINZ_NUMBER_OF_PROCESSORS 5
-//#define NGINZ_POLL_ALL_FLAGS POLLIN | POLLPRI | POLLHUP
+
+/**
+ * Event loop configuration
+ */
+#define MAX_POLL_FD 10000
+#define NGINZ_POLL_LISTEN_FLAGS POLLIN | POLLPRI | POLLHUP
 #define NGINZ_POLL_ALL_FLAGS POLLIN
+
+/**
+ * Protocol implemenation
+ */
+#define NGINZ_MAX_PROTO 4
 #define NGINZ_DEFAULT_PORT 9399
+#define NGINZ_HTTP_PORT 9399
+
+/**
+ * TCP listen config
+ */
+#define NGINZ_TCP_LISTENER_BACKLOG 1024 /* XXX we are setting this too high */
+
+/**
+ * object pool factory
+ */
 #define NGINZ_FACTORY_CREATE(obuff, psize, objsize, callback) ({OPP_PFACTORY_CREATE_FULL(obuff, psize, objsize, 1, OPPF_SWEEP_ON_UNREF, callback);})
 #define NGINZ_HASHABLE_FACTORY_CREATE(obuff, psize, objsize, callback) ({OPP_PFACTORY_CREATE_FULL(obuff, psize, objsize, 1, OPPF_EXTENDED | OPPF_SWEEP_ON_UNREF, callback);})
 #define NGINZ_SEARCHABLE_FACTORY_CREATE(obuff, psize, objsize, callback) ({OPP_PFACTORY_CREATE_FULL(obuff, psize, objsize, 1, OPPF_SEARCHABLE | OPPF_EXTENDED | OPPF_SWEEP_ON_UNREF, callback);})
-#define NGINZ_MAX_USER_NAME_SIZE 32
-#define NGINZ_MAX_ROOM_NAME_SIZE 32
+
+/**
+ * Chat server configuration
+ */
+#define NGINZ_MAX_CHAT_USER_NAME_SIZE 32
+#define NGINZ_MAX_CHAT_ROOM_NAME_SIZE 32
+#define NGINZ_MAX_CHAT_MSG_SIZE 255
+#define NGINZ_MAX_COMMANDS 16
 
 C_CAPSULE_END
 

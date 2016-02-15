@@ -7,7 +7,7 @@
 C_CAPSULE_START
 
 struct event_callback {
-	int (*on_event)(int returned_events, const void*event_data);
+	int (*on_event)(int fd, int returned_events, const void*event_data);
 	const void*event_data;
 };
 
@@ -20,7 +20,7 @@ int event_loop_fd_count() {
 	return internal_nfds;
 }
 
-int event_loop_register_fd(int fd, int (*on_event)(int returned_events, const void*event_data), const void*event_data, short requested_events) {
+int event_loop_register_fd(int fd, int (*on_event)(int fd, int returned_events, const void*event_data), const void*event_data, short requested_events) {
 	internal_fds[internal_nfds].fd = fd;
 	internal_fds[internal_nfds].events = requested_events;
 	internal_callback[internal_nfds].on_event = on_event;
@@ -57,7 +57,7 @@ static int event_loop_step(int status) {
 			continue;
 		}
 		count--;
-		if(internal_callback[i].on_event(internal_fds[i].revents, internal_callback[i].event_data)) {
+		if(internal_callback[i].on_event(internal_fds[i].fd, internal_fds[i].revents, internal_callback[i].event_data)) {
 			// fd is closed and may be removed.
 			return 0;
 		}

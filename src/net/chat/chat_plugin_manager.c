@@ -12,6 +12,9 @@
 #include "net/protostack.h"
 #include "net/chat.h"
 #include "net/chat/chat_plugin_manager.h"
+#include "net/chat/chat_factory.h"
+#include "net/chat/chat_proto.h"
+#include "net/chat/chat_command.h"
 #include "net/chat/welcome.h"
 #include "net/chat/room.h"
 #include "net/chat/hiddenjoin.h"
@@ -84,6 +87,7 @@ static int chat_help_plug_desc(aroop_txt_t*plugin_space, aroop_txt_t*output) {
 int chat_plugin_manager_module_init() {
 	aroop_assert(chat_plug == NULL);
 	chat_plug = composite_plugin_create();
+	chat_factory_module_init();
 	welcome_module_init();
 	broadcast_module_init(); // XXX we have to load broadcast module before room module
 	room_module_init();
@@ -93,6 +97,8 @@ int chat_plugin_manager_module_init() {
 	quit_module_init();
 	uptime_module_init();
 	chat_profiler_module_init();
+	chat_command_module_init();
+	chat_proto_module_init();
 	aroop_txt_t plugin_space = {};
 	aroop_txt_embeded_set_static_string(&plugin_space, "chat/help");
 	composite_plug_bridge(chat_plugin_manager_get(), &plugin_space, chat_help_plug, chat_help_plug_desc);
@@ -101,6 +107,8 @@ int chat_plugin_manager_module_init() {
 }
 
 int chat_plugin_manager_module_deinit() {
+	chat_proto_module_deinit();
+	chat_command_module_deinit();
 	chat_profiler_module_deinit();
 	uptime_module_deinit();
 	quit_module_deinit();
@@ -110,6 +118,7 @@ int chat_plugin_manager_module_deinit() {
 	room_module_deinit();
 	broadcast_module_deinit();
 	welcome_module_deinit();
+	chat_factory_module_deinit();
 	composite_unplug_bridge(chat_plugin_manager_get(), 0, chat_help_plug);
 	composite_plugin_destroy(chat_plug);
 }
