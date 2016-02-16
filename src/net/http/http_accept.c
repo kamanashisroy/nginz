@@ -59,11 +59,15 @@ static int http_on_connection_bubble(int fd, aroop_txt_t*cmd) {
 		return -1;
 	}
 
+	aroop_assert(http);
+	aroop_assert(http->fd == fd);
 	// register it in the event loop
 	event_loop_register_fd(fd, hooks->on_client_data, http, NGINZ_POLL_ALL_FLAGS);
 
+#if 0 // do nothing for http/welcome
 	// execute the command
 	composite_plugin_bridge_call(chat_plugin_manager_get(), &plugin_space, HTTP_SIGNATURE, http);
+#endif
 	return 0;
 }
 

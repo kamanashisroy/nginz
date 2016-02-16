@@ -1,6 +1,9 @@
 
 #include "aroop/aroop_core.h"
+#include "aroop/core/xtring.h"
 #include "nginz_config.h"
+#include "plugin.h"
+#include "plugin_manager.h"
 #include "event_loop.h"
 #include "fiber.h"
 
@@ -21,6 +24,7 @@ int event_loop_fd_count() {
 }
 
 int event_loop_register_fd(int fd, int (*on_event)(int fd, int returned_events, const void*event_data), const void*event_data, short requested_events) {
+	aroop_assert(internal_nfds < MAX_POLL_FD);
 	internal_fds[internal_nfds].fd = fd;
 	internal_fds[internal_nfds].events = requested_events;
 	internal_callback[internal_nfds].on_event = on_event;
@@ -65,12 +69,45 @@ static int event_loop_step(int status) {
 	return 0;
 }
 
+static int event_loop_test_helper(int count) {
+	int fd = 5000;
+	int ncount = count;
+	int prev = event_loop_fd_count();
+	while(ncount--) {
+		event_loop_register_fd(fd+ncount, NULL, NULL, POLLIN);
+	}
+	ncount = count;
+	while(ncount--) {
+		event_loop_unregister_fd(fd+ncount);
+	}
+	
+	return !(prev == event_loop_fd_count());
+}
+
+static int event_loop_test(aroop_txt_t*input, aroop_txt_t*output) {
+	aroop_txt_embeded_buffer(output, 512);
+	if(event_loop_test_helper(1000)) {
+		aroop_txt_printf(output, "event_loop.c:FAILED\n");
+	} else {
+		aroop_txt_concat_string(output, "event_loop.c:successful\n");
+	}
+	return 0;
+}
+
+static int event_loop_test_desc(aroop_txt_t*plugin_space, aroop_txt_t*output) {
+	return plugin_desc(output, "event_loop_test", "test", plugin_space, __FILE__, "It is test code for event loop.\n");
+}
+
 int event_loop_module_init() {
 	register_fiber(event_loop_step);
+	aroop_txt_t plugin_space;
+	aroop_txt_embeded_set_static_string(&plugin_space, "test/event_loop_test");
+	pm_plug_callback(&plugin_space, event_loop_test, event_loop_test_desc);
 }
 
 int event_loop_module_deinit() {
 	unregister_fiber(event_loop_step);
+	pm_unplug_callback(0, event_loop_test);
 }
 
 C_CAPSULE_END

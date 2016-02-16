@@ -26,21 +26,31 @@ int binary_coder_reset(aroop_txt_t*buffer) {
 int binary_coder_reset_for_pid(aroop_txt_t*buffer, int destpid) {
 	aroop_assert(destpid > -1);
 	binary_coder_reset(buffer);
-	aroop_txt_t deststr = {};
-	aroop_txt_embeded_stackbuffer(&deststr, 32);
-	aroop_txt_printf(&deststr, "%d", destpid);
-	binary_pack_string(buffer, &deststr);
+	binary_pack_int(buffer, destpid);
 	return 0;
 }
 
-
+static aroop_txt_t intbuf = {};
 int binary_pack_int(aroop_txt_t*buffer, int intval) {
-	aroop_txt_t str = {};
-	aroop_txt_embeded_stackbuffer(&str, 32);
-	aroop_txt_printf(&str, "%d", intval);
-	binary_pack_string(buffer, &str);
+	aroop_txt_set_length(&intbuf, 1);
+	char*str = aroop_txt_to_string(&intbuf);
+	aroop_txt_set_length(&intbuf, 0);
+	if(intval >= 0xFFFF) {
+		//str[intbuf.len++] = /*(0<<6) |*/ 4; // 0 means numeral , 4 is the numeral size
+		str[intbuf.len++] = (unsigned char)((intval & 0xFF000000)>>24);
+		str[intbuf.len++] = (unsigned char)((intval & 0x00FF0000)>>16);
+	//} else {
+		//str[intbuf.len++] = /*(0<<6) |*/ 2; // 0 means numeral , 2 is the numeral size
+	}
+	str[intbuf.len++] = (unsigned char)((intval & 0xFF00)>>8);
+	str[intbuf.len++] = (unsigned char)(intval & 0x00FF);
+
+	//aroop_txt_embeded_stackbuffer(&str, 32);
+	//aroop_txt_printf(&str, "%d", intval);
+	binary_pack_string(buffer, &intbuf);
 	return 0;
 }
+
 
 int binary_pack_string(aroop_txt_t*buffer, aroop_txt_t*x) {
 	mychar_t blen = (mychar_t)aroop_txt_length(buffer);
@@ -97,12 +107,26 @@ int binary_unpack_int(aroop_txt_t*buffer, int skip, int*intval) {
 	if(binary_unpack_string(buffer, skip, &x)) {
 		return -1;
 	}
-	aroop_txt_t sandbox = {};
-	aroop_txt_embeded_stackbuffer(&sandbox, 32);
-	aroop_txt_concat(&sandbox, &x);
-	aroop_txt_zero_terminate(&sandbox);
-	//printf(" pid = %s", aroop_txt_to_string(&sandbox));
-	*intval = aroop_txt_to_int(&sandbox);
+	//*intval = aroop_txt_to_int(&sandbox);
+	int output = 0;
+	int offset = 0;
+	char*str = aroop_txt_to_string(&x);
+	if(x.len >= 1) {
+		output = (unsigned char)str[offset];
+	}
+	if(x.len >= 2) {
+		output = output << 8;
+		output |= ((unsigned char)str[offset+1]) & 0xFF;
+	}
+	if(x.len >= 3) {
+		output = output << 8;
+		output |= ((unsigned char)str[offset+2]) & 0xFF;
+	}
+	if(x.len == 4) {
+		output = output << 8;
+		output |= ((unsigned char)str[offset+3]) & 0xFF;
+	}
+	*intval = output;
 	aroop_txt_destroy(&x);
 	return 0;
 }
@@ -144,20 +168,23 @@ static int binary_coder_test_helper(int expval) {
 	aroop_txt_t bin = {};
 	aroop_txt_embeded_stackbuffer(&bin, 255);
 	binary_coder_reset_for_pid(&bin, expval);
+	binary_pack_int(&bin, expval);
 	aroop_txt_t str = {};
 	aroop_txt_embeded_set_static_string(&str, "test"); 
 	binary_pack_string(&bin, &str);
 	binary_coder_debug_dump(&bin);
 
 	int intval = 0;
+	int intval2 = 0;
 	aroop_txt_t strval = {};
 	binary_unpack_int(&bin, 0, &intval);
-	binary_unpack_string(&bin, 1, &strval);
+	binary_unpack_int(&bin, 1, &intval2);
+	binary_unpack_string(&bin, 2, &strval);
 	
 	aroop_txt_zero_terminate(&strval);
 	aroop_txt_zero_terminate(&str);
 	//printf(" [%s!=%s] and [%d!=%d]\n", aroop_txt_to_string(&strval), aroop_txt_to_string(&str), intval, expval);
-	return !(intval == expval && aroop_txt_equals(&strval, &str));
+	return !(intval == expval && intval2 == expval && aroop_txt_equals(&strval, &str));
 }
 
 static int binary_coder_test(aroop_txt_t*input, aroop_txt_t*output) {
@@ -176,6 +203,7 @@ static int binary_coder_test_desc(aroop_txt_t*plugin_space, aroop_txt_t*output) 
 }
 
 int binary_coder_module_init() {
+	aroop_txt_embeded_buffer(&intbuf, 32);
 	aroop_txt_t binary_coder_plug;
 	aroop_txt_embeded_set_static_string(&binary_coder_plug, "test/binary_coder_test");
 	pm_plug_callback(&binary_coder_plug, binary_coder_test, binary_coder_test_desc);

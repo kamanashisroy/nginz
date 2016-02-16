@@ -107,6 +107,7 @@ int shake_module_init() {
 	if(!is_master()) {
 		return 0;
 	}
+	unlink(SOCK_FILE);
 	aroop_txt_t plugin_space = {};
 	// register shake shell
 	shake_listen_on_unix_socket();

@@ -25,7 +25,7 @@ static int http_factory_on_softquit(aroop_txt_t*plugin_space, aroop_txt_t*output
 	struct http_connection*http = NULL;
 	while(http = opp_iterator_next(&iterator)) {
 		event_loop_unregister_fd(http->fd);
-		close(http->fd);
+		if(http->fd != -1)close(http->fd);
 		http->fd = -1;
 	}
 	opp_iterator_destroy(&iterator);
@@ -79,7 +79,7 @@ static int http_factory_hookup_desc(aroop_txt_t*plugin_space, aroop_txt_t*output
 
 
 int http_factory_module_init() {
-	OPP_PFACTORY_CREATE(&http_factory, 64, sizeof(struct http_connection), OPP_CB_FUNC(http_connection));
+	NGINZ_FACTORY_CREATE(&http_factory, 64, sizeof(struct http_connection), OPP_CB_FUNC(http_connection));
 	aroop_txt_t plugin_space = {};
 	aroop_txt_embeded_set_static_string(&plugin_space, "shake/softquitall");
 	pm_plug_callback(&plugin_space, http_factory_on_softquit, http_factory_on_softquit_desc);

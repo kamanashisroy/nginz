@@ -180,8 +180,11 @@ static int on_bubble_down(int fd, int events, const void*unused) {
 	return 0;
 }
 
-static int load_take() {
+static int skipped = 0;
+static int skip_load() {
 	int load = event_loop_fd_count();
+	load = load + skipped;
+	skipped++;
 	return (load % (NGINZ_NUMBER_OF_PROCESSORS-1));
 }
 
@@ -208,7 +211,7 @@ static int on_bubble_down_send_socket(int fd, int events, const void*unused) {
 			pp_bubble_down_send_socket(acceptfd, &cmd);
 			break;
 		}
-		if(destpid <= 0 && mchild != -1 && load_take()) {
+		if(destpid <= 0 && mchild != -1 && skip_load()) {
 			//printf("balancing load on %d\n", getpid());
 			pp_bubble_down_send_socket(acceptfd, &cmd);
 			break;
@@ -235,6 +238,9 @@ static int on_bubble_up_send_socket(int fd, int events, const void*unused) {
 	int acceptfd = -1;
 	aroop_txt_t cmd = {};
 	aroop_assert(fd == mchild);
+	if(is_master()) {
+		aroop_assert("We cannot handle client in master\n");
+	}
 	do {
 		if(pp_recvmsg_helper(fd, &acceptfd, &cmd)) {
 			break;
@@ -252,7 +258,7 @@ static int on_bubble_up_send_socket(int fd, int events, const void*unused) {
 			pp_bubble_up_send_socket(acceptfd, &cmd);
 			break;
 		}
-		if(destpid <= 0 && mparent != -1 && load_take()) {
+		if(destpid <= 0 && mparent != -1 && skip_load()) {
 			//printf("balancing load on %d\n", getpid());
 			pp_bubble_up_send_socket(acceptfd, &cmd);
 			break;
