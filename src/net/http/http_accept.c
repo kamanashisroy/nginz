@@ -29,6 +29,14 @@ static int http_on_tcp_connection(int fd) {
 	return 0;
 }
 
+#ifdef NGINZ_EVENT_DEBUG
+static int on_http_debug(int fd, const void*cb_data) {
+	struct http_connection*http = (struct http_connection*)cb_data;
+	aroop_assert(http->fd == fd);
+	return 0;
+}
+#endif
+
 static struct opp_factory http_factory;
 static int http_on_connection_bubble(int fd, aroop_txt_t*cmd) {
 	aroop_assert(hooks != NULL);
@@ -63,6 +71,9 @@ static int http_on_connection_bubble(int fd, aroop_txt_t*cmd) {
 	aroop_assert(http->fd == fd);
 	// register it in the event loop
 	event_loop_register_fd(fd, hooks->on_client_data, http, NGINZ_POLL_ALL_FLAGS);
+#ifdef NGINZ_EVENT_DEBUG
+	event_loop_register_debug(fd, on_http_debug);
+#endif
 
 #if 0 // do nothing for http/welcome
 	// execute the command

@@ -11,6 +11,9 @@ C_CAPSULE_START
 
 struct event_callback {
 	int (*on_event)(int fd, int returned_events, const void*event_data);
+#ifdef NGINZ_EVENT_DEBUG
+	int (*on_debug)(int fd, const void*debug_data);
+#endif
 	const void*event_data;
 };
 
@@ -32,15 +35,40 @@ int event_loop_register_fd(int fd, int (*on_event)(int fd, int returned_events, 
 	internal_nfds++;
 }
 
+#ifdef NGINZ_EVENT_DEBUG
+int event_loop_register_debug(int fd, int (*on_debug)(int fd, const void*debug_data)) {
+	int i = 0;
+	for(i = 0; i < internal_nfds; i++) {
+		if(internal_fds[i].fd == fd) {
+			internal_callback[i].on_debug = on_debug;
+		}
+	}
+}
+
+static int event_loop_debug() {
+	int i = 0;
+	for(i = 0; i < internal_nfds; i++) {
+		if(internal_callback[i].on_debug)
+			internal_callback[i].on_debug(internal_fds[i].fd, internal_callback[i].event_data);
+	}
+}
+#endif
+
 int event_loop_unregister_fd(int fd) {
 	int i = 0;
 	for(i = 0; i < internal_nfds; i++) {
 		if(internal_fds[i].fd == fd) {
+#ifdef NGINZ_EVENT_DEBUG
+			event_loop_debug();
+#endif
 			if((internal_nfds - i - 1) > 0) {
-				memcpy(internal_fds+i, internal_fds+i+1, sizeof(struct pollfd)*(internal_nfds-i-1));
-				memcpy(internal_callback+i, internal_callback+i+1, sizeof(internal_callback[0])*(internal_nfds-i-1));
+				memmove(internal_fds+i, internal_fds+i+1, sizeof(struct pollfd)*(internal_nfds-i-1));
+				memmove(internal_callback+i, internal_callback+i+1, sizeof(internal_callback[0])*(internal_nfds-i-1));
 			}
 			internal_nfds--;
+#ifdef NGINZ_EVENT_DEBUG
+			event_loop_debug();
+#endif
 			return 0;
 		}
 	}
@@ -62,6 +90,9 @@ static int event_loop_step(int status) {
 		}
 		count--;
 		if(internal_callback[i].on_event(internal_fds[i].fd, internal_fds[i].revents, internal_callback[i].event_data)) {
+#ifdef NGINZ_EVENT_DEBUG
+			event_loop_debug();
+#endif
 			// fd is closed and may be removed.
 			return 0;
 		}
