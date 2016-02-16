@@ -11,6 +11,7 @@ Tasks
 - [ ] Use OPP_PFACTORY_CREATE_FULL to tune all the flags.
 
 ### net
+- [x] Add HTTP support.
 
 ### parallel
 
@@ -22,6 +23,7 @@ Tasks
 - [x] Add uptime command
 - [ ] Show number of users served
 - [x] Add profiler command to show memory profiler
+- [ ] Add HTTP support for chat
 
 ### shake
 - [ ] Create memory profiler command to show memory usage.
