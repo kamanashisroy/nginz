@@ -103,7 +103,7 @@ int chat_factory_module_deinit() {
 		if(chat == NULL)
 			break;
 		event_loop_unregister_fd(chat->fd);
-		close(chat->fd);
+		if(chat->fd != -1)close(chat->fd);
 		chat->fd = -1;
 	} while(1);
 	opp_iterator_destroy(&iterator);

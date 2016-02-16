@@ -21,8 +21,8 @@ C_CAPSULE_START
  * Protocol implemenation
  */
 #define NGINZ_MAX_PROTO 4
-#define NGINZ_DEFAULT_PORT 9399
-#define NGINZ_HTTP_PORT 9399
+#define NGINZ_CHAT_PORT 9399
+#define NGINZ_HTTP_PORT 80
 
 /**
  * TCP listen config

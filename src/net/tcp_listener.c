@@ -21,7 +21,7 @@
 
 C_CAPSULE_START
 
-static int tcp_ports[NGINZ_MAX_PROTO] = {NGINZ_DEFAULT_PORT, NGINZ_HTTP_PORT, 0, 0};
+static int tcp_ports[NGINZ_MAX_PROTO] = {NGINZ_CHAT_PORT, NGINZ_HTTP_PORT, 0, 0};
 static int tcp_sockets[NGINZ_MAX_PROTO] = { -1, -1, -1, -1};
 
 static int on_connection(int fd, int status, const void*pstack) {
@@ -36,6 +36,7 @@ static int on_connection(int fd, int status, const void*pstack) {
 		return -1;
 	}
 	struct protostack*stack = (struct protostack*)pstack;
+	aroop_assert(stack != NULL);
 	stack->on_tcp_connection(client_fd);
 	return 0;
 }
@@ -72,7 +73,7 @@ static int tcp_listener_start() {
 		int sock_flag = 1;
 		setsockopt(tcp_sockets[i], SOL_SOCKET, SO_REUSEADDR, (char*)&sock_flag, sizeof(sock_flag));
 		if(bind(tcp_sockets[i], (struct sockaddr*)&addr, sizeof(addr)) < 0) {
-			syslog(LOG_ERR, "Failed to bind:%s\n", strerror(errno));
+			syslog(LOG_ERR, "tcp_listener,c Failed to bind port %d:%s\n", tcp_ports[i], strerror(errno));
 			close(tcp_sockets[i]);
 			continue;
 		}
@@ -83,6 +84,7 @@ static int tcp_listener_start() {
 		}
 		syslog(LOG_INFO, "tcp_listener.c: listening to port %d\n", tcp_ports[i]);
 		struct protostack*stack = protostack_get(tcp_ports[i]);
+		aroop_assert(stack != NULL);
 		event_loop_register_fd(tcp_sockets[i], on_connection, stack, NGINZ_POLL_LISTEN_FLAGS);
 
 	}

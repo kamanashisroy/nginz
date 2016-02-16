@@ -26,14 +26,15 @@ static int chat_join_transfer(struct chat_connection*chat, aroop_txt_t*room, int
 	aroop_txt_t bin = {};
 	aroop_txt_embeded_stackbuffer(&bin, 255);
 	binary_coder_reset_for_pid(&bin, pid);
+	binary_pack_int(&bin, NGINZ_CHAT_PORT);
 	binary_pack_string(&bin, &cmd);
 	int mypid = getpid();
 	if(pid > mypid) {
 		//syslog(LOG_INFO, "transfering to %d bubble_down\n", pid);
-		pp_bubble_downmsg(chat->fd, &bin);
+		pp_bubble_down_send_socket(chat->fd, &bin);
 	} else {
 		//syslog(LOG_INFO, "transfering to %d bubble_up\n", pid);
-		pp_bubble_upmsg(chat->fd, &bin);
+		pp_bubble_up_send_socket(chat->fd, &bin);
 	}
 	chat->state = CHAT_SOFT_QUIT; // quit the user from this process
 	return 0;

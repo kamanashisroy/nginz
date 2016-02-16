@@ -15,6 +15,7 @@ int binary_coder_reset_for_pid(aroop_txt_t*buffer, int destpid);
  * @return 0 when successful, -1 otherwise
  */
 int binary_pack_string(aroop_txt_t*buffer, aroop_txt_t*x);
+int binary_pack_int(aroop_txt_t*buffer, int intval);
 /*
  * It gets the next string data out of the buffer
  * @param buffer The buffer where the string is contained

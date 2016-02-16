@@ -23,7 +23,9 @@ static int nginz_main(char*args) {
 	binary_coder_module_init();
 	fiber_module_init();
 	event_loop_module_init();
+	protostack_init();
 	chat_module_init();
+	http_module_init();
 	pp_module_init();
 	fork_processors(NGINZ_NUMBER_OF_PROCESSORS);
 	/**
@@ -37,7 +39,9 @@ static int nginz_main(char*args) {
 	fiber_module_run();
 	tcp_listener_deinit();
 	pp_module_deinit();
+	http_module_deinit();
 	chat_module_deinit();
+	protostack_deinit();
 	event_loop_module_deinit();
 	shake_module_deinit();
 	fiber_module_deinit();

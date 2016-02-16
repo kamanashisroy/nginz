@@ -110,12 +110,23 @@ int broadcast_room_join(struct chat_connection*chat, aroop_txt_t*room_name) {
 		syslog(LOG_ERR, "Cannot find room %s\n", aroop_txt_to_string(room_name));
 		return -1;
 	}
-	opp_list_add_noref(&rm->user_list, chat);
-	OPPREF(chat);
-	// XXX we avoid circular reference ..
-	chat->broadcast_data = rm; // we are not doing OPPREF because it will overflow our reference counter as more people join one group ..
+	do {
+		if(chat->broadcast_data == rm) {
+			// user already joined the room
+			break;
+		}
+		if(chat->broadcast_data) {
+			// leave the old room
+			broadcast_room_leave(chat);
+		}
+		aroop_assert(chat->broadcast_data == NULL);
+		opp_list_add_noref(&rm->user_list, chat);
+		OPPREF(chat);
+		// XXX we avoid circular reference ..
+		chat->broadcast_data = rm; // we are not doing OPPREF because it will overflow our reference counter as more people join one group ..
+		chat->on_broadcast = broadcast_callback;
+	} while(0);
 	OPPUNREF(rm);
-	chat->on_broadcast = broadcast_callback;
 	// show room information 
 	broadcast_room_greet(chat, (struct internal_room*)chat->broadcast_data);
 	chat_room_set_user_count(room_name, OPP_FACTORY_USE_COUNT(&((struct internal_room*)chat->broadcast_data)->user_list));

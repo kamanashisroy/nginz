@@ -76,7 +76,7 @@ NGINZ_INLINE static int pp_sendmsg_helper(int through, int target, aroop_txt_t*c
 	return 0;
 }
 
-NGINZ_INLINE int pp_bubble_downmsg(int socket, aroop_txt_t*cmd) {
+NGINZ_INLINE int pp_bubble_down_send_socket(int socket, aroop_txt_t*cmd) {
 	//printf("Sending fd %d to child\n", socket);
 	return pp_sendmsg_helper(mchild, socket, cmd);
 }
@@ -89,7 +89,7 @@ NGINZ_INLINE int pp_bubble_up(aroop_txt_t*pkt) {
 	return 0;
 }
 
-NGINZ_INLINE int pp_bubble_upmsg(int socket, aroop_txt_t*cmd) {
+NGINZ_INLINE int pp_bubble_up_send_socket(int socket, aroop_txt_t*cmd) {
 	if(mparent == -1)
 		return -1;
 	return pp_sendmsg_helper(mparent, socket, cmd);
@@ -185,7 +185,8 @@ static int load_take() {
 	return (load % (NGINZ_NUMBER_OF_PROCESSORS-1));
 }
 
-static int on_bubble_downmsg(int fd, int events, const void*unused) {
+static int on_bubble_down_send_socket(int fd, int events, const void*unused) {
+	int port = 0;
 	int destpid = 0;
 	int acceptfd = -1;
 	aroop_txt_t cmd = {};
@@ -204,15 +205,17 @@ static int on_bubble_downmsg(int fd, int events, const void*unused) {
 				syslog(LOG_ERR, "BUG, it cannot happen, we not not bubble_uping anymore\n");
 				break;
 			}
-			pp_bubble_downmsg(acceptfd, &cmd);
+			pp_bubble_down_send_socket(acceptfd, &cmd);
 			break;
 		}
 		if(destpid <= 0 && mchild != -1 && load_take()) {
 			//printf("balancing load on %d\n", getpid());
-			pp_bubble_downmsg(acceptfd, &cmd);
+			pp_bubble_down_send_socket(acceptfd, &cmd);
 			break;
 		}
-		struct protostack*stack = protostack_get(NGINZ_DEFAULT_PORT);
+		binary_unpack_int(&cmd, 1, &port);
+		struct protostack*stack = protostack_get(port);
+		aroop_assert(stack != NULL);
 		stack->on_connection_bubble(acceptfd, &cmd);
 	} while(0);
 	aroop_txt_destroy(&cmd);
@@ -226,7 +229,8 @@ static int on_bubble_up(int fd, int events, const void*unused) {
 	// TODO do something with the recv_buffer
 }
 
-static int on_bubble_upmsg(int fd, int events, const void*unused) {
+static int on_bubble_up_send_socket(int fd, int events, const void*unused) {
+	int port = 0;
 	int destpid = 0;
 	int acceptfd = -1;
 	aroop_txt_t cmd = {};
@@ -245,15 +249,17 @@ static int on_bubble_upmsg(int fd, int events, const void*unused) {
 				syslog(LOG_ERR, "BUG, it cannot happen, we not not bubble_downing anymore\n");
 				break;
 			}
-			pp_bubble_upmsg(acceptfd, &cmd);
+			pp_bubble_up_send_socket(acceptfd, &cmd);
 			break;
 		}
 		if(destpid <= 0 && mparent != -1 && load_take()) {
 			//printf("balancing load on %d\n", getpid());
-			pp_bubble_upmsg(acceptfd, &cmd);
+			pp_bubble_up_send_socket(acceptfd, &cmd);
 			break;
 		}
-		struct protostack*stack = protostack_get(NGINZ_DEFAULT_PORT);
+		binary_unpack_int(&cmd, 1, &port);
+		struct protostack*stack = protostack_get(port);
+		aroop_assert(stack != NULL);
 		stack->on_connection_bubble(acceptfd, &cmd);
 	} while(0);
 	aroop_txt_destroy(&cmd);
@@ -288,7 +294,7 @@ static int pp_fork_child_after_callback(aroop_txt_t*input, aroop_txt_t*output) {
 	parent = pipefd[1];
 	mparent = mpipefd[1];
 	event_loop_register_fd(parent, on_bubble_down, NULL, NGINZ_POLL_ALL_FLAGS);
-	event_loop_register_fd(mparent, on_bubble_downmsg, NULL, NGINZ_POLL_ALL_FLAGS);
+	event_loop_register_fd(mparent, on_bubble_down_send_socket, NULL, NGINZ_POLL_ALL_FLAGS);
 	// cleanup child
 	event_loop_unregister_fd(child);
 	event_loop_unregister_fd(mchild);
@@ -311,7 +317,7 @@ static int pp_fork_parent_after_callback(aroop_txt_t*input, aroop_txt_t*output) 
 	mchild = mpipefd[0];
 	//printf("child fds %d,%d\n", pipefd[0], mpipefd[0]);
 	event_loop_register_fd(child, on_bubble_up, NULL, NGINZ_POLL_ALL_FLAGS);
-	event_loop_register_fd(mchild, on_bubble_upmsg, NULL, NGINZ_POLL_ALL_FLAGS);
+	event_loop_register_fd(mchild, on_bubble_up_send_socket, NULL, NGINZ_POLL_ALL_FLAGS);
 	//close(pipefd[1]);
 	return 0;
 }

@@ -13,7 +13,7 @@
 #include "net/chat.h"
 #include "net/chat/chat_plugin_manager.h"
 #include "net/chat/chat_factory.h"
-#include "net/chat/chat_proto.h"
+#include "net/chat/chat_accept.h"
 #include "net/chat/chat_command.h"
 #include "net/chat/welcome.h"
 #include "net/chat/room.h"
@@ -98,7 +98,7 @@ int chat_plugin_manager_module_init() {
 	uptime_module_init();
 	chat_profiler_module_init();
 	chat_command_module_init();
-	chat_proto_module_init();
+	chat_accept_module_init();
 	aroop_txt_t plugin_space = {};
 	aroop_txt_embeded_set_static_string(&plugin_space, "chat/help");
 	composite_plug_bridge(chat_plugin_manager_get(), &plugin_space, chat_help_plug, chat_help_plug_desc);
@@ -107,7 +107,7 @@ int chat_plugin_manager_module_init() {
 }
 
 int chat_plugin_manager_module_deinit() {
-	chat_proto_module_deinit();
+	chat_accept_module_deinit();
 	chat_command_module_deinit();
 	chat_profiler_module_deinit();
 	uptime_module_deinit();

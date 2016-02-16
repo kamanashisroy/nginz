@@ -33,6 +33,15 @@ int binary_coder_reset_for_pid(aroop_txt_t*buffer, int destpid) {
 	return 0;
 }
 
+
+int binary_pack_int(aroop_txt_t*buffer, int intval) {
+	aroop_txt_t str = {};
+	aroop_txt_embeded_stackbuffer(&str, 32);
+	aroop_txt_printf(&str, "%d", intval);
+	binary_pack_string(buffer, &str);
+	return 0;
+}
+
 int binary_pack_string(aroop_txt_t*buffer, aroop_txt_t*x) {
 	mychar_t blen = (mychar_t)aroop_txt_length(buffer);
 	if((aroop_txt_length(x) + blen + 1) > 255)

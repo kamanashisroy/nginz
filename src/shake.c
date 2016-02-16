@@ -20,7 +20,7 @@
 C_CAPSULE_START
 
 
-
+#define SOCK_FILE "/tmp/nginz.sock"
 static int internal_unix_socket = -1;
 
 static int on_shake_connection_helper(int fd) {
@@ -75,7 +75,7 @@ static int shake_listen_on_unix_socket() {
 	struct sockaddr_un addr;
 	memset(&addr, 0, sizeof(addr));
 	addr.sun_family = AF_UNIX;
-	strncpy(addr.sun_path, "/tmp/nginz.sock", sizeof(addr.sun_path)-1);
+	strncpy(addr.sun_path, SOCK_FILE, sizeof(addr.sun_path)-1);
 	if(bind(internal_unix_socket, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
 		syslog(LOG_ERR, "shake:Failed bind:%s\n", strerror(errno));
 		close(internal_unix_socket);
@@ -126,6 +126,7 @@ int shake_module_deinit() {
 		close(internal_unix_socket);
 		internal_unix_socket = -1;
 	}
+	unlink(SOCK_FILE);
 	help_module_deinit();
 	test_module_deinit();
 }

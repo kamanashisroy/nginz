@@ -24,7 +24,8 @@ Tasks
 - [x] Add profiler command to show memory profiler
 
 ### shake
-- [-] Create memory profiler command to show memory usage.
+- [ ] Create memory profiler command to show memory usage.
+- [ ] Make it non-blocking ..
 
 ### logging
 - [x] Use syslog.

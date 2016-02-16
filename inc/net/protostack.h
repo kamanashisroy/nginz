@@ -14,6 +14,9 @@ struct protostack {
 struct protostack*protostack_get(int port);
 int protostack_set(int port, struct protostack*x);
 
+int protostack_init();
+int protostack_deinit();
+
 C_CAPSULE_END
 
 #endif // NGINZ_PROTOSTACK_H

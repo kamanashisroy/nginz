@@ -1,4 +1,5 @@
 
+#include <string.h>
 #include <sys/socket.h>
 #include <aroop/aroop_core.h>
 #include <aroop/core/xtring.h>
@@ -9,11 +10,10 @@
 C_CAPSULE_START
 
 static int internal_port_for_stacks[NGINZ_MAX_PROTO] = {0};
-struct protostack*internal_stacks[NGINZ_MAX_PROTO] = {NULL};
+static struct protostack*internal_stacks[NGINZ_MAX_PROTO] = {NULL};
 struct protostack*protostack_get(int port) {
 	int i = 0;
-	int count = sizeof(internal_stacks)/sizeof(*internal_stacks);
-	for(i = 0; i < count; i++) {
+	for(i = 0; i < NGINZ_MAX_PROTO; i++) {
 		if(internal_port_for_stacks[i] != port)
 			continue;
 		return internal_stacks[i];
@@ -23,18 +23,28 @@ struct protostack*protostack_get(int port) {
 
 int protostack_set(int port, struct protostack*x) {
 	int i = 0;
-	int count = sizeof(internal_stacks)/sizeof(*internal_stacks);
-	if(internal_stacks[count-1]) {
+	if(internal_stacks[NGINZ_MAX_PROTO-1]) {
 		syslog(LOG_ERR, "Protostack capacity is full\n");
 		return -1;
 	}
-	for(i = 0; i < count; i++) {
+	for(i = 0; i < NGINZ_MAX_PROTO; i++) {
 		if(internal_stacks[i])
 			continue;
+		syslog(LOG_INFO, "Registering protocol for port:%d\n", port);
 		internal_port_for_stacks[i] = port;
 		internal_stacks[i] = x;
+		break;
 	}
 	return 0;
+}
+
+
+int protostack_init() {
+	// nothing to do
+}
+
+int protostack_deinit() {
+	// nothing to do
 }
 
 C_CAPSULE_END
