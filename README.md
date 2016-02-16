@@ -41,6 +41,7 @@ NginZ is equiped to serve as communication applications. It has,
 - It has [event-loop](src/event_loop.c) module to handle user data in [fibers](src/fiber.c).
 - It has [command shell](src/shake.c) to diagnose the server.
 - Writing new feature for chat server needs very less code(see the following ..). 
+- It has an HTTP interface(It is useful for benchmarking).
 
 Dependency injection
 ====================
@@ -118,8 +119,42 @@ It dumps the avilable plugins
 Benchmarking
 ============
 
-TODO
+I did benchmarking in the localhost with 1K concurency.
 
 ```
-ab -r -n 10 -c 3 http://ec2-54-191-149-216.us-west-2.compute.amazonaws.com:80/
+ab -r -n 100000 -c 1000 http://localhost:80/
+...
+...
+Concurrency Level:      1000
+Time taken for tests:   15.222 seconds
+Complete requests:      100000
+Failed requests:        0
+Write errors:           0
+Total transferred:      4900000 bytes
+HTML transferred:       1100000 bytes
+Requests per second:    6569.26 [#/sec] (mean)
+Time per request:       152.224 [ms] (mean)
+Time per request:       0.152 [ms] (mean, across all concurrent requests)
+Transfer rate:          314.35 [Kbytes/sec] received
+
+Connection Times (ms)
+              min  mean[+/-sd] median   max
+Connect:        0  103 429.2      0    7016
+Processing:     1   40  28.8     38     966
+Waiting:        1   40  28.9     38     966
+Total:          1  142 436.0     38    7064
+
+Percentage of the requests served within a certain time (ms)
+  50%     38
+  66%     45
+  75%     49
+  80%     52
+  90%     70
+  95%   1049
+  98%   1069
+  99%   1964
+ 100%   7064 (longest request)
 ```
+The result shows it can handle concurrent request. And the processor usage is uniform.
+
+
