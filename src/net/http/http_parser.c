@@ -25,9 +25,68 @@ static int http_response_test_and_close(struct http_connection*http) {
 	return -1;
 }
 
+static int http_url_go(struct http_connection*http, aroop_txt_t*target) {
+	int len = aroop_txt_length(target);
+	if(aroop_txt_is_empty(target) || (len == 1))
+		return http_response_test_and_close(http);
+	aroop_txt_t plugin_space = {};
+	aroop_txt_embeded_stackbuffer(&plugin_space, len+32);
+	aroop_txt_concat_string(&plugin_space, "/http");
+	if(aroop_txt_char_at(target, 0) != '/') {
+		aroop_txt_concat_char(&plugin_space, '/');
+	}
+	aroop_txt_concat(&plugin_space, target);
+	return composite_plugin_bridge_call(http_plugin_manager_get(), &plugin_space, HTTP_SIGNATURE, http);
+}
+
 static int http_url_parse(aroop_txt_t*user_data, aroop_txt_t*target_url) {
-	// TODO parse the headers
-	return 0;
+	aroop_txt_zero_terminate(user_data);
+	char*content = aroop_txt_to_string(user_data);
+	char*prev_header = NULL;
+	char*header = NULL;
+	char*url = NULL;
+	char*header_str = NULL;
+	int header_len = 0;
+	int skip_len = 0;
+	int ret = 0;
+	while((header = strchr(content, '\n'))) {
+		// skip the new line
+		header++;
+		if(prev_header == NULL) {
+			// it is the request string ..
+			header_len = header-content;
+			if(header_len > 256) { // too big header
+				ret = -1;
+				break;
+			}
+			aroop_txt_embeded_buffer(target_url, header_len);
+			aroop_txt_concat_string_len(target_url, content, header_len);
+			aroop_txt_zero_terminate(target_url);
+			header_str = aroop_txt_to_string(target_url);
+			url = strchr(header_str, ' '); // GET url HTTP/1.1
+			if(!url) {
+				ret = -1;
+				break;
+			}
+			url++; // skip the space
+			skip_len = url - header_str;
+			aroop_txt_shift(target_url, skip_len);
+			header_str = url;
+			url = strchr(header_str, ' '); // url HTTP/1.1
+			if(!url) {
+				ret = -1;
+				break;
+			}
+			skip_len = url - header_str;
+			aroop_txt_truncate(target_url, skip_len);
+			// we do not parse anymore
+			break;
+		}
+		prev_header = header;
+	}
+	
+	if(ret == -1)aroop_txt_destroy(target_url);
+	return ret;
 }
 
 static aroop_txt_t recv_buffer = {};
@@ -52,8 +111,10 @@ static int http_on_client_data(int fd, int status, const void*cb_data) {
 	int response = http_url_parse(&recv_buffer, &url);
 	if(response == 0) {
 		// notify the page
-		return http_response_test_and_close(http);
+		response = http_url_go(http, &url);
 	}
+	// cleanup
+	aroop_txt_destroy(&url);
 	return response;
 }
 

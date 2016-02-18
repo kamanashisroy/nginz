@@ -81,7 +81,7 @@ static int http_on_connection_bubble(int fd, aroop_txt_t*cmd) {
 
 #if 0 // do nothing for http/welcome
 		// execute the command
-		composite_plugin_bridge_call(chat_plugin_manager_get(), &plugin_space, HTTP_SIGNATURE, http);
+		composite_plugin_bridge_call(http_plugin_manager_get(), &plugin_space, HTTP_SIGNATURE, http);
 #endif
 	} while(0);
 	aroop_txt_destroy(&request); // cleanup

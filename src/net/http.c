@@ -14,6 +14,7 @@
 #include "net/http/http_factory.h"
 #include "net/http/http_accept.h"
 #include "net/http/http_parser.h"
+#include "net/http/http_plugin_manager.h"
 
 C_CAPSULE_START
 
@@ -23,6 +24,7 @@ int http_module_init() {
 	http_factory_module_init();
 	http_accept_module_init();
 	http_parser_module_init();
+	http_plugin_manager_module_init();
 
 	// setup the hooks
 	aroop_txt_t plugin_space = {};
@@ -31,6 +33,7 @@ int http_module_init() {
 }
 
 int http_module_deinit() {
+	http_plugin_manager_module_deinit();
 	http_parser_module_deinit();
 	http_accept_module_deinit();
 	http_factory_module_deinit();

@@ -126,34 +126,34 @@ ab -r -n 100000 -c 1000 http://localhost:80/
 ...
 ...
 Concurrency Level:      1000
-Time taken for tests:   15.222 seconds
+Time taken for tests:   5.921 seconds
 Complete requests:      100000
 Failed requests:        0
 Write errors:           0
 Total transferred:      4900000 bytes
 HTML transferred:       1100000 bytes
-Requests per second:    6569.26 [#/sec] (mean)
-Time per request:       152.224 [ms] (mean)
-Time per request:       0.152 [ms] (mean, across all concurrent requests)
-Transfer rate:          314.35 [Kbytes/sec] received
+Requests per second:    16890.10 [#/sec] (mean)
+Time per request:       59.206 [ms] (mean)
+Time per request:       0.059 [ms] (mean, across all concurrent requests)
+Transfer rate:          808.22 [Kbytes/sec] received
 
 Connection Times (ms)
               min  mean[+/-sd] median   max
-Connect:        0  103 429.2      0    7016
-Processing:     1   40  28.8     38     966
-Waiting:        1   40  28.9     38     966
-Total:          1  142 436.0     38    7064
+Connect:       10   34 104.2     23    3025
+Processing:     6   25   5.0     24      52
+Waiting:        2   17   5.5     17      39
+Total:         31   59 104.6     47    3046
 
 Percentage of the requests served within a certain time (ms)
-  50%     38
-  66%     45
-  75%     49
+  50%     47
+  66%     50
+  75%     51
   80%     52
-  90%     70
-  95%   1049
-  98%   1069
-  99%   1964
- 100%   7064 (longest request)
+  90%     55
+  95%     57
+  98%     62
+  99%   1039
+ 100%   3046 (longest request)
 ```
 The result shows it can handle concurrent request. And the processor usage is uniform.
 
