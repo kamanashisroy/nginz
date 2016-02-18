@@ -26,17 +26,26 @@ static int http_response_test_and_close(struct http_connection*http) {
 }
 
 static int http_url_go(struct http_connection*http, aroop_txt_t*target) {
+	int ret = 0;
 	int len = aroop_txt_length(target);
 	if(aroop_txt_is_empty(target) || (len == 1))
 		return http_response_test_and_close(http);
+	http->is_processed = 0;
 	aroop_txt_t plugin_space = {};
 	aroop_txt_embeded_stackbuffer(&plugin_space, len+32);
-	aroop_txt_concat_string(&plugin_space, "/http");
+	aroop_txt_concat_string(&plugin_space, "http");
 	if(aroop_txt_char_at(target, 0) != '/') {
 		aroop_txt_concat_char(&plugin_space, '/');
 	}
 	aroop_txt_concat(&plugin_space, target);
-	return composite_plugin_bridge_call(http_plugin_manager_get(), &plugin_space, HTTP_SIGNATURE, http);
+	ret = composite_plugin_bridge_call(http_plugin_manager_get(), &plugin_space, HTTP_SIGNATURE, http);
+	if(!http->is_processed) { // if not processed
+		// say not found
+		aroop_txt_t not_found = {};
+		aroop_txt_embeded_set_static_string(&not_found, "HTTP/1.0 404 NOT FOUND\r\nContent-Length: 9\r\n\r\nNot Found");
+		send(http->fd, aroop_txt_to_string(&not_found), aroop_txt_length(&not_found), 0);
+	}
+	return ret;
 }
 
 static int http_url_parse(aroop_txt_t*user_data, aroop_txt_t*target_url) {

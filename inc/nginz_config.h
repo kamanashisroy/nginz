@@ -43,6 +43,10 @@ C_CAPSULE_START
 #define NGINZ_MAX_CHAT_ROOM_NAME_SIZE 32
 #define NGINZ_MAX_CHAT_MSG_SIZE 255
 #define NGINZ_MAX_COMMANDS 16
+
+/**
+ * Http server configuration
+ */
 #define NGINZ_MAX_HTTP_MSG_SIZE 1024
 
 //#define NGINZ_EVENT_DEBUG 

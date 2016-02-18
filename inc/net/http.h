@@ -24,6 +24,7 @@ struct http_connection {
 	int fd;
 	enum http_state state;
 	aroop_txt_t*request;
+	int is_processed;
 };
 
 NGINZ_INLINE struct composite_plugin*http_context_get();
