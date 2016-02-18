@@ -54,15 +54,18 @@ static int chat_help_plug_helper(
 	aroop_txt_t prefix = {};
 	aroop_txt_t*output = (aroop_txt_t*)visitor_data;
 	aroop_txt_t xdesc = {};
-	aroop_txt_embeded_rebuild_copy_shallow(&prefix, plugin_space);
+	aroop_txt_embeded_rebuild_copy_shallow(&prefix, plugin_space); // needs destroy
 	aroop_txt_set_length(&prefix, 5);
-	if(!aroop_txt_equals_static(&prefix, "chat/"))
-		return 0;
-	if(aroop_txt_char_at(&prefix, 5) == '_') // hide the hidden commands
-		return 0;
-	desc(plugin_space, &xdesc);
-	aroop_txt_concat(output, &xdesc);
-	aroop_txt_destroy(&xdesc);
+	do {
+		if(!aroop_txt_equals_static(&prefix, "chat/"))
+			break;
+		if(aroop_txt_char_at(&prefix, 5) == '_') // hide the hidden commands
+			break;
+		desc(plugin_space, &xdesc);
+		aroop_txt_concat(output, &xdesc);
+	} while(0);
+	aroop_txt_destroy(&xdesc); // cleanup
+	aroop_txt_destroy(&prefix); // cleanup
 }
 
 static int chat_help_plug(int signature, void*given) {

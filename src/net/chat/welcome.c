@@ -20,7 +20,7 @@ static int on_login_data(struct chat_connection*chat, aroop_txt_t*answer) {
 	aroop_txt_t input = {};
 	aroop_txt_embeded_txt_copy_shallow(&input, answer);
 	aroop_txt_t name = {};
-	shotodol_scanner_next_token(&input, &name);
+	shotodol_scanner_next_token(&input, &name); // needs cleanup
 	do {
 		// check validity
 		if(aroop_txt_is_empty_magical(&name)) {

@@ -21,10 +21,12 @@ static int command_hook(struct chat_connection*chat, aroop_txt_t*given_request) 
 	int ret = 0;
 	// make a copy
 	aroop_txt_t request = {};
-	aroop_txt_embeded_txt_copy_shallow(&request, given_request);
+	aroop_txt_embeded_txt_copy_shallow(&request, given_request); // needs cleanup
 	aroop_txt_shift(&request, 1); // skip '/' before command
-	if(aroop_txt_char_at(&request, 0) == '_') // do now allow hidden commands
+	if(aroop_txt_char_at(&request, 0) == '_') { // do now allow hidden commands
+		aroop_txt_destroy(&request);
 		return 0;
+	}
 
 	// get the command token
 	aroop_txt_t ctoken = {};

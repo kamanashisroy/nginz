@@ -97,33 +97,39 @@ static int on_connection_bubble(int fd, aroop_txt_t*cmd) {
 	aroop_assert(hooks != NULL);
 	if(chat_module_is_quiting)
 		return 0;
+	int ret = 0;
 	// create new connection
 	struct chat_connection*chat = hooks->on_create(fd);
 	aroop_txt_t x = {};
-	binary_unpack_string(cmd, 2, &x);
+	binary_unpack_string(cmd, 2, &x); // needs cleanup
 	chat->request = &x; // set the request/command
 
+	do {
 
-	// get the target command
-	aroop_txt_t plugin_space = {};
-	int reqlen = aroop_txt_length(chat->request);
-	aroop_txt_t request_sandbox = {};
-	aroop_txt_embeded_stackbuffer(&request_sandbox, reqlen);
-	aroop_txt_concat(&request_sandbox, chat->request);
-	shotodol_scanner_next_token(&request_sandbox, &plugin_space);
-	if(aroop_txt_is_empty(&plugin_space)) {
-		aroop_txt_zero_terminate(&request_sandbox);
-		syslog(LOG_ERR, "Possible BUG , cannot handle request %s", aroop_txt_to_string(&request_sandbox));
-		hooks->on_destroy(&chat); // cleanup
-		return -1;
-	}
+		// get the target command
+		aroop_txt_t plugin_space = {};
+		int reqlen = aroop_txt_length(chat->request);
+		aroop_txt_t request_sandbox = {};
+		aroop_txt_embeded_stackbuffer(&request_sandbox, reqlen);
+		aroop_txt_concat(&request_sandbox, chat->request);
+		shotodol_scanner_next_token(&request_sandbox, &plugin_space);
+		if(aroop_txt_is_empty(&plugin_space)) {
+			aroop_txt_zero_terminate(&request_sandbox);
+			syslog(LOG_ERR, "Possible BUG , cannot handle request %s", aroop_txt_to_string(&request_sandbox));
+			hooks->on_destroy(&chat); // cleanup
+			ret = -1;
+			break;
+		}
 
-	// register it in the event loop
-	event_loop_register_fd(fd, on_client_data, chat, NGINZ_POLL_ALL_FLAGS);
+		// register it in the event loop
+		event_loop_register_fd(fd, on_client_data, chat, NGINZ_POLL_ALL_FLAGS);
 
-	// execute the command
-	composite_plugin_bridge_call(chat_plugin_manager_get(), &plugin_space, CHAT_SIGNATURE, chat);
-	return 0;
+		// execute the command
+		composite_plugin_bridge_call(chat_plugin_manager_get(), &plugin_space, CHAT_SIGNATURE, chat);
+	} while(0);
+	chat->request = NULL; // cleanup
+	aroop_txt_destroy(&x); // cleanup
+	return ret;
 }
 
 static int chat_accept_hookup(int signature, void*given) {

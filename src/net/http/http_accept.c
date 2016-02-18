@@ -44,42 +44,50 @@ static int http_on_connection_bubble(int fd, aroop_txt_t*cmd) {
 		return 0;
 	// parse the http header
 	aroop_txt_t request = {};
-	binary_unpack_string(cmd, 2, &request);
+	binary_unpack_string(cmd, 2, &request); // needs cleanup
 
 	struct http_connection*http = hooks->on_create(fd);
 	if(!http) {
 		syslog(LOG_ERR, "Could not create http object\n");
 		close(fd);
+		aroop_txt_destroy(&request); // cleanup
 		return -1;
 	}
 
+	int ret = 0;
 	// get the target command
 	aroop_txt_t plugin_space = {};
 	int reqlen = aroop_txt_length(&request);
 	aroop_txt_t request_sandbox = {};
 	aroop_txt_embeded_stackbuffer(&request_sandbox, reqlen);
 	aroop_txt_concat(&request_sandbox, &request);
-	shotodol_scanner_next_token(&request_sandbox, &plugin_space);
-	if(aroop_txt_is_empty(&plugin_space)) {
-		aroop_txt_zero_terminate(&request_sandbox);
-		syslog(LOG_ERR, "Possible BUG , cannot handle request %s", aroop_txt_to_string(&request_sandbox));
-		hooks->on_destroy(&http);
-		return -1;
-	}
+	shotodol_scanner_next_token(&request_sandbox, &plugin_space); // needs cleanup
 
-	aroop_assert(http);
-	aroop_assert(http->fd == fd);
-	// register it in the event loop
-	event_loop_register_fd(fd, hooks->on_client_data, http, NGINZ_POLL_ALL_FLAGS);
+	do {
+		if(aroop_txt_is_empty(&plugin_space)) {
+			aroop_txt_zero_terminate(&request_sandbox);
+			syslog(LOG_ERR, "Possible BUG , cannot handle request %s", aroop_txt_to_string(&request_sandbox));
+			hooks->on_destroy(&http);
+			break;
+		}
+
+		aroop_assert(http);
+		aroop_assert(http->fd == fd);
+		// register it in the event loop
+		event_loop_register_fd(fd, hooks->on_client_data, http, NGINZ_POLL_ALL_FLAGS);
 #ifdef NGINZ_EVENT_DEBUG
-	event_loop_register_debug(fd, on_http_debug);
+		event_loop_register_debug(fd, on_http_debug);
 #endif
 
 #if 0 // do nothing for http/welcome
-	// execute the command
-	composite_plugin_bridge_call(chat_plugin_manager_get(), &plugin_space, HTTP_SIGNATURE, http);
+		// execute the command
+		composite_plugin_bridge_call(chat_plugin_manager_get(), &plugin_space, HTTP_SIGNATURE, http);
 #endif
-	return 0;
+	} while(0);
+	aroop_txt_destroy(&request); // cleanup
+	aroop_txt_destroy(&request_sandbox); // cleanup
+	aroop_txt_destroy(&plugin_space); // cleanup
+	return ret;
 }
 
 static struct protostack http_protostack = {

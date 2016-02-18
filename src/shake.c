@@ -32,25 +32,27 @@ static int on_shake_connection_helper(int fd) {
 	aroop_txt_t xcmd;
 	aroop_txt_embeded_set_content(&xcmd, cmd, cmdlen, NULL);
 	aroop_txt_t target = {};
-	shotodol_scanner_next_token(&xcmd, &target);
-	if(aroop_txt_length(&target) == 0)
-		return 0;
-	aroop_txt_t plugin_space = {};
-	aroop_txt_embeded_stackbuffer(&plugin_space, 64);
-	aroop_txt_concat_string(&plugin_space, "shake/");
-	aroop_txt_concat(&plugin_space, &target);
 	aroop_txt_t input = {};
-	aroop_txt_embeded_txt_copy_shallow(&input, &xcmd); // pass the command argument as input
-	aroop_txt_shift(&input, 1); // skip the white space
 	aroop_txt_t output = {};
-	pm_call(&plugin_space, &input, &output);
-	aroop_txt_zero_terminate(&output);
-	//printf("%s", aroop_txt_to_string(&output));
-	write(fd, aroop_txt_to_string(&output), aroop_txt_length(&output));
-
+	shotodol_scanner_next_token(&xcmd, &target);
+	do {
+		if(aroop_txt_length(&target) == 0)
+			break;
+		aroop_txt_t plugin_space = {};
+		aroop_txt_embeded_stackbuffer(&plugin_space, 64);
+		aroop_txt_concat_string(&plugin_space, "shake/");
+		aroop_txt_concat(&plugin_space, &target);
+		aroop_txt_embeded_txt_copy_shallow(&input, &xcmd); // pass the command argument as input
+		aroop_txt_shift(&input, 1); // skip the white space
+		pm_call(&plugin_space, &input, &output);
+		aroop_txt_zero_terminate(&output);
+		//printf("%s", aroop_txt_to_string(&output));
+		write(fd, aroop_txt_to_string(&output), aroop_txt_length(&output));
+	} while(0);
 	// cleanup 
 	aroop_txt_destroy(&input);
 	aroop_txt_destroy(&output);
+	aroop_txt_destroy(&target);
 	return 0;
 }
 

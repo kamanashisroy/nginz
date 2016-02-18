@@ -120,6 +120,7 @@ NGINZ_INLINE static int pp_recvmsg_helper(int through, int*target, aroop_txt_t*c
 	memset(iov, 0, sizeof(iov));
 
 	if(aroop_txt_capacity(cmd) < 128) {
+		aroop_txt_destroy(cmd);
 		aroop_txt_embeded_buffer(cmd, 128);
 	}
 	iov[0].iov_base = aroop_txt_to_string(cmd);
@@ -167,16 +168,18 @@ static int on_bubble_down(int fd, int events, const void*unused) {
 	//aroop_txt_embeded_rebuild_and_set_content(&recv_buffer, rbuf)
 	aroop_txt_t x = {};
 	//printf("There is bubble_down from the parent, %d, (count=%d)\n", (int)aroop_txt_char_at(&recv_buffer, 0), count);
-	binary_unpack_string(&recv_buffer, 0, &x);
+	binary_unpack_string(&recv_buffer, 0, &x); // needs cleanup
 	if(aroop_txt_is_empty(&x)) {
+		aroop_txt_destroy(&x);
 		return 0;
 	}
 	//printf("request from parent %s\n", aroop_txt_to_string(&x));
 	aroop_txt_t input = {};
 	aroop_txt_t output = {};
 	pm_call(&x, &input, &output);
-	//aroop_txt_destroy(&input);
+	aroop_txt_destroy(&input);
 	aroop_txt_destroy(&output);
+	aroop_txt_destroy(&x);
 	return 0;
 }
 

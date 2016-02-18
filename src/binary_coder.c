@@ -91,7 +91,7 @@ int binary_unpack_string(aroop_txt_t*buffer, int skip, aroop_txt_t*x) {
 			skip--;
 			continue;
 		}
-		aroop_txt_embeded_txt_copy_shallow(x,buffer);
+		aroop_txt_embeded_txt_copy_shallow(x,buffer); // needs cleanup
 		pos++;
 		aroop_txt_shift(x, pos);
 		aroop_txt_set_length(x, nlen);

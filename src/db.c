@@ -37,7 +37,7 @@ int db_get(const char*key,aroop_txt_t*output) {
 	char*outval = memcached_get(internal_memc, key, strlen(key), &outlen, &flags, &rc);
 	if(outval != NULL) {
 		aroop_txt_embeded_buffer(output, outlen);
-		aroop_txt_embeded_copy_string(output, outval);
+		aroop_txt_concat_string(output, outval);
 		free(outval);
 	}
 	return !(rc == MEMCACHED_SUCCESS);

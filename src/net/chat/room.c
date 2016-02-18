@@ -86,13 +86,14 @@ static int chat_room_describe(aroop_txt_t*roomstr, aroop_txt_t*room_info) {
 	aroop_txt_t next = {};
 	aroop_txt_concat_string(room_info, "Active rooms are:\n");
 	while(1) {
-		shotodol_scanner_next_token(roomstr, &next);
+		shotodol_scanner_next_token(roomstr, &next); // needs cleanup
 		if(aroop_txt_is_empty(&next)) {
 			break;
 		}
 		chat_room_describe_helper(&next, room_info);
 	}
 	aroop_txt_concat_string(room_info, "end of list.\n");
+	aroop_txt_destroy(&next);
 	return 0;
 }
 
