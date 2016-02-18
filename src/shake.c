@@ -47,6 +47,9 @@ static int on_shake_connection_helper(int fd) {
 	aroop_txt_zero_terminate(&output);
 	//printf("%s", aroop_txt_to_string(&output));
 	write(fd, aroop_txt_to_string(&output), aroop_txt_length(&output));
+
+	// cleanup 
+	aroop_txt_destroy(&input);
 	aroop_txt_destroy(&output);
 	return 0;
 }

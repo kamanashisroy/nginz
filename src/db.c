@@ -44,13 +44,15 @@ int db_get(const char*key,aroop_txt_t*output) {
 }
 
 int db_get_int(const char*key) {
+	int intval = -1;
 	aroop_txt_t output = {};
 	db_get(key, &output);
 	if(!aroop_txt_is_empty(&output)) {
 		aroop_txt_zero_terminate(&output);
-		return aroop_txt_to_int(&output);
+		intval = aroop_txt_to_int(&output);
 	}
-	return -1;
+	aroop_txt_destroy(&output);
+	return intval;
 }
 
 int db_set_int(const char*key, int value) {

@@ -45,6 +45,7 @@ static int command_hook(struct chat_connection*chat, aroop_txt_t*given_request) 
 		aroop_txt_destroy(&plugin_space);
 		chat->request = NULL; // cleanup
 	} while(0);
+	// cleanup
 	aroop_txt_destroy(&ctoken);
 	aroop_txt_destroy(&request);
 	return ret;

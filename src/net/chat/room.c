@@ -104,7 +104,7 @@ static int chat_room_lookup_plug(int signature, void*given) {
 		return 0;
 	aroop_txt_t room_info = {};
 	aroop_txt_t db_data = {};
-	db_get(ROOM_KEY, &db_data);
+	db_get(ROOM_KEY, &db_data); // needs cleanup
 	if(aroop_txt_is_empty(&db_data)) {
 		aroop_txt_embeded_set_static_string(&room_info, "There is no room\n");
 	} else {
@@ -115,7 +115,8 @@ static int chat_room_lookup_plug(int signature, void*given) {
 		//aroop_txt_concat_char(&room_info, '\n');
 	}
 	send(chat->fd, aroop_txt_to_string(&room_info), aroop_txt_length(&room_info), 0);
-	aroop_txt_destroy(&room_info);
+	aroop_txt_destroy(&room_info); // cleanup
+	aroop_txt_destroy(&db_data); // cleanup
 	return 0;
 }
 
@@ -154,7 +155,7 @@ static int default_room_fork_child_after_callback(aroop_txt_t*input, aroop_txt_t
 	aroop_txt_t room_name = {};
 	aroop_txt_embeded_copy_string(&room_name, myroom);
 	broadcast_add_room(&room_name);
-	aroop_txt_destroy(&room_name);
+	aroop_txt_destroy(&room_name); // cleanup
 	internal_child_count++;
 	//aroop_txt_destroy(&pidstr);
 	return 0;

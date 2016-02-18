@@ -24,6 +24,7 @@ static struct opp_factory room_factory;
 static int broadcast_callback_helper(struct chat_connection*chat, struct internal_room*rm, aroop_txt_t*msg) {
 	// iterate through all
 	struct opp_iterator iterator = {};
+	aroop_assert(rm);
 	opp_iterator_create(&iterator, &rm->user_list, OPPN_ALL, 0, 0);
 	opp_pointer_ext_t*pt;
 	while(pt = opp_iterator_next(&iterator)) {
@@ -171,6 +172,7 @@ OPP_CB(internal_room) {
 	struct internal_room*room = data;
 	switch(callback) {
 		case OPPN_ACTION_INITIALIZE:
+			aroop_memclean_raw2(&room->name);
 			//printf("creating user list\n");
 			OPP_LIST_CREATE_NOLOCK(&room->user_list, 64);
 		break;

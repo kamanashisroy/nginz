@@ -63,7 +63,7 @@ static int chat_join_get_room(aroop_txt_t*request, aroop_txt_t*room) {
 	if(aroop_txt_is_empty(&token)) {
 		return -1;
 	}
-	aroop_txt_embeded_rebuild_copy_on_demand(room, &token);
+	aroop_txt_embeded_rebuild_copy_on_demand(room, &token); // needs cleanup
 	aroop_txt_zero_terminate(room);
 	return 0;
 }

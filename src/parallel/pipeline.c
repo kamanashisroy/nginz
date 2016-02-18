@@ -221,7 +221,7 @@ static int on_bubble_down_send_socket(int fd, int events, const void*unused) {
 		aroop_assert(stack != NULL);
 		stack->on_connection_bubble(acceptfd, &cmd);
 	} while(0);
-	aroop_txt_destroy(&cmd);
+	aroop_txt_destroy(&cmd); // cleanup
 	return 0;
 }
 

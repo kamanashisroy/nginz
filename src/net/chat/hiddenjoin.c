@@ -24,12 +24,12 @@ static int chat_hiddenjoin_get_room_and_name(aroop_txt_t*request, aroop_txt_t*ro
 	if(aroop_txt_is_empty(&token)) {
 		return -1;
 	}
-	aroop_txt_embeded_rebuild_copy_on_demand(room, &token);
+	aroop_txt_embeded_rebuild_copy_on_demand(room, &token); // needs cleanup
 	aroop_txt_zero_terminate(room);
 	shotodol_scanner_next_token(&request_sandbox, &token); // name
 	if(aroop_txt_is_empty(&token))
 		return -1;
-	aroop_txt_embeded_rebuild_copy_on_demand(name, &token);
+	aroop_txt_embeded_rebuild_copy_on_demand(name, &token); // needs cleanup
 	aroop_txt_zero_terminate(name);
 	return 0;
 }
@@ -47,11 +47,12 @@ static int chat_hiddenjoin_plug(int signature, void*given) {
 			syslog(LOG_ERR, "Bug in the server code :(\n");
 			break;
 		}
+		aroop_txt_destroy(&chat->name);
 		aroop_txt_embeded_copy_deep(&chat->name, &name);
-		printf("doing hidden join to [%s] name [%s]\n", aroop_txt_to_string(&room), aroop_txt_to_string(&name));
+		//printf("doing hidden join to [%s] name [%s]\n", aroop_txt_to_string(&room), aroop_txt_to_string(&name));
 		broadcast_room_join(chat, &room);
 	} while(0);
-	printf("hiddenjoin complete\n");
+	//printf("hiddenjoin complete\n");
 	aroop_txt_destroy(&room);
 	aroop_txt_destroy(&name);
 	return 0;

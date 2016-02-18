@@ -15,6 +15,7 @@ aroop_txt_t greet_on_login = {};
 static int on_login_data(struct chat_connection*chat, aroop_txt_t*answer) {
 	if(aroop_txt_is_empty_magical(answer))
 		return 0;
+	aroop_assert(chat->broadcast_data == NULL);
 	// remove the trailing space and new line
 	aroop_txt_t input = {};
 	aroop_txt_embeded_txt_copy_shallow(&input, answer);
@@ -49,6 +50,8 @@ static int on_login_data(struct chat_connection*chat, aroop_txt_t*answer) {
 		chat->on_answer = NULL;
 	} while(0);
 	send(chat->fd, aroop_txt_to_string(&greet_on_login), aroop_txt_length(&greet_on_login), 0);
+	aroop_txt_destroy(&input);
+	aroop_txt_destroy(&name);
 	return 0;
 }
 

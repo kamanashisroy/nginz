@@ -47,6 +47,7 @@ OPP_CB(chat_connection) {
 			chat->on_broadcast = NULL;
 			chat->state = CHAT_CONNECTED;
 			chat->request = NULL;
+			chat->broadcast_data = NULL;
 		break;
 		case OPPN_ACTION_FINALIZE:
 			aroop_txt_destroy(&chat->name);
@@ -85,7 +86,7 @@ static int chat_factory_hookup_desc(aroop_txt_t*plugin_space, aroop_txt_t*output
 
 
 int chat_factory_module_init() {
-	OPP_PFACTORY_CREATE(&chat_factory, 64, sizeof(struct chat_connection), OPP_CB_FUNC(chat_connection));
+	NGINZ_FACTORY_CREATE(&chat_factory, 64, sizeof(struct chat_connection), OPP_CB_FUNC(chat_connection));
 	aroop_txt_t plugin_space = {};
 	aroop_txt_embeded_set_static_string(&plugin_space, "shake/softquitall");
 	pm_plug_callback(&plugin_space, chat_factory_on_softquit, chat_factory_on_softquit_desc);

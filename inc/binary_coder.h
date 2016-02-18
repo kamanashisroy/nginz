@@ -19,7 +19,7 @@ int binary_pack_int(aroop_txt_t*buffer, int intval);
 /*
  * It gets the next string data out of the buffer
  * @param buffer The buffer where the string is contained
- * @param x The output string
+ * @param x The output string, be sure to cleanup with aroop_txt_destroy(x) call
  * @return 0 when successful, -1 otherwise
  */
 int binary_unpack_string(aroop_txt_t*buffer, int skip, aroop_txt_t*x);

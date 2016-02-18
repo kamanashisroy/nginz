@@ -54,7 +54,7 @@ static int chat_help_plug_helper(
 	aroop_txt_t prefix = {};
 	aroop_txt_t*output = (aroop_txt_t*)visitor_data;
 	aroop_txt_t xdesc = {};
-	aroop_txt_embeded_copy_on_demand(&prefix, plugin_space);
+	aroop_txt_embeded_rebuild_copy_shallow(&prefix, plugin_space);
 	aroop_txt_set_length(&prefix, 5);
 	if(!aroop_txt_equals_static(&prefix, "chat/"))
 		return 0;
@@ -74,7 +74,7 @@ static int chat_help_plug(int signature, void*given) {
 		return 0;
 	}
 	aroop_txt_t output = {};
-	aroop_txt_embeded_buffer(&output, 512);
+	aroop_txt_embeded_stackbuffer(&output, 1024);
 	composite_plugin_visit_all(chat_plugin_manager_get(), chat_help_plug_helper, &output);
 	send(chat->fd, aroop_txt_to_string(&output), aroop_txt_length(&output), 0);
 	return 0;

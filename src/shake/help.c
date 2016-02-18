@@ -31,7 +31,7 @@ static int help_command_helper(
 		return 0;
 	desc(plugin_space, &xdesc);
 	aroop_txt_concat(output, &xdesc);
-	aroop_txt_destroy(&xdesc);
+	aroop_txt_destroy(&xdesc); // cleanup
 }
 
 static int help_command(aroop_txt_t*input, aroop_txt_t*output) {
