@@ -2,6 +2,7 @@
 
 Apache Benchmarking tool with 1 Million request with 10K concurrency on my linux laptop. 
 
+```
 ab -r -n 1000000 -c 10000 http://localhost:80/
 This is ApacheBench, Version 2.3 <$Revision: 655654 $>
 Copyright 1996 Adam Twiss, Zeus Technology Ltd, http://www.zeustech.net/
@@ -58,4 +59,4 @@ Percentage of the requests served within a certain time (ms)
   98%   8683
   99%  16549
  100%  63958 (longest request)
-
+```
