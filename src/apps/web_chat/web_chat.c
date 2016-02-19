@@ -37,7 +37,7 @@ static int http_webchat_plug(int signature, void*given) {
 }
 
 static int http_webchat_plug_desc(aroop_txt_t*plugin_space, aroop_txt_t*output) {
-	return plugin_desc(output, "webchat", "http", plugin_space, __FILE__, "It shows available commands.\n");
+	return plugin_desc(output, "webchat", "http", plugin_space, __FILE__, "It decorates the chat io for HTTP tunneling.\n");
 }
 
 

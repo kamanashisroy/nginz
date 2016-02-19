@@ -124,6 +124,8 @@ It dumps the avilable plugins
 Benchmarking
 ============
 
+I did benchmarking with [10K concurrency and 1 Million requests](BENCHMARKING.md). 
+
 I did benchmarking in the localhost with 1K concurency.
 
 ```
@@ -131,34 +133,34 @@ ab -r -n 100000 -c 1000 http://localhost:80/
 ...
 ...
 Concurrency Level:      1000
-Time taken for tests:   5.921 seconds
+Time taken for tests:   5.975 seconds
 Complete requests:      100000
 Failed requests:        0
 Write errors:           0
 Total transferred:      4900000 bytes
 HTML transferred:       1100000 bytes
-Requests per second:    16890.10 [#/sec] (mean)
-Time per request:       59.206 [ms] (mean)
-Time per request:       0.059 [ms] (mean, across all concurrent requests)
-Transfer rate:          808.22 [Kbytes/sec] received
+Requests per second:    16736.06 [#/sec] (mean)
+Time per request:       59.751 [ms] (mean)
+Time per request:       0.060 [ms] (mean, across all concurrent requests)
+Transfer rate:          800.85 [Kbytes/sec] received
 
 Connection Times (ms)
               min  mean[+/-sd] median   max
-Connect:       10   34 104.2     23    3025
-Processing:     6   25   5.0     24      52
-Waiting:        2   17   5.5     17      39
-Total:         31   59 104.6     47    3046
+Connect:       11   36 123.0     21    1031
+Processing:     7   23   4.6     22      50
+Waiting:        2   17   4.7     16      40
+Total:         28   59 123.4     43    1061
 
 Percentage of the requests served within a certain time (ms)
-  50%     47
-  66%     50
-  75%     51
-  80%     52
-  90%     55
-  95%     57
+  50%     43
+  66%     45
+  75%     46
+  80%     47
+  90%     51
+  95%     54
   98%     62
-  99%   1039
- 100%   3046 (longest request)
+  99%   1040
+ 100%   1061 (longest request)
 ```
 The result shows it can handle concurrent request. And the processor usage is uniform.
 

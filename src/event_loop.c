@@ -75,14 +75,7 @@ int event_loop_unregister_fd(int fd) {
 	return 0;
 }
 
-static int event_loop_step(int status) {
-	if(internal_nfds == 0) {
-		usleep(1000);
-		return 0;
-	}
-	int count = 0;
-	if(!(count = poll(internal_fds, internal_nfds, 100)))
-		return 0;
+static int event_loop_step_helper(int count) {
 	int i = 0;
 	for(i = 0; i < internal_nfds && count; i++) {
 		if(!internal_fds[i].revents) {
@@ -94,10 +87,21 @@ static int event_loop_step(int status) {
 			event_loop_debug();
 #endif
 			// fd is closed and may be removed.
-			return 0;
+			return event_loop_step_helper(count); // start over
 		}
 	}
 	return 0;
+}
+
+static int event_loop_step(int status) {
+	if(internal_nfds == 0) {
+		usleep(1000);
+		return 0;
+	}
+	int count = 0;
+	if(!(count = poll(internal_fds, internal_nfds, 100)))
+		return 0;
+	return event_loop_step_helper(count);
 }
 
 static int event_loop_test_helper(int count) {
