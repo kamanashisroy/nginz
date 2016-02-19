@@ -36,8 +36,9 @@ int db_get(const char*key,aroop_txt_t*output) {
 	memcached_return rc;
 	char*outval = memcached_get(internal_memc, key, strlen(key), &outlen, &flags, &rc);
 	if(outval != NULL) {
-		aroop_txt_embeded_buffer(output, outlen);
+		aroop_txt_embeded_buffer(output, outlen+1); // one byte for '\0' character to make it null terminated string
 		aroop_txt_concat_string(output, outval);
+		aroop_txt_zero_terminate(output); // it will ease to do print and to_int() staff
 		free(outval);
 	}
 	return !(rc == MEMCACHED_SUCCESS);
@@ -55,10 +56,11 @@ int db_get_int(const char*key) {
 	return intval;
 }
 
-int db_set_int(const char*key, int value) {
+int db_set_int(const char*key, int intval) {
 	aroop_txt_t valstr = {};
 	aroop_txt_embeded_stackbuffer(&valstr, 32);
-	aroop_txt_printf(&valstr, "%d", value);
+	aroop_txt_printf(&valstr, "%d", intval);
+	aroop_txt_zero_terminate(&valstr);
 	return db_set(key, aroop_txt_to_string(&valstr));
 }
 

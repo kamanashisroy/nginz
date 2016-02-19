@@ -36,7 +36,7 @@ static int chat_join_transfer(struct chat_connection*chat, aroop_txt_t*room, int
 		//syslog(LOG_INFO, "transfering to %d bubble_up\n", pid);
 		pp_bubble_up_send_socket(chat->fd, &bin);
 	}
-	chat->state = CHAT_SOFT_QUIT; // quit the user from this process
+	chat->state |= CHAT_SOFT_QUIT; // quit the user from this process
 	return 0;
 }
 
@@ -87,7 +87,7 @@ static int chat_join_plug(int signature, void*given) {
 		}
 		aroop_txt_embeded_stackbuffer(&join_info, 64);
 		aroop_txt_printf(&join_info, "Trying ...(%d)\n", pid);
-		send(chat->fd, aroop_txt_to_string(&join_info), aroop_txt_length(&join_info), 0);
+		chat->send(chat, &join_info, 0);
 		aroop_txt_set_length(&join_info, 0);
 		chat_join_helper(chat, &room, pid);
 	} while(0);

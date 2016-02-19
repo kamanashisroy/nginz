@@ -62,6 +62,11 @@ As a framework it supports dependency injection by plugin-spaces/extension-point
 | ./src/net/chat/hiddenjoin.c | 75 |
 | ./src/net/chat/user.c | 56 |
 
+Module Description
+===================
+
+- [Chat Module](src/net/chat/README.md)
+- [HTTP Module](src/net/http/README.md)
 
 livedemo
 ========
@@ -157,4 +162,7 @@ Percentage of the requests served within a certain time (ms)
 ```
 The result shows it can handle concurrent request. And the processor usage is uniform.
 
+Tasks
+======
 
+Please refer to [tasks](TASKS.md) page.

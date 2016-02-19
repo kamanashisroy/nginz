@@ -44,19 +44,24 @@ OPP_CB(http_connection) {
 			http->request = NULL;
 		break;
 		case OPPN_ACTION_FINALIZE:
+			// cleanup socket
+			event_loop_unregister_fd(http->fd);
+			if(http->fd != -1 && http->state != HTTP_SOFT_QUIT)close(http->fd);
+			http->fd = -1;
 		break;
 	}
 	return 0;
 }
 
-static int http_destroy(struct http_connection**http) {
-	// cleanup socket
-	event_loop_unregister_fd((*http)->fd);
-	if((*http)->fd != -1 && (*http)->state != HTTP_SOFT_QUIT)close((*http)->fd);
-	(*http)->fd = -1;
-	// free data
-	OPPUNREF2(http);
-	return 0;
+
+OPP_CB(http_connection_vcall) {
+	struct http_connection*http = data;
+	switch(callback) {
+		case OPPN_ACTION_INITIALIZE:
+			http->opp_cb = OPP_CB_FUNC(http_connection); // dynamically send default object handler
+		break;
+	}
+	return http->opp_cb(data, callback, cb_data, ap, size);
 }
 
 static struct http_connection*http_alloc(int fd) {
@@ -69,7 +74,6 @@ static int http_factory_hookup(int signature, void*given) {
 	struct http_hooks*hooks = (struct http_hooks*)given;
 	aroop_assert(hooks != NULL);
 	hooks->on_create = http_alloc;
-	hooks->on_destroy = http_destroy;
 	return 0;
 }
 
@@ -79,7 +83,7 @@ static int http_factory_hookup_desc(aroop_txt_t*plugin_space, aroop_txt_t*output
 
 
 int http_factory_module_init() {
-	NGINZ_FACTORY_CREATE(&http_factory, 64, sizeof(struct http_connection), OPP_CB_FUNC(http_connection));
+	NGINZ_FACTORY_CREATE(&http_factory, 64, sizeof(struct http_connection), OPP_CB_FUNC(http_connection_vcall));
 	aroop_txt_t plugin_space = {};
 	aroop_txt_embeded_set_static_string(&plugin_space, "shake/softquitall");
 	pm_plug_callback(&plugin_space, http_factory_on_softquit, http_factory_on_softquit_desc);

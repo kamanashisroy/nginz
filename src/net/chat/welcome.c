@@ -15,7 +15,7 @@ aroop_txt_t greet_on_login = {};
 static int on_login_data(struct chat_connection*chat, aroop_txt_t*answer) {
 	if(aroop_txt_is_empty_magical(answer))
 		return 0;
-	aroop_assert(chat->broadcast_data == NULL);
+	aroop_assert(chat->state == CHAT_CONNECTED);
 	// remove the trailing space and new line
 	aroop_txt_t input = {};
 	aroop_txt_embeded_txt_copy_shallow(&input, answer);
@@ -47,9 +47,10 @@ static int on_login_data(struct chat_connection*chat, aroop_txt_t*answer) {
 		aroop_txt_concat(&greet_on_login, &name);
 		aroop_txt_concat_char(&greet_on_login, '!');
 		aroop_txt_concat_char(&greet_on_login, '\n');
-		chat->on_answer = NULL;
+		chat->on_response_callback = NULL;
+		chat->state |= CHAT_LOGGED_IN;
 	} while(0);
-	send(chat->fd, aroop_txt_to_string(&greet_on_login), aroop_txt_length(&greet_on_login), 0);
+	chat->send(chat, &greet_on_login, 0);
 	aroop_txt_destroy(&input);
 	aroop_txt_destroy(&name);
 	return 0;
@@ -62,10 +63,11 @@ static int chat_welcome_plug(int signature, void*given) {
 		syslog(LOG_ERR, "BUG: no chat interface to welcome\n");
 		return 0;
 	}
+	aroop_assert(chat->state == CHAT_CONNECTED);
 	aroop_txt_t greet = {};
 	aroop_txt_embeded_set_static_string(&greet, "Welcome to NginZ chat server\nLogin name?\n");
-	chat->on_answer = on_login_data;
-	send(chat->fd, aroop_txt_to_string(&greet), aroop_txt_length(&greet), 0);
+	chat->on_response_callback = on_login_data;
+	chat->send(chat, &greet, 0);
 	return 0;
 }
 

@@ -33,13 +33,13 @@ static int broadcast_callback_helper(struct chat_connection*chat, struct interna
 			continue; // do not broadcast to self
 
 		// broadcast message to others
-		send(other->fd, aroop_txt_to_string(msg), aroop_txt_length(msg), 0); // send it to other
+		other->send(other, msg, 0);
 	}
 	opp_iterator_destroy(&iterator);
 	return 0;
 }
 static int broadcast_callback(struct chat_connection*chat, aroop_txt_t*msg) {
-	struct internal_room*rm = (struct internal_room*)(chat->broadcast_data);
+	struct internal_room*rm = (struct internal_room*)(chat->callback_data);
 	if(!rm) {
 		syslog(LOG_ERR, "We do not know how we can broadcast it\n");
 		return -1;
@@ -59,7 +59,7 @@ static int broadcast_room_greet(struct chat_connection*chat, struct internal_roo
 	aroop_txt_concat_string(&resp, "Entering room:");
 	aroop_txt_concat(&resp, &rm->name);
 	aroop_txt_concat_char(&resp, '\n');
-	send(chat->fd, aroop_txt_to_string(&resp), aroop_txt_length(&resp), 0);
+	chat->send(chat, &resp, 0);
 
 	// now print the user list ..
 	struct opp_iterator iterator = {};
@@ -77,14 +77,14 @@ static int broadcast_room_greet(struct chat_connection*chat, struct internal_roo
 			aroop_txt_concat_string(&resp, "(** this is you)");
 		}
 		aroop_txt_concat_char(&resp, '\n');
-		send(chat->fd, aroop_txt_to_string(&resp), aroop_txt_length(&resp), 0);
+		chat->send(chat, &resp, 0);
 	}
 	opp_iterator_destroy(&iterator);
 
 	// end
 	aroop_txt_set_length(&resp, 0);
 	aroop_txt_concat_string(&resp, "end of list\n");
-	send(chat->fd, aroop_txt_to_string(&resp), aroop_txt_length(&resp), 0);
+	chat->send(chat, &resp, 0);
 
 	// broadcast that there is new user
 	aroop_txt_set_length(&resp, 0);
@@ -104,6 +104,11 @@ static int broadcast_room_bye(struct chat_connection*chat, struct internal_room*
 }
 
 int broadcast_room_join(struct chat_connection*chat, aroop_txt_t*room_name) {
+	/* sanity check */
+	if(!(chat->state & CHAT_LOGGED_IN)) {
+		syslog(LOG_ERR, "The user tries to join a room while he is not logged in\n");
+		return -1;
+	}
 	// find the chatroom
 	struct internal_room*rm = NULL;
 	opp_search(&room_factory, aroop_txt_get_hash(room_name), NULL, NULL, (void**)&rm);
@@ -112,33 +117,39 @@ int broadcast_room_join(struct chat_connection*chat, aroop_txt_t*room_name) {
 		return -1;
 	}
 	do {
-		if(chat->broadcast_data == rm) {
+		if(chat->callback_data == rm) {
+			aroop_assert(chat->state & CHAT_IN_ROOM);
 			// user already joined the room
 			break;
 		}
-		if(chat->broadcast_data) {
+		if(chat->callback_data) {
+			aroop_assert(chat->state & CHAT_IN_ROOM);
 			// leave the old room
 			broadcast_room_leave(chat);
 		}
-		aroop_assert(chat->broadcast_data == NULL);
+		aroop_assert(chat->callback_data == NULL);
 		opp_list_add_noref(&rm->user_list, chat);
 		OPPREF(chat);
 		// XXX we avoid circular reference ..
-		chat->broadcast_data = rm; // we are not doing OPPREF because it will overflow our reference counter as more people join one group ..
-		chat->on_broadcast = broadcast_callback;
+		chat->callback_data = rm; // we are not doing OPPREF because it will overflow our reference counter as more people join one group ..
+		chat->on_response_callback = broadcast_callback;
+		chat->state |= CHAT_IN_ROOM;
 	} while(0);
+	aroop_assert(chat->callback_data != NULL);
 	OPPUNREF(rm);
+	rm = (struct internal_room*)chat->callback_data;
 	// show room information 
-	broadcast_room_greet(chat, (struct internal_room*)chat->broadcast_data);
-	chat_room_set_user_count(room_name, OPP_FACTORY_USE_COUNT(&((struct internal_room*)chat->broadcast_data)->user_list));
+	broadcast_room_greet(chat, rm);
+	chat_room_set_user_count(room_name, OPP_FACTORY_USE_COUNT(&rm->user_list));
 	return 0;
 }
 
 int broadcast_room_leave(struct chat_connection*chat) {
 	// find the chatroom
-	struct internal_room*rm = (struct internal_room*)chat->broadcast_data;
+	struct internal_room*rm = (struct internal_room*)chat->callback_data;
 	if(!rm)
 		return 0;
+	aroop_assert(chat->state & CHAT_IN_ROOM);
 	broadcast_room_bye(chat, rm);
 
 	// prune the user from the list
@@ -154,8 +165,9 @@ int broadcast_room_leave(struct chat_connection*chat) {
 	}
 	opp_iterator_destroy(&iterator);
 
-	chat->on_broadcast = NULL;
-	chat->broadcast_data = NULL;
+	chat->callback_data = NULL;
+	chat->on_response_callback = NULL;
+	chat->state &= (~CHAT_IN_ROOM);
 	chat_room_set_user_count(&rm->name, OPP_FACTORY_USE_COUNT(&rm->user_list));
 	return 0;
 }
@@ -164,7 +176,7 @@ int broadcast_add_room(aroop_txt_t*room_name) {
 	// XXX we have to load broadcast module before room module
 	struct internal_room*rm = OPP_ALLOC1(&room_factory);
 	aroop_txt_embeded_copy_on_demand(&rm->name, room_name);
-	opp_set_hash(rm, aroop_txt_get_hash(&rm->name));
+	opp_set_hash(rm, aroop_txt_get_hash(&rm->name)); // set the hash so that it can be searched easily
 	return 0;
 }
 

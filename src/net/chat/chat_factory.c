@@ -19,6 +19,10 @@ C_CAPSULE_START
 
 static struct opp_factory chat_factory;
 
+static int chat_send_content(struct chat_connection*chat, aroop_txt_t*content, int flag) {
+	return send(chat->fd, aroop_txt_to_string(content), aroop_txt_length(content), flag);
+}
+
 static int chat_factory_on_softquit(aroop_txt_t*plugin_space, aroop_txt_t*output) {
 	// iterate through all
 	struct opp_iterator iterator = {};
@@ -43,27 +47,30 @@ OPP_CB(chat_connection) {
 	switch(callback) {
 		case OPPN_ACTION_INITIALIZE:
 			aroop_memclean_raw2(&chat->name);
-			chat->on_answer = NULL;
-			chat->on_broadcast = NULL;
+			chat->on_response_callback = NULL;
+			chat->callback_data = NULL;
 			chat->state = CHAT_CONNECTED;
 			chat->request = NULL;
-			chat->broadcast_data = NULL;
+			chat->send = chat_send_content;
 		break;
 		case OPPN_ACTION_FINALIZE:
+			event_loop_unregister_fd(chat->fd);
+			if(chat->fd != -1 && !(chat->state & CHAT_SOFT_QUIT))close(chat->fd);
+			chat->fd = -1;
 			aroop_txt_destroy(&chat->name);
 		break;
 	}
 	return 0;
 }
 
-static int chat_destroy(struct chat_connection**chat) {
-	// cleanup socket
-	event_loop_unregister_fd((*chat)->fd);
-	if((*chat)->fd != -1 && (*chat)->state != CHAT_SOFT_QUIT)close((*chat)->fd);
-	(*chat)->fd = -1;
-	// free data
-	OPPUNREF2(chat);
-	return 0;
+OPP_CB(chat_connection_vcall) {
+	struct chat_connection*chat = data;
+	switch(callback) {
+		case OPPN_ACTION_INITIALIZE:
+			chat->opp_cb = OPP_CB_FUNC(chat_connection); // dynamically send default object handler
+		break;
+	}
+	return chat->opp_cb(data, callback, cb_data, ap, size);
 }
 
 static struct chat_connection*chat_alloc(int fd) {
@@ -76,7 +83,6 @@ static int chat_factory_hookup(int signature, void*given) {
 	struct chat_hooks*hooks = (struct chat_hooks*)given;
 	aroop_assert(hooks != NULL);
 	hooks->on_create = chat_alloc;
-	hooks->on_destroy = chat_destroy;
 	return 0;
 }
 
@@ -86,7 +92,7 @@ static int chat_factory_hookup_desc(aroop_txt_t*plugin_space, aroop_txt_t*output
 
 
 int chat_factory_module_init() {
-	NGINZ_FACTORY_CREATE(&chat_factory, 64, sizeof(struct chat_connection), OPP_CB_FUNC(chat_connection));
+	NGINZ_FACTORY_CREATE(&chat_factory, 64, sizeof(struct chat_connection), OPP_CB_FUNC(chat_connection_vcall));
 	aroop_txt_t plugin_space = {};
 	aroop_txt_embeded_set_static_string(&plugin_space, "shake/softquitall");
 	pm_plug_callback(&plugin_space, chat_factory_on_softquit, chat_factory_on_softquit_desc);

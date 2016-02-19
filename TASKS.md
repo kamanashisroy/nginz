@@ -12,6 +12,7 @@ Tasks
 
 ### net
 - [x] Add HTTP support.
+- [ ] Use epoll instead of poll.
 
 ### parallel
 

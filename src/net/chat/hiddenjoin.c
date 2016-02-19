@@ -42,6 +42,7 @@ static int chat_hiddenjoin_plug(int signature, void*given) {
 	aroop_txt_t room = {};
 	aroop_txt_t name = {};
 	int pid = -1;
+	chat->state |= CHAT_LOGGED_IN;
 	do {
 		if(aroop_txt_is_empty_magical(chat->request) || chat_hiddenjoin_get_room_and_name(chat->request, &room, &name)) {
 			syslog(LOG_ERR, "Bug in the server code :(\n");

@@ -7,16 +7,17 @@ C_CAPSULE_START
 
 enum http_state {
 	HTTP_CONNECTED = 0,
-	HTTP_LOGGED_IN,
-	HTTP_IN_ROOM,
 	HTTP_QUIT,
-	HTTP_SOFT_QUIT
+	HTTP_SOFT_QUIT,
+	HTTP_RESERVED1,
+	HTTP_RESERVED2,
+	HTTP_RESERVED3,
+	HTTP_RESERVED4,
 };
 
 struct http_hooks {
-	struct http_connection*(*on_create)(int fd);
-	int (*on_client_data)(int fd, int status, const void*cb_data); // it is used to read user input
-	int (*on_destroy)(struct http_connection**http);
+	struct http_connection*(*on_create)(int fd); // factory pattern
+	int (*on_client_data)(int fd, int status, const void*cb_data); // it is used to read user input from event_loop
 };
 
 struct http_connection {
@@ -25,6 +26,7 @@ struct http_connection {
 	enum http_state state;
 	aroop_txt_t*request;
 	int is_processed;
+	opp_callback_t opp_cb; // it helps to extend http_connection
 };
 
 NGINZ_INLINE struct composite_plugin*http_context_get();

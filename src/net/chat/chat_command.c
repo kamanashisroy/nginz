@@ -28,6 +28,7 @@ static int command_hook(struct chat_connection*chat, aroop_txt_t*given_request) 
 		return 0;
 	}
 
+	aroop_assert(chat->request == NULL);
 	// get the command token
 	aroop_txt_t ctoken = {};
 	shotodol_scanner_next_token(&request, &ctoken);

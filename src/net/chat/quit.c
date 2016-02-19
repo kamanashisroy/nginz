@@ -18,9 +18,9 @@ static int chat_quit_plug(int signature, void*given) {
 		return 0;
 	broadcast_room_leave(chat);
 	// chat->set_state(chat, CHAT_QUIT);
-	chat->state = CHAT_QUIT;
+	chat->state |= CHAT_QUIT;
 	logoff_user(&chat->name);
-	send(chat->fd, aroop_txt_to_string(&BYE), aroop_txt_length(&BYE), 0);
+	chat->send(chat, &BYE, 0);
 	return -1;
 }
 

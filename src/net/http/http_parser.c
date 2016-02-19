@@ -21,7 +21,7 @@ static int http_response_test_and_close(struct http_connection*http) {
 	aroop_txt_embeded_set_static_string(&test, "HTTP/1.0 200 OK\r\nContent-Length: 9\r\n\r\nIt Works!\r\n");
 	http->state = HTTP_QUIT;
 	send(http->fd, aroop_txt_to_string(&test), aroop_txt_length(&test), 0);
-	hooks->on_destroy(&http);
+	OPPUNREF(http);
 	return -1;
 }
 
@@ -106,12 +106,12 @@ static int http_on_client_data(int fd, int status, const void*cb_data) {
 	int count = recv(http->fd, aroop_txt_to_string(&recv_buffer), aroop_txt_capacity(&recv_buffer), 0);
 	if(count == 0) {
 		syslog(LOG_INFO, "Client disconnected\n");
-		hooks->on_destroy(&http);
+		OPPUNREF(http);
 		return -1;
 	}
 	if(count >= NGINZ_MAX_HTTP_MSG_SIZE) {
 		syslog(LOG_INFO, "Disconnecting HTTP client for too big data input\n");
-		hooks->on_destroy(&http);
+		OPPUNREF(http);
 		return -1;
 	}
 	aroop_txt_set_length(&recv_buffer, count);

@@ -27,6 +27,41 @@ static int chat_accept_on_softquit_desc(aroop_txt_t*plugin_space, aroop_txt_t*ou
 }
 
 static aroop_txt_t cannot_process = {};
+static int handle_chat_request(struct chat_connection*chat, aroop_txt_t*request) {
+	if(!chat)
+		return 0;
+	int last_index = aroop_txt_length(request)-1;
+	if(aroop_txt_char_at(request, last_index) != '\n') {
+		syslog(LOG_INFO, "Disconnecting client for unrecognized data\n");
+		OPPUNREF(chat);
+		return -1;
+	}
+	do {
+		// check if it is a command
+		if(aroop_txt_char_at(request, 0) == '/') {
+			if(!hooks->on_command(chat, request)) {
+				break;
+			}
+		} else if(chat->on_response_callback != NULL) {
+			chat->on_response_callback(chat, request);
+			break;
+		}
+		if((chat->state & CHAT_QUIT) || (chat->state & CHAT_SOFT_QUIT)) {
+			// time to quit
+			break;
+		}
+		// we cannot handle data
+		chat->send(chat, &cannot_process, 0);
+	} while(0);
+	if((chat->state & CHAT_QUIT) || (chat->state & CHAT_SOFT_QUIT)) {
+		syslog(LOG_INFO, "Client quited\n");
+		OPPUNREF(chat);
+		return -1;
+	}
+
+	return 0;
+}
+
 static aroop_txt_t recv_buffer = {};
 static int on_client_data(int fd, int status, const void*cb_data) {
 	if(chat_module_is_quiting)
@@ -37,48 +72,16 @@ static int on_client_data(int fd, int status, const void*cb_data) {
 	int count = recv(chat->fd, aroop_txt_to_string(&recv_buffer), aroop_txt_capacity(&recv_buffer), 0);
 	if(count == 0) {
 		syslog(LOG_INFO, "Client disconnected\n");
-		hooks->on_destroy(&chat);
+		OPPUNREF(chat);
 		return -1;
 	}
 	if(count >= NGINZ_MAX_CHAT_MSG_SIZE) {
 		syslog(LOG_INFO, "Disconnecting client for too big data input\n");
-		hooks->on_destroy(&chat);
+		OPPUNREF(chat);
 		return -1;
 	}
 	aroop_txt_set_length(&recv_buffer, count);
-	int last_index = count-1;
-	if(aroop_txt_char_at(&recv_buffer, last_index) != '\n') {
-		syslog(LOG_INFO, "Disconnecting client for unrecognized data\n");
-		hooks->on_destroy(&chat);
-		return -1;
-	}
-	if(chat->on_answer != NULL) {
-		chat->on_answer(chat, &recv_buffer);
-		return 0;
-	}
-	do {
-		// check if it is a command
-		if(aroop_txt_char_at(&recv_buffer, 0) == '/') {
-			if(!hooks->on_command(chat, &recv_buffer)) {
-				break;
-			}
-		} else if(chat->on_broadcast != NULL) {
-			chat->on_broadcast(chat, &recv_buffer);
-			break;
-		}
-		if(chat->state == CHAT_QUIT || chat->state == CHAT_SOFT_QUIT) {
-			// time to quit
-			break;
-		}
-		// we cannot handle data
-		send(chat->fd, aroop_txt_to_string(&cannot_process), aroop_txt_length(&cannot_process), 0);
-	} while(0);
-	if(chat->state == CHAT_QUIT || chat->state == CHAT_SOFT_QUIT) {
-		syslog(LOG_INFO, "Client quited\n");
-		hooks->on_destroy(&chat);
-		return -1;
-	}
-	return 0;
+	return handle_chat_request(chat, &recv_buffer);
 }
 
 static int on_tcp_connection(int fd) {
@@ -116,7 +119,7 @@ static int on_connection_bubble(int fd, aroop_txt_t*cmd) {
 		if(aroop_txt_is_empty(&plugin_space)) {
 			aroop_txt_zero_terminate(&request_sandbox);
 			syslog(LOG_ERR, "Possible BUG , cannot handle request %s", aroop_txt_to_string(&request_sandbox));
-			hooks->on_destroy(&chat); // cleanup
+			OPPUNREF(chat); // cleanup
 			ret = -1;
 			break;
 		}
@@ -135,6 +138,7 @@ static int on_connection_bubble(int fd, aroop_txt_t*cmd) {
 static int chat_accept_hookup(int signature, void*given) {
 	struct chat_hooks*ghooks = (struct chat_hooks*)given;
 	hooks = ghooks;
+	hooks->handle_chat_request = handle_chat_request;
 	return 0;
 }
 

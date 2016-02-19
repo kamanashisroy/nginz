@@ -79,7 +79,8 @@ static int chat_help_plug(int signature, void*given) {
 	aroop_txt_t output = {};
 	aroop_txt_embeded_stackbuffer(&output, 1024);
 	composite_plugin_visit_all(chat_plugin_manager_get(), chat_help_plug_helper, &output);
-	send(chat->fd, aroop_txt_to_string(&output), aroop_txt_length(&output), 0);
+	//send(chat->fd, aroop_txt_to_string(&output), aroop_txt_length(&output), 0);
+	chat->send(chat, &output, 0);
 	return 0;
 }
 

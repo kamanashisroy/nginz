@@ -2,6 +2,7 @@
 #include <aroop/aroop_core.h>
 #include <aroop/core/xtring.h>
 #include "nginz_config.h"
+#include "log.h"
 #include "db.h"
 #include "plugin.h"
 #include "plugin_manager.h"
@@ -91,6 +92,7 @@ static int chat_room_describe(aroop_txt_t*roomstr, aroop_txt_t*room_info) {
 			break;
 		}
 		chat_room_describe_helper(&next, room_info);
+		aroop_txt_destroy(&next); // cleanup
 	}
 	aroop_txt_concat_string(room_info, "end of list.\n");
 	aroop_txt_destroy(&next);
@@ -109,13 +111,13 @@ static int chat_room_lookup_plug(int signature, void*given) {
 	if(aroop_txt_is_empty(&db_data)) {
 		aroop_txt_embeded_set_static_string(&room_info, "There is no room\n");
 	} else {
-		int len = aroop_txt_length(&db_data)*8;
+		int len = aroop_txt_length(&db_data)*8 + 32;
 		aroop_txt_embeded_stackbuffer(&room_info, len); // FIXME too many chatroom will cause stack overflow ..
 		chat_room_describe(&db_data, &room_info);
 		//aroop_txt_concat(&room_info, &db_data);
 		//aroop_txt_concat_char(&room_info, '\n');
 	}
-	send(chat->fd, aroop_txt_to_string(&room_info), aroop_txt_length(&room_info), 0);
+	chat->send(chat, &room_info, 0);
 	aroop_txt_destroy(&room_info); // cleanup
 	aroop_txt_destroy(&db_data); // cleanup
 	return 0;

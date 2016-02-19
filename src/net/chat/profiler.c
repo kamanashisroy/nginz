@@ -29,7 +29,7 @@ static int chat_profiler_plug(int signature, void*given) {
 	aroop_write_output_stream_t strm = {.cb_data = &output, .cb = chat_profiler_plug_write_cb};
 	aroop_memory_profiler_dump(strm, NULL, 1);
 	aroop_txt_concat_char(&output, '\n');
-	send(chat->fd, aroop_txt_to_string(&output), aroop_txt_length(&output), 0);
+	chat->send(chat, &output, 0);
 	return 0;
 }
 

@@ -14,6 +14,7 @@ static int chat_leave_plug(int signature, void*given) {
 	if(chat == NULL || chat->fd == -1) // sanity check
 		return 0;
 	broadcast_room_leave(chat);
+	aroop_assert(!(chat->state & CHAT_IN_ROOM));
 	return 0;
 }
 
