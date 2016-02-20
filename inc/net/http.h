@@ -21,17 +21,17 @@ struct http_hooks {
 };
 
 struct http_connection {
-	//struct opp_object_ext _ext;
-	int fd;
+	struct streamio strm;
 	enum http_state state;
 	aroop_txt_t*request;
 	int is_processed;
-	opp_callback_t opp_cb; // it helps to extend http_connection
 };
 
 NGINZ_INLINE struct composite_plugin*http_context_get();
 int http_module_init();
 int http_module_deinit();
+
+#define IS_VALID_HTTP(x) (NULL != (x) && IS_VALID_STREAM(&x->strm))
 
 C_CAPSULE_END
 

@@ -10,6 +10,7 @@
 #include "log.h"
 #include "plugin_manager.h"
 #include "net/protostack.h"
+#include "net/streamio.h"
 #include "net/chat.h"
 #include "net/chat/chat_factory.h"
 
@@ -17,11 +18,20 @@ C_CAPSULE_START
 
 
 
-static struct opp_factory chat_factory;
-
-static int chat_send_content(struct chat_connection*chat, aroop_txt_t*content, int flag) {
-	return send(chat->fd, aroop_txt_to_string(content), aroop_txt_length(content), flag);
+static int default_chat_close(struct streamio*strm) {
+	if(strm->next) {
+		return strm->next->close(strm->next);
+	}
+	if(strm->fd != INVALID_FD) {
+		struct chat_connection*chat = (struct chat_connection*)strm;
+		event_loop_unregister_fd(strm->fd);
+		if(!(chat->state & CHAT_SOFT_QUIT))close(strm->fd);
+		strm->fd = -1;
+	}
+	return 0;
 }
+
+static struct opp_factory chat_factory;
 
 static int chat_factory_on_softquit(aroop_txt_t*plugin_space, aroop_txt_t*output) {
 	// iterate through all
@@ -30,9 +40,7 @@ static int chat_factory_on_softquit(aroop_txt_t*plugin_space, aroop_txt_t*output
 	struct chat_connection*chat = NULL;
 	while(chat = opp_iterator_next(&iterator)) {
 		broadcast_room_leave(chat); // leave the room
-		event_loop_unregister_fd(chat->fd);
-		close(chat->fd);
-		chat->fd = -1;
+		chat->strm.close(&chat->strm);
 	}
 	opp_iterator_destroy(&iterator);
 	return 0;
@@ -51,31 +59,23 @@ OPP_CB(chat_connection) {
 			chat->callback_data = NULL;
 			chat->state = CHAT_CONNECTED;
 			chat->request = NULL;
-			chat->send = chat_send_content;
+			chat->strm.send = default_streamio_send;
+			chat->strm.close = default_chat_close;
+			chat->strm.next = NULL;
+			chat->strm.fd = -1;
 		break;
 		case OPPN_ACTION_FINALIZE:
-			event_loop_unregister_fd(chat->fd);
-			if(chat->fd != -1 && !(chat->state & CHAT_SOFT_QUIT))close(chat->fd);
-			chat->fd = -1;
+			chat->strm.close(&chat->strm);
+			chat->strm.fd = -1;
 			aroop_txt_destroy(&chat->name);
 		break;
 	}
 	return 0;
 }
 
-OPP_CB(chat_connection_vcall) {
-	struct chat_connection*chat = data;
-	switch(callback) {
-		case OPPN_ACTION_INITIALIZE:
-			chat->opp_cb = OPP_CB_FUNC(chat_connection); // dynamically send default object handler
-		break;
-	}
-	return chat->opp_cb(data, callback, cb_data, ap, size);
-}
-
 static struct chat_connection*chat_alloc(int fd) {
 	struct chat_connection*chat = OPP_ALLOC1(&chat_factory);
-	chat->fd = fd;
+	chat->strm.fd = fd;
 	return chat;
 }
 
@@ -92,7 +92,7 @@ static int chat_factory_hookup_desc(aroop_txt_t*plugin_space, aroop_txt_t*output
 
 
 int chat_factory_module_init() {
-	NGINZ_FACTORY_CREATE(&chat_factory, 64, sizeof(struct chat_connection), OPP_CB_FUNC(chat_connection_vcall));
+	NGINZ_FACTORY_CREATE(&chat_factory, 64, sizeof(struct chat_connection), OPP_CB_FUNC(chat_connection));
 	aroop_txt_t plugin_space = {};
 	aroop_txt_embeded_set_static_string(&plugin_space, "shake/softquitall");
 	pm_plug_callback(&plugin_space, chat_factory_on_softquit, chat_factory_on_softquit_desc);
@@ -109,9 +109,7 @@ int chat_factory_module_deinit() {
 		struct chat_connection*chat = opp_iterator_next(&iterator);
 		if(chat == NULL)
 			break;
-		event_loop_unregister_fd(chat->fd);
-		if(chat->fd != -1)close(chat->fd);
-		chat->fd = -1;
+		chat->strm.close(&chat->strm);
 	} while(1);
 	opp_iterator_destroy(&iterator);
 	OPP_PFACTORY_DESTROY(&chat_factory);

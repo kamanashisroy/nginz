@@ -10,6 +10,7 @@
 #include "log.h"
 #include "plugin_manager.h"
 #include "net/protostack.h"
+#include "net/streamio.h"
 #include "net/chat.h"
 #include "net/chat/chat_command.h"
 

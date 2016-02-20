@@ -3,6 +3,7 @@
 #include <aroop/core/xtring.h>
 #include "nginz_config.h"
 #include "plugin.h"
+#include "net/streamio.h"
 #include "net/chat.h"
 #include "net/chat/chat_plugin_manager.h"
 #include "net/chat/leave.h"
@@ -11,7 +12,7 @@ C_CAPSULE_START
 
 static int chat_leave_plug(int signature, void*given) {
 	struct chat_connection*chat = (struct chat_connection*)given;
-	if(chat == NULL || chat->fd == -1) // sanity check
+	if(!IS_VALID_CHAT(chat)) // sanity check
 		return 0;
 	broadcast_room_leave(chat);
 	aroop_assert(!(chat->state & CHAT_IN_ROOM));

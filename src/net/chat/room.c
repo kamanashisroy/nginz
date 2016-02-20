@@ -6,6 +6,7 @@
 #include "db.h"
 #include "plugin.h"
 #include "plugin_manager.h"
+#include "net/streamio.h"
 #include "net/chat.h"
 #include "net/chat/chat_plugin_manager.h"
 #include "net/chat/room.h"
@@ -103,7 +104,7 @@ static const char*ROOM_KEY = "rooms";
 static int chat_room_lookup_plug(int signature, void*given) {
 	aroop_assert(signature == CHAT_SIGNATURE);
 	struct chat_connection*chat = (struct chat_connection*)given;
-	if(chat == NULL || chat->fd == -1) // sanity check
+	if(!IS_VALID_CHAT(chat)) // sanity check
 		return 0;
 	aroop_txt_t room_info = {};
 	aroop_txt_t db_data = {};
@@ -117,7 +118,7 @@ static int chat_room_lookup_plug(int signature, void*given) {
 		//aroop_txt_concat(&room_info, &db_data);
 		//aroop_txt_concat_char(&room_info, '\n');
 	}
-	chat->send(chat, &room_info, 0);
+	chat->strm.send(&chat->strm, &room_info, 0);
 	aroop_txt_destroy(&room_info); // cleanup
 	aroop_txt_destroy(&db_data); // cleanup
 	return 0;

@@ -4,7 +4,7 @@
 C_CAPSULE_START
 
 /**
- * This is State/Strategy pattern for protocol stack. It allows multiple stack to operate on one server.
+ * This is Strategy pattern for protocol stack. It allows multiple stack to operate on one server.
  */
 
 struct protostack {

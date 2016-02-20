@@ -4,6 +4,7 @@
 #include "nginz_config.h"
 #include "log.h"
 #include "plugin.h"
+#include "net/streamio.h"
 #include "net/chat.h"
 #include "net/chat/chat_plugin_manager.h"
 #include "net/chat/join.h"
@@ -14,7 +15,7 @@ static int chat_join_transfer(struct chat_connection*chat, aroop_txt_t*room, int
 	// leave current chatroom
 	broadcast_room_leave(chat);
 	// remove it from listener
-	event_loop_unregister_fd(chat->fd); // XXX do I need it ??
+	event_loop_unregister_fd(chat->strm.fd); // XXX do I need it ??
 	aroop_txt_t cmd = {};
 	aroop_txt_embeded_stackbuffer(&cmd, 128);
 	aroop_txt_concat_string(&cmd, "chat/_hiddenjoin ");
@@ -31,10 +32,10 @@ static int chat_join_transfer(struct chat_connection*chat, aroop_txt_t*room, int
 	int mypid = getpid();
 	if(pid > mypid) {
 		//syslog(LOG_INFO, "transfering to %d bubble_down\n", pid);
-		pp_bubble_down_send_socket(chat->fd, &bin);
+		pp_bubble_down_send_socket(chat->strm.fd, &bin);
 	} else {
 		//syslog(LOG_INFO, "transfering to %d bubble_up\n", pid);
-		pp_bubble_up_send_socket(chat->fd, &bin);
+		pp_bubble_up_send_socket(chat->strm.fd, &bin);
 	}
 	chat->state |= CHAT_SOFT_QUIT; // quit the user from this process
 	return 0;
@@ -71,7 +72,7 @@ static int chat_join_get_room(aroop_txt_t*request, aroop_txt_t*room) {
 static int chat_join_plug(int signature, void*given) {
 	aroop_assert(signature == CHAT_SIGNATURE);
 	struct chat_connection*chat = (struct chat_connection*)given;
-	if(chat == NULL || chat->fd == -1) // sanity check
+	if(!IS_VALID_CHAT(chat)) // sanity check
 		return 0;
 	aroop_txt_t join_info = {};
 	aroop_txt_t room = {};
@@ -87,12 +88,12 @@ static int chat_join_plug(int signature, void*given) {
 		}
 		aroop_txt_embeded_stackbuffer(&join_info, 64);
 		aroop_txt_printf(&join_info, "Trying ...(%d)\n", pid);
-		chat->send(chat, &join_info, 0);
+		chat->strm.send(&chat->strm, &join_info, 0);
 		aroop_txt_set_length(&join_info, 0);
 		chat_join_helper(chat, &room, pid);
 	} while(0);
 	if(!aroop_txt_is_empty(&join_info)) {
-		send(chat->fd, aroop_txt_to_string(&join_info), aroop_txt_length(&join_info), 0);
+		chat->strm.send(&chat->strm, &join_info, 0);
 	}
 	aroop_txt_destroy(&room);
 	aroop_txt_destroy(&join_info);

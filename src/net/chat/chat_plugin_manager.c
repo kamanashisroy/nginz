@@ -10,6 +10,7 @@
 #include "plugin.h"
 #include "plugin_manager.h"
 #include "net/protostack.h"
+#include "net/streamio.h"
 #include "net/chat.h"
 #include "net/chat/chat_plugin_manager.h"
 #include "net/chat/chat_factory.h"
@@ -71,7 +72,7 @@ static int chat_help_plug_helper(
 static int chat_help_plug(int signature, void*given) {
 	aroop_assert(signature == CHAT_SIGNATURE);
 	struct chat_connection*chat = (struct chat_connection*)given;
-	if(chat == NULL || chat->fd == -1) // sanity check
+	if(!IS_VALID_CHAT(chat)) // sanity check
 		return 0;
 	if(!chat_plugin_manager_get()) { // sanity check
 		return 0;
@@ -79,8 +80,7 @@ static int chat_help_plug(int signature, void*given) {
 	aroop_txt_t output = {};
 	aroop_txt_embeded_stackbuffer(&output, 1024);
 	composite_plugin_visit_all(chat_plugin_manager_get(), chat_help_plug_helper, &output);
-	//send(chat->fd, aroop_txt_to_string(&output), aroop_txt_length(&output), 0);
-	chat->send(chat, &output, 0);
+	chat->strm.send(&chat->strm, &output, 0);
 	return 0;
 }
 

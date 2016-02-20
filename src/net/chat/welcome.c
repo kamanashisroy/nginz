@@ -4,6 +4,7 @@
 #include "nginz_config.h"
 #include "plugin.h"
 #include "log.h"
+#include "net/streamio.h"
 #include "net/chat.h"
 #include "net/chat/chat_plugin_manager.h"
 #include "net/chat/user.h"
@@ -50,7 +51,7 @@ static int on_login_data(struct chat_connection*chat, aroop_txt_t*answer) {
 		chat->on_response_callback = NULL;
 		chat->state |= CHAT_LOGGED_IN;
 	} while(0);
-	chat->send(chat, &greet_on_login, 0);
+	chat->strm.send(&chat->strm, &greet_on_login, 0);
 	aroop_txt_destroy(&input);
 	aroop_txt_destroy(&name);
 	return 0;
@@ -59,7 +60,7 @@ static int on_login_data(struct chat_connection*chat, aroop_txt_t*answer) {
 static int chat_welcome_plug(int signature, void*given) {
 	aroop_assert(signature == CHAT_SIGNATURE);
 	struct chat_connection*chat = (struct chat_connection*)given;
-	if(chat == NULL || chat->fd == -1) { // sanity check
+	if(!IS_VALID_CHAT(chat)) { // sanity check
 		syslog(LOG_ERR, "BUG: no chat interface to welcome\n");
 		return 0;
 	}
@@ -67,7 +68,7 @@ static int chat_welcome_plug(int signature, void*given) {
 	aroop_txt_t greet = {};
 	aroop_txt_embeded_set_static_string(&greet, "Welcome to NginZ chat server\nLogin name?\n");
 	chat->on_response_callback = on_login_data;
-	chat->send(chat, &greet, 0);
+	chat->strm.send(&chat->strm, &greet, 0);
 	return 0;
 }
 

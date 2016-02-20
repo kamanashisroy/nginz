@@ -5,6 +5,7 @@
 #include "nginz_config.h"
 #include "plugin.h"
 #include "plugin_manager.h"
+#include "net/streamio.h"
 #include "net/chat.h"
 #include "net/chat/chat_plugin_manager.h"
 #include "net/chat/uptime.h"
@@ -16,7 +17,7 @@ static time_t start_time;
 static int chat_uptime_plug(int signature, void*given) {
 	aroop_assert(signature == CHAT_SIGNATURE);
 	struct chat_connection*chat = (struct chat_connection*)given;
-	if(chat == NULL || chat->fd == -1) // sanity check
+	if(!IS_VALID_CHAT(chat)) // sanity check
 		return 0;
 	aroop_txt_t uptime = {};
 	aroop_txt_embeded_stackbuffer(&uptime, 256);
@@ -27,7 +28,7 @@ static int chat_uptime_plug(int signature, void*given) {
 	int minute = (int)(diff/60 - hour*60);
 	int second = (int)(diff - hour*3600 - minute*60);
 	aroop_txt_printf(&uptime, "%2d:%2d:%2d, %d users, total %ld users served, %d\n", hour, minute, second, event_loop_fd_count(), internal_chat_connection_count, getpid());
-	chat->send(chat, &uptime, 0);
+	chat->strm.send(&chat->strm, &uptime, 0);
 	return 0;
 }
 

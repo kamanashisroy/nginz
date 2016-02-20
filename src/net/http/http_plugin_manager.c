@@ -10,6 +10,7 @@
 #include "plugin.h"
 #include "plugin_manager.h"
 #include "net/protostack.h"
+#include "net/streamio.h"
 #include "net/http.h"
 #include "net/http/http_tunnel.h"
 #include "net/http/http_plugin_manager.h"
@@ -61,7 +62,7 @@ static int http_help_plug_helper(
 static int http_help_plug(int signature, void*given) {
 	aroop_assert(signature == HTTP_SIGNATURE);
 	struct http_connection*http = (struct http_connection*)given;
-	if(http == NULL || http->fd == -1) // sanity check
+	if(!IS_VALID_HTTP(http)) // sanity check
 		return 0;
 	if(!http_plugin_manager_get()) { // sanity check
 		return 0;

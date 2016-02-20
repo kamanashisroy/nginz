@@ -8,6 +8,7 @@
 #include "fork.h"
 #include "db.h"
 #include "shake/quitall.h"
+#include "net/streamio.h"
 #include "net/chat.h"
 #include "event_loop.h"
 

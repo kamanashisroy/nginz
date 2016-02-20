@@ -10,6 +10,7 @@
 #include "log.h"
 #include "plugin_manager.h"
 #include "net/protostack.h"
+#include "net/streamio.h"
 #include "net/http.h"
 #include "net/http/http_accept.h"
 
@@ -32,7 +33,7 @@ static int http_on_tcp_connection(int fd) {
 #ifdef NGINZ_EVENT_DEBUG
 static int on_http_debug(int fd, const void*cb_data) {
 	struct http_connection*http = (struct http_connection*)cb_data;
-	aroop_assert(http->fd == fd);
+	aroop_assert(http->strm.fd == fd);
 	return 0;
 }
 #endif
@@ -72,7 +73,7 @@ static int http_on_connection_bubble(int fd, aroop_txt_t*cmd) {
 		}
 
 		aroop_assert(http);
-		aroop_assert(http->fd == fd);
+		aroop_assert(http->strm.fd == fd);
 		// register it in the event loop
 		event_loop_register_fd(fd, hooks->on_client_data, http, NGINZ_POLL_ALL_FLAGS);
 #ifdef NGINZ_EVENT_DEBUG

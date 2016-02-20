@@ -10,6 +10,7 @@
 #include "log.h"
 #include "plugin_manager.h"
 #include "net/protostack.h"
+#include "net/streamio.h"
 #include "net/http.h"
 #include "net/http/http_parser.h"
 
@@ -20,7 +21,8 @@ static int http_response_test_and_close(struct http_connection*http) {
 	aroop_txt_t test = {};
 	aroop_txt_embeded_set_static_string(&test, "HTTP/1.0 200 OK\r\nContent-Length: 9\r\n\r\nIt Works!\r\n");
 	http->state = HTTP_QUIT;
-	send(http->fd, aroop_txt_to_string(&test), aroop_txt_length(&test), 0);
+	http->strm.send(&http->strm, &test, 0);
+	http->strm.close(&http->strm);
 	OPPUNREF(http);
 	return -1;
 }
@@ -43,7 +45,7 @@ static int http_url_go(struct http_connection*http, aroop_txt_t*target) {
 		// say not found
 		aroop_txt_t not_found = {};
 		aroop_txt_embeded_set_static_string(&not_found, "HTTP/1.0 404 NOT FOUND\r\nContent-Length: 9\r\n\r\nNot Found");
-		send(http->fd, aroop_txt_to_string(&not_found), aroop_txt_length(&not_found), 0);
+		http->strm.send(&http->strm, &not_found, 0);
 	}
 	return ret;
 }
@@ -101,9 +103,9 @@ static int http_url_parse(aroop_txt_t*user_data, aroop_txt_t*target_url) {
 static aroop_txt_t recv_buffer = {};
 static int http_on_client_data(int fd, int status, const void*cb_data) {
 	struct http_connection*http = (struct http_connection*)cb_data;
-	aroop_assert(http->fd == fd);
+	aroop_assert(http->strm.fd == fd);
 	aroop_txt_set_length(&recv_buffer, 1); // without it aroop_txt_to_string() will give NULL
-	int count = recv(http->fd, aroop_txt_to_string(&recv_buffer), aroop_txt_capacity(&recv_buffer), 0);
+	int count = recv(http->strm.fd, aroop_txt_to_string(&recv_buffer), aroop_txt_capacity(&recv_buffer), 0);
 	if(count == 0) {
 		syslog(LOG_INFO, "Client disconnected\n");
 		OPPUNREF(http);

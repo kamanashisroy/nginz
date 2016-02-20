@@ -11,6 +11,7 @@
 #include "log.h"
 #include "plugin_manager.h"
 #include "net/protostack.h"
+#include "net/streamio.h"
 #include "net/http.h"
 #include "net/http/http_tunnel.h"
 
@@ -22,9 +23,9 @@ int http_tunnel_send_content(struct http_connection*http, aroop_txt_t*content) {
 	aroop_txt_set_length(&send_buf, 0);
 	aroop_txt_printf(&send_buf, "%d\r\n\r\n", aroop_txt_length(content));
 	
-	send(http->fd, aroop_txt_to_string(&HTTP_OK), aroop_txt_length(&HTTP_OK), MSG_MORE/* we have more data */);
-	send(http->fd, aroop_txt_to_string(&send_buf), aroop_txt_length(&send_buf), MSG_MORE/* we have more data */);
-	send(http->fd, aroop_txt_to_string(content), aroop_txt_length(content), 0/* we have are done */);
+	http->strm.send(&http->strm, &HTTP_OK, MSG_MORE/* we have more data */);
+	http->strm.send(&http->strm, &send_buf, MSG_MORE/* we have more data */);
+	http->strm.send(&http->strm, content, 0/* we have are done */);
 	http->is_processed = 1;
 	return 0;
 }

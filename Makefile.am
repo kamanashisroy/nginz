@@ -13,6 +13,7 @@ src/fiber.c     src/plugin.c	src/plugin_manager.c	src/scanner.c \
 src/db.c \
 src/event_loop.c \
 src/binary_coder.c \
+src/net/streamio.c \
 src/shake.c	src/shake/help.c	src/shake/test.c	src/shake/quitall.c \
 src/parallel/pipeline.c	src/parallel/fork.c	src/parallel/ping.c \
 src/net/tcp_listener.c src/net/protostack.c \

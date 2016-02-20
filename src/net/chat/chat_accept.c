@@ -10,6 +10,7 @@
 #include "log.h"
 #include "plugin_manager.h"
 #include "net/protostack.h"
+#include "net/streamio.h"
 #include "net/chat.h"
 #include "net/chat/chat_accept.h"
 
@@ -33,6 +34,7 @@ static int handle_chat_request(struct chat_connection*chat, aroop_txt_t*request)
 	int last_index = aroop_txt_length(request)-1;
 	if(aroop_txt_char_at(request, last_index) != '\n') {
 		syslog(LOG_INFO, "Disconnecting client for unrecognized data\n");
+		chat->strm.close(&chat->strm);
 		OPPUNREF(chat);
 		return -1;
 	}
@@ -51,10 +53,11 @@ static int handle_chat_request(struct chat_connection*chat, aroop_txt_t*request)
 			break;
 		}
 		// we cannot handle data
-		chat->send(chat, &cannot_process, 0);
+		chat->strm.send(&chat->strm, &cannot_process, 0);
 	} while(0);
 	if((chat->state & CHAT_QUIT) || (chat->state & CHAT_SOFT_QUIT)) {
 		syslog(LOG_INFO, "Client quited\n");
+		chat->strm.close(&chat->strm);
 		OPPUNREF(chat);
 		return -1;
 	}
@@ -67,16 +70,18 @@ static int on_client_data(int fd, int status, const void*cb_data) {
 	if(chat_module_is_quiting)
 		return 0;
 	struct chat_connection*chat = (struct chat_connection*)cb_data;
-	aroop_assert(fd == chat->fd);
+	aroop_assert(fd == chat->strm.fd);
 	aroop_txt_set_length(&recv_buffer, 1); // without it aroop_txt_to_string() will give NULL
-	int count = recv(chat->fd, aroop_txt_to_string(&recv_buffer), aroop_txt_capacity(&recv_buffer), 0);
+	int count = recv(chat->strm.fd, aroop_txt_to_string(&recv_buffer), aroop_txt_capacity(&recv_buffer), 0);
 	if(count == 0) {
 		syslog(LOG_INFO, "Client disconnected\n");
+		chat->strm.close(&chat->strm);
 		OPPUNREF(chat);
 		return -1;
 	}
 	if(count >= NGINZ_MAX_CHAT_MSG_SIZE) {
 		syslog(LOG_INFO, "Disconnecting client for too big data input\n");
+		chat->strm.close(&chat->strm);
 		OPPUNREF(chat);
 		return -1;
 	}
@@ -119,6 +124,7 @@ static int on_connection_bubble(int fd, aroop_txt_t*cmd) {
 		if(aroop_txt_is_empty(&plugin_space)) {
 			aroop_txt_zero_terminate(&request_sandbox);
 			syslog(LOG_ERR, "Possible BUG , cannot handle request %s", aroop_txt_to_string(&request_sandbox));
+			chat->strm.close(&chat->strm);
 			OPPUNREF(chat); // cleanup
 			ret = -1;
 			break;

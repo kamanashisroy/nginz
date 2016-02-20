@@ -30,6 +30,7 @@ int event_loop_register_fd(int fd, int (*on_event)(int fd, int returned_events, 
 	aroop_assert(internal_nfds < MAX_POLL_FD);
 	internal_fds[internal_nfds].fd = fd;
 	internal_fds[internal_nfds].events = requested_events;
+	internal_fds[internal_nfds].revents = 0; // make sure we continue the event_loop without any conflict
 	internal_callback[internal_nfds].on_event = on_event;
 	internal_callback[internal_nfds].event_data = event_data;
 	internal_nfds++;

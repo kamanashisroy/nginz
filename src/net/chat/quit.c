@@ -3,6 +3,7 @@
 #include <aroop/core/xtring.h>
 #include "nginz_config.h"
 #include "plugin.h"
+#include "net/streamio.h"
 #include "net/chat.h"
 #include "net/chat/chat_plugin_manager.h"
 #include "net/chat/user.h"
@@ -14,13 +15,13 @@ static aroop_txt_t BYE = {};
 static int chat_quit_plug(int signature, void*given) {
 	aroop_assert(signature == CHAT_SIGNATURE);
 	struct chat_connection*chat = (struct chat_connection*)given;
-	if(chat == NULL || chat->fd == -1) // sanity check
+	if(!IS_VALID_CHAT(chat)) // sanity check
 		return 0;
 	broadcast_room_leave(chat);
 	// chat->set_state(chat, CHAT_QUIT);
 	chat->state |= CHAT_QUIT;
 	logoff_user(&chat->name);
-	chat->send(chat, &BYE, 0);
+	chat->strm.send(&chat->strm, &BYE, 0);
 	return -1;
 }
 

@@ -6,8 +6,10 @@
 #include <aroop/opp/opp_iterator.h>
 #include <aroop/opp/opp_list.h>
 #include "nginz_config.h"
+#include "sys/socket.h"
 #include "plugin.h"
 #include "log.h"
+#include "net/streamio.h"
 #include "net/chat.h"
 #include "net/chat/chat_plugin_manager.h"
 #include "net/chat/broadcast.h"
@@ -33,7 +35,7 @@ static int broadcast_callback_helper(struct chat_connection*chat, struct interna
 			continue; // do not broadcast to self
 
 		// broadcast message to others
-		other->send(other, msg, 0);
+		other->strm.send(&other->strm, msg, 0);
 	}
 	opp_iterator_destroy(&iterator);
 	return 0;
@@ -59,7 +61,7 @@ static int broadcast_room_greet(struct chat_connection*chat, struct internal_roo
 	aroop_txt_concat_string(&resp, "Entering room:");
 	aroop_txt_concat(&resp, &rm->name);
 	aroop_txt_concat_char(&resp, '\n');
-	chat->send(chat, &resp, 0);
+	chat->strm.send(&chat->strm, &resp, MSG_MORE);
 
 	// now print the user list ..
 	struct opp_iterator iterator = {};
@@ -77,14 +79,14 @@ static int broadcast_room_greet(struct chat_connection*chat, struct internal_roo
 			aroop_txt_concat_string(&resp, "(** this is you)");
 		}
 		aroop_txt_concat_char(&resp, '\n');
-		chat->send(chat, &resp, 0);
+		chat->strm.send(&chat->strm, &resp, MSG_MORE);
 	}
 	opp_iterator_destroy(&iterator);
 
 	// end
 	aroop_txt_set_length(&resp, 0);
 	aroop_txt_concat_string(&resp, "end of list\n");
-	chat->send(chat, &resp, 0);
+	chat->strm.send(&chat->strm, &resp, 0);
 
 	// broadcast that there is new user
 	aroop_txt_set_length(&resp, 0);

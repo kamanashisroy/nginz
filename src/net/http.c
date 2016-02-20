@@ -10,6 +10,7 @@
 #include "log.h"
 #include "plugin_manager.h"
 #include "net/protostack.h"
+#include "net/streamio.h"
 #include "net/http.h"
 #include "net/http/http_factory.h"
 #include "net/http/http_accept.h"

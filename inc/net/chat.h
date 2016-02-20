@@ -21,20 +21,19 @@ struct chat_hooks {
 };
 
 struct chat_connection {
-	//struct opp_object_ext _ext;
-	int fd;
+	struct streamio strm;
 	enum chat_state state;
 	aroop_txt_t name;
 	aroop_txt_t*request;
 	int (*on_response_callback)(struct chat_connection*chat, aroop_txt_t*msg); // it is used for broadcast/setting the name
 	const void*callback_data; // XXX do not unref/ref it ..
-	int (*send)(struct chat_connection*chat, aroop_txt_t*content, int flag);
-	opp_callback_t opp_cb; // it helps to extend chat_connection
 };
 
 NGINZ_INLINE struct composite_plugin*chat_context_get();
 int chat_module_init();
 int chat_module_deinit();
+
+#define IS_VALID_CHAT(x) (NULL != (x) && IS_VALID_STREAM(&x->strm))
 
 C_CAPSULE_END
 

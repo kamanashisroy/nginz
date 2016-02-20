@@ -4,6 +4,7 @@
 #include <aroop/core/xtring.h>
 #include "nginz_config.h"
 #include "plugin.h"
+#include "net/streamio.h"
 #include "net/chat.h"
 #include "net/chat/chat_plugin_manager.h"
 #include "net/chat/user.h"
@@ -22,14 +23,14 @@ int chat_profiler_plug_write_cb(void*log_data, aroop_txt_t*content) {
 static int chat_profiler_plug(int signature, void*given) {
 	aroop_assert(signature == CHAT_SIGNATURE);
 	struct chat_connection*chat = (struct chat_connection*)given;
-	if(chat == NULL || chat->fd == -1) // sanity check
+	if(!IS_VALID_CHAT(chat)) // sanity check
 		return 0;
 	aroop_txt_t output = {};
 	aroop_txt_embeded_stackbuffer(&output, 2048);
 	aroop_write_output_stream_t strm = {.cb_data = &output, .cb = chat_profiler_plug_write_cb};
 	aroop_memory_profiler_dump(strm, NULL, 1);
 	aroop_txt_concat_char(&output, '\n');
-	chat->send(chat, &output, 0);
+	chat->strm.send(&chat->strm, &output, 0);
 	return 0;
 }
 

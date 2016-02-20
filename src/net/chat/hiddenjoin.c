@@ -4,6 +4,7 @@
 #include "nginz_config.h"
 #include "plugin.h"
 #include "log.h"
+#include "net/streamio.h"
 #include "net/chat.h"
 #include "net/chat/chat_plugin_manager.h"
 #include "net/chat/hiddenjoin.h"
@@ -37,7 +38,7 @@ static int chat_hiddenjoin_get_room_and_name(aroop_txt_t*request, aroop_txt_t*ro
 static int chat_hiddenjoin_plug(int signature, void*given) {
 	aroop_assert(signature == CHAT_SIGNATURE);
 	struct chat_connection*chat = (struct chat_connection*)given;
-	if(chat == NULL || chat->fd == -1) // sanity check
+	if(!IS_VALID_CHAT(chat)) // sanity check
 		return 0;
 	aroop_txt_t room = {};
 	aroop_txt_t name = {};
