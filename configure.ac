@@ -58,8 +58,6 @@ AC_SUBST(MEMCACHED_CFLAGS)
 AC_SUBST(MEMCACHED_LIBS)
 AC_SUBST(MEMCACHED_DEBUG_LIBS)
 
-
-
 AC_CONFIG_FILES([Makefile
            libnginz.pc
            ])
