@@ -24,11 +24,12 @@ int http_tunnel_send_content(struct streamio*strm, aroop_txt_t*content, int flag
 	struct http_connection*http = (struct http_connection*)strm;
 	// TODO use the flags
 	aroop_txt_set_length(&send_buf, 0);
-	aroop_txt_printf(&send_buf, "%d\r\n\r\n", aroop_txt_length(content));
+	aroop_txt_printf(&send_buf, "%d\r\n\r\n", content?aroop_txt_length(content):0);
 	
 	default_streamio_send(&http->strm, &HTTP_OK, MSG_MORE/* we have more data */);
 	default_streamio_send(&http->strm, &send_buf, MSG_MORE/* we have more data */);
-	default_streamio_send(&http->strm, content, 0/* we have are done */);
+	if(!aroop_txt_is_empty_magical(content))
+		default_streamio_send(&http->strm, content, 0/* we have are done */);
 	http->is_processed = 1;
 	return 0;
 }

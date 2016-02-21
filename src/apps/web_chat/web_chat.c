@@ -31,7 +31,7 @@ int webchat_transfer_parallel(struct streamio*strm, int destpid, int proto_port,
 	int ret = default_transfer_parallel(strm, destpid, NGINZ_HTTP_PORT, &wrapper_cmd);
 	struct http_connection*http = (struct http_connection*)strm;
 	http->state |= CHAT_SOFT_QUIT; // quit the user from this process
-	syslog(LOG_NOTICE, "Webchat threw from %d to %d:[%s]\n", getpid(), destpid, aroop_txt_to_string(&wrapper_cmd));
+	//syslog(LOG_NOTICE, "Webchat threw from %d to %d:[%s]\n", getpid(), destpid, aroop_txt_to_string(&wrapper_cmd));
 	return ret;
 }
 
@@ -61,7 +61,7 @@ static int http_webchat_hiddenjoin_plug(int signature, void*given) {
 	aroop_txt_embeded_rebuild_copy_shallow(&hidden_join_cmd, &http->content); // needs cleanup
 	aroop_txt_shift(&hidden_join_cmd, sizeof(WEBCHAT_HIDDEN_JOIN_PREFIX));
 	aroop_txt_shift(&hidden_join_cmd, 1); // skip the space
-	aroop_txt_zero_terminate(&hidden_join_cmd);syslog(LOG_NOTICE, "Doing hidden join for[%s]\n", aroop_txt_to_string(&hidden_join_cmd));
+	//aroop_txt_zero_terminate(&hidden_join_cmd);syslog(LOG_NOTICE, "Doing hidden join for[%s]\n", aroop_txt_to_string(&hidden_join_cmd));
 	aroop_txt_t plugin_space = {};
 	aroop_txt_embeded_set_static_string(&plugin_space, "chat/_hiddenjoin");
 	http_webchat_create_helper(http, &plugin_space, &hidden_join_cmd);
@@ -85,6 +85,10 @@ static int http_webchat_plug(int signature, void*given) {
 	//syslog(LOG_NOTICE, "content:%s\n", aroop_txt_to_string(&http->content));
 	//chat->strm.on_recv(&chat->strm, http->request_data);
 	chat->strm.on_recv(&chat->strm, &http->content);
+	if(!http->is_processed) {
+		// send http OK to let them know we are working ..
+		http->strm.send(&http->strm, NULL, 0);
+	}
 	return 0;
 }
 
