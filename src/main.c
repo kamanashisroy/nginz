@@ -11,8 +11,20 @@
 #include "net/streamio.h"
 #include "net/chat.h"
 #include "event_loop.h"
+#include "apps/web_chat/web_chat.h"
 
 C_CAPSULE_START
+
+static int rehash() {
+		aroop_txt_t input = {};
+		aroop_txt_t output = {};
+		aroop_txt_t plugin_space = {};
+		aroop_txt_embeded_set_static_string(&plugin_space, "shake/rehash");
+		pm_call(&plugin_space, &input, &output);
+		aroop_txt_destroy(&input);
+		aroop_txt_destroy(&output);
+		return 0;
+}
 
 static int nginz_main(char*args) {
 	daemon(0,0);
@@ -27,7 +39,9 @@ static int nginz_main(char*args) {
 	protostack_init();
 	chat_module_init();
 	http_module_init();
+	web_chat_module_init();
 	pp_module_init();
+	rehash();
 	fork_processors(NGINZ_NUMBER_OF_PROCESSORS);
 	/**
 	 * Setup for master
@@ -40,6 +54,7 @@ static int nginz_main(char*args) {
 	fiber_module_run();
 	tcp_listener_deinit();
 	pp_module_deinit();
+	web_chat_module_deinit();
 	http_module_deinit();
 	chat_module_deinit();
 	protostack_deinit();

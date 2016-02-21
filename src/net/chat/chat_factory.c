@@ -19,8 +19,8 @@ C_CAPSULE_START
 
 
 static int default_chat_close(struct streamio*strm) {
-	if(strm->next) {
-		return strm->next->close(strm->next);
+	if(strm->bubble_up) {
+		return strm->bubble_up->close(strm->bubble_up);
 	}
 	if(strm->fd != INVALID_FD) {
 		struct chat_connection*chat = (struct chat_connection*)strm;
@@ -50,6 +50,7 @@ static int chat_factory_on_softquit_desc(aroop_txt_t*plugin_space, aroop_txt_t*o
 	return plugin_desc(output, "softquitall", "shake", plugin_space, __FILE__, "It tries to destroy all the connections.\n");
 }
 
+static struct chat_hooks*hooks = NULL;
 OPP_CB(chat_connection) {
 	struct chat_connection*chat = data;
 	switch(callback) {
@@ -59,14 +60,12 @@ OPP_CB(chat_connection) {
 			chat->callback_data = NULL;
 			chat->state = CHAT_CONNECTED;
 			chat->request = NULL;
-			chat->strm.send = default_streamio_send;
+			streamio_initialize(&chat->strm);
 			chat->strm.close = default_chat_close;
-			chat->strm.next = NULL;
-			chat->strm.fd = -1;
+			chat->strm.on_recv = hooks->handle_chat_request;
 		break;
 		case OPPN_ACTION_FINALIZE:
-			chat->strm.close(&chat->strm);
-			chat->strm.fd = -1;
+			streamio_finalize(&chat->strm);
 			aroop_txt_destroy(&chat->name);
 		break;
 	}
@@ -80,7 +79,7 @@ static struct chat_connection*chat_alloc(int fd) {
 }
 
 static int chat_factory_hookup(int signature, void*given) {
-	struct chat_hooks*hooks = (struct chat_hooks*)given;
+	hooks = (struct chat_hooks*)given;
 	aroop_assert(hooks != NULL);
 	hooks->on_create = chat_alloc;
 	return 0;

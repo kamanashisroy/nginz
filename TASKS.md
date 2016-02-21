@@ -5,7 +5,7 @@ Tasks
 - [x] Quit all child process.
 - [x] Do soft-quit to logoff and disconnect all the users.
 - [ ] Load test and report the result.
-- [ ] Write a version command.
+- [x] Write a version command.
 
 ### Aroop
 - [ ] Turn off the HAS_THREAD from aroop core. We do not need threading or locking.

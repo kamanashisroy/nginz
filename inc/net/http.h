@@ -23,11 +23,10 @@ struct http_hooks {
 struct http_connection {
 	struct streamio strm;
 	enum http_state state;
-	aroop_txt_t*request;
 	int is_processed;
+	aroop_txt_t content;
 };
 
-NGINZ_INLINE struct composite_plugin*http_context_get();
 int http_module_init();
 int http_module_deinit();
 

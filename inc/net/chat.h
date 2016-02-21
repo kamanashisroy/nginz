@@ -17,7 +17,7 @@ struct chat_hooks {
 	struct chat_connection*(*on_create)(int fd);
 	//int (*on_client_data)(int fd, int status, const void*cb_data); // it is used to read user input
 	int (*on_command)(struct chat_connection*chat, aroop_txt_t*cmd); // it is used for command
-	int (*handle_chat_request)(struct chat_connection*chat, aroop_txt_t*request); // it processes chat request
+	int (*handle_chat_request)(struct streamio*strm, aroop_txt_t*request); // it processes chat request
 };
 
 struct chat_connection {
@@ -29,7 +29,6 @@ struct chat_connection {
 	const void*callback_data; // XXX do not unref/ref it ..
 };
 
-NGINZ_INLINE struct composite_plugin*chat_context_get();
 int chat_module_init();
 int chat_module_deinit();
 

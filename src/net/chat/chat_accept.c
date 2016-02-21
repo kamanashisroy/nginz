@@ -28,9 +28,13 @@ static int chat_accept_on_softquit_desc(aroop_txt_t*plugin_space, aroop_txt_t*ou
 }
 
 static aroop_txt_t cannot_process = {};
-static int handle_chat_request(struct chat_connection*chat, aroop_txt_t*request) {
+static int handle_chat_request(struct streamio*strm, aroop_txt_t*request) {
+	struct chat_connection*chat = (struct chat_connection*)strm;
 	if(!chat)
 		return 0;
+	if(aroop_txt_is_empty_magical(request)) {
+		return 0;
+	}
 	int last_index = aroop_txt_length(request)-1;
 	if(aroop_txt_char_at(request, last_index) != '\n') {
 		syslog(LOG_INFO, "Disconnecting client for unrecognized data\n");
@@ -86,7 +90,7 @@ static int on_client_data(int fd, int status, const void*cb_data) {
 		return -1;
 	}
 	aroop_txt_set_length(&recv_buffer, count);
-	return handle_chat_request(chat, &recv_buffer);
+	return handle_chat_request(&chat->strm, &recv_buffer);
 }
 
 static int on_tcp_connection(int fd) {

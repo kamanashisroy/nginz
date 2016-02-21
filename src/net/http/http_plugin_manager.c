@@ -70,8 +70,7 @@ static int http_help_plug(int signature, void*given) {
 	aroop_txt_t output = {};
 	aroop_txt_embeded_stackbuffer(&output, 1024);
 	composite_plugin_visit_all(http_plugin_manager_get(), http_help_plug_helper, &output);
-	//send(http->fd, aroop_txt_to_string(&output), aroop_txt_length(&output), 0);
-	http_tunnel_send_content(http, &output);
+	http->strm.send(&http->strm, &output, 0);
 	return 0;
 }
 

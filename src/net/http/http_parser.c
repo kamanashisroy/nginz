@@ -21,7 +21,7 @@ static int http_response_test_and_close(struct http_connection*http) {
 	aroop_txt_t test = {};
 	aroop_txt_embeded_set_static_string(&test, "HTTP/1.0 200 OK\r\nContent-Length: 9\r\n\r\nIt Works!\r\n");
 	http->state = HTTP_QUIT;
-	http->strm.send(&http->strm, &test, 0);
+	default_streamio_send(&http->strm, &test, 0);
 	http->strm.close(&http->strm);
 	OPPUNREF(http);
 	return -1;
@@ -45,12 +45,12 @@ static int http_url_go(struct http_connection*http, aroop_txt_t*target) {
 		// say not found
 		aroop_txt_t not_found = {};
 		aroop_txt_embeded_set_static_string(&not_found, "HTTP/1.0 404 NOT FOUND\r\nContent-Length: 9\r\n\r\nNot Found");
-		http->strm.send(&http->strm, &not_found, 0);
+		default_streamio_send(&http->strm, &not_found, 0);
 	}
 	return ret;
 }
 
-static int http_url_parse(aroop_txt_t*user_data, aroop_txt_t*target_url) {
+static int http_url_parse(struct http_connection*http, aroop_txt_t*user_data, aroop_txt_t*target_url) {
 	aroop_txt_zero_terminate(user_data);
 	char*content = aroop_txt_to_string(user_data);
 	char*prev_header = NULL;
@@ -60,13 +60,15 @@ static int http_url_parse(aroop_txt_t*user_data, aroop_txt_t*target_url) {
 	int header_len = 0;
 	int skip_len = 0;
 	int ret = 0;
+	//aroop_txt_destroy(&http->content);
 	while((header = strchr(content, '\n'))) {
 		// skip the new line
 		header++;
+		header_len = header-content;
+		syslog(LOG_NOTICE, "header:%s\n", header);
 		if(prev_header == NULL) {
 			// it is the request string ..
-			header_len = header-content;
-			if(header_len > 256) { // too big header
+			if(header_len > NGINZ_MAX_HTTP_HEADER_SIZE) { // too big header
 				ret = -1;
 				break;
 			}
@@ -90,10 +92,18 @@ static int http_url_parse(aroop_txt_t*user_data, aroop_txt_t*target_url) {
 			}
 			skip_len = url - header_str;
 			aroop_txt_truncate(target_url, skip_len);
-			// we do not parse anymore
+			// break;
+		} else if(header_len <= 4) { // if it is \r\n\r\n
+			// the content starts here
+			
+			syslog(LOG_NOTICE, "content:%s\n", header);
+			aroop_txt_embeded_rebuild_copy_shallow(&http->content, user_data);
+			skip_len = header - aroop_txt_to_string(user_data);
+			aroop_txt_shift(&http->content, skip_len);
 			break;
 		}
 		prev_header = header;
+		content = header;
 	}
 	
 	if(ret == -1)aroop_txt_destroy(target_url);
@@ -108,24 +118,27 @@ static int http_on_client_data(int fd, int status, const void*cb_data) {
 	int count = recv(http->strm.fd, aroop_txt_to_string(&recv_buffer), aroop_txt_capacity(&recv_buffer), 0);
 	if(count == 0) {
 		syslog(LOG_INFO, "Client disconnected\n");
+		http->strm.close(&http->strm);
 		OPPUNREF(http);
 		return -1;
 	}
 	if(count >= NGINZ_MAX_HTTP_MSG_SIZE) {
 		syslog(LOG_INFO, "Disconnecting HTTP client for too big data input\n");
+		http->strm.close(&http->strm);
 		OPPUNREF(http);
 		return -1;
 	}
 	aroop_txt_set_length(&recv_buffer, count);
 	//return x.processPacket(pkt);
 	aroop_txt_t url = {};
-	int response = http_url_parse(&recv_buffer, &url);
+	int response = http_url_parse(http, &recv_buffer, &url);
 	if(response == 0) {
 		// notify the page
 		response = http_url_go(http, &url);
 	}
 	// cleanup
 	aroop_txt_destroy(&url);
+	aroop_txt_destroy(&http->content);
 	return response;
 }
 

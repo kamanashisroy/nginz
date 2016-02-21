@@ -14,15 +14,15 @@ C_CAPSULE_START
 
 
 int default_streamio_send(struct streamio*strm, aroop_txt_t*content, int flag) {
-	if(strm->next)
-		return strm->next->send(strm->next, content, flag);
+	if(strm->bubble_up)
+		return strm->bubble_up->send(strm->bubble_up, content, flag);
 	aroop_assert(strm->fd != INVALID_FD);
 	return send(strm->fd, aroop_txt_to_string(content), aroop_txt_length(content), flag);
 }
 
 int default_streamio_close(struct streamio*strm) {
-	if(strm->next) {
-		return strm->next->close(strm->next);
+	if(strm->bubble_up) {
+		return strm->bubble_up->close(strm->bubble_up);
 	}
 	if(strm->fd != INVALID_FD) {
 		event_loop_unregister_fd(strm->fd);
@@ -30,6 +30,36 @@ int default_streamio_close(struct streamio*strm) {
 		strm->fd = -1;
 	}
 	return 0;
+}
+
+int streamio_initialize(struct streamio*strm) {
+	strm->fd = -1;
+	strm->on_recv = NULL;
+	strm->send = default_streamio_send;
+	strm->close = default_streamio_close;
+	strm->bubble_up = NULL;
+	strm->bubble_down = NULL;
+	return 0;
+}
+
+int streamio_finalize(struct streamio*strm) {
+	strm->close(strm);
+	strm->fd = -1;
+	strm->bubble_up = NULL;
+	OPPUNREF(strm->bubble_down);
+	return 0;
+}
+
+int streamio_chain(struct streamio*up, struct streamio*down) {
+	if(down->bubble_up) {
+		down->close(down);
+	}
+	down->bubble_up = up;
+	if(up->bubble_down) {
+		up->bubble_down->close(up->bubble_down);
+		OPPUNREF(up->bubble_down);
+	}
+	up->bubble_down = OPPREF(down);
 }
 
 

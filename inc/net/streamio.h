@@ -18,6 +18,10 @@ struct streamio {
 	 */
 	int fd;
 	/**
+	 * On data receive ..
+	 */
+	int (*on_recv)(struct streamio*strm, aroop_txt_t*content);
+	/**
 	 * It sends/writes data to stream.
 	 * @param flags It is generally the flags available for send application namely, MSG_MORE, MSG_DONTWAIT ..
 	 */
@@ -27,15 +31,19 @@ struct streamio {
 	 */
 	int (*close)(struct streamio*strm);
 	/**
-	 * It is the next aggregated stream. In one way cases, it is garbage collected. It needs not be garbage collected in two way situation.
+	 * It is the next aggregated stream. In one way cases, it is garbage collected. It needs not be garbage collected in two way situation(avoid circular reference). It facilitates chain-of-responsibility pattern.
 	 */
-	struct streamio*next;
+	struct streamio*bubble_up;
+	struct streamio*bubble_down;
 };
 
 int default_streamio_send(struct streamio*strm, aroop_txt_t*content, int flag);
 int default_streamio_close(struct streamio*strm);
+int streamio_initialize(struct streamio*strm);
+int streamio_chain(struct streamio*up, struct streamio*down);
+int streamio_finalize(struct streamio*strm);
 
-#define IS_VALID_STREAM(x) ((x)->fd != INVALID_FD || (x)->next != NULL)
+#define IS_VALID_STREAM(x) ((x)->fd != INVALID_FD || (x)->bubble_up != NULL)
 
 C_CAPSULE_END
 

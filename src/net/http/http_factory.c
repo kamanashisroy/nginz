@@ -12,14 +12,15 @@
 #include "net/protostack.h"
 #include "net/streamio.h"
 #include "net/http.h"
+#include "net/http/http_tunnel.h"
 #include "net/http/http_factory.h"
 
 C_CAPSULE_START
 
 
 static int default_http_close(struct streamio*strm) {
-	if(strm->next) {
-		return strm->next->close(strm->next);
+	if(strm->bubble_up) {
+		return strm->bubble_up->close(strm->bubble_up);
 	}
 	if(strm->fd != INVALID_FD) {
 		struct http_connection*http = (struct http_connection*)strm;
@@ -52,15 +53,14 @@ OPP_CB(http_connection) {
 	switch(callback) {
 		case OPPN_ACTION_INITIALIZE:
 			http->state = HTTP_CONNECTED;
-			http->request = NULL;
-			http->strm.send = default_streamio_send;
+			memset(&http->content, 0, sizeof(http->content));
+			streamio_initialize(&http->strm);
+			http->strm.send = http_tunnel_send_content;
 			http->strm.close = default_http_close;
-			http->strm.next = NULL;
-			http->strm.fd = -1;
 		break;
 		case OPPN_ACTION_FINALIZE:
-			http->strm.close(&http->strm);
-			http->strm.fd = -1;
+			aroop_txt_destroy(&http->content);
+			streamio_finalize(&http->strm);
 		break;
 	}
 	return 0;

@@ -16,8 +16,19 @@
 
 C_CAPSULE_START
 
-
 static struct chat_hooks hooks = {};
+static int chat_rehash_plug(aroop_txt_t*input, aroop_txt_t*output) {
+	aroop_txt_t plugin_space = {};
+	aroop_txt_embeded_set_static_string(&plugin_space, "chatproto/hookup");
+	composite_plugin_bridge_call(pm_get(), &plugin_space, CHAT_SIGNATURE, &hooks);
+	return 0;
+}
+
+static int chat_rehash_plug_desc(aroop_txt_t*plugin_space, aroop_txt_t*output) {
+	return plugin_desc(output, "chat_module", "chat hooking", plugin_space, __FILE__, "It rehashes the setup.\n");
+}
+
+
 int chat_module_init() {
 	memset(&hooks, 0, sizeof(hooks));
 	chat_plugin_manager_module_init();
@@ -26,10 +37,13 @@ int chat_module_init() {
 	aroop_txt_t plugin_space = {};
 	aroop_txt_embeded_set_static_string(&plugin_space, "chatproto/hookup");
 	composite_plugin_bridge_call(pm_get(), &plugin_space, CHAT_SIGNATURE, &hooks);
+	aroop_txt_embeded_set_static_string(&plugin_space, "shake/rehash");
+	pm_plug_callback(&plugin_space, chat_rehash_plug, chat_rehash_plug_desc);
 }
 
 int chat_module_deinit() {
 	chat_plugin_manager_module_deinit();
+	pm_unplug_callback(0, chat_rehash_plug);
 }
 
 

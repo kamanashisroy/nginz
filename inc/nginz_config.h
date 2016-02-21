@@ -48,6 +48,7 @@ C_CAPSULE_START
  * Http server configuration
  */
 #define NGINZ_MAX_HTTP_MSG_SIZE 1024
+#define NGINZ_MAX_HTTP_HEADER_SIZE 512
 
 //#define NGINZ_EVENT_DEBUG 
 
