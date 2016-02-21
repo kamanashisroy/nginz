@@ -66,7 +66,6 @@ static int http_url_parse(struct http_connection*http, aroop_txt_t*user_data, ar
 		// skip the new line
 		header++;
 		header_len = header-content;
-		syslog(LOG_NOTICE, "header:%s\n", header);
 		if(prev_header == NULL) {
 			// it is the request string ..
 			if(header_len > NGINZ_MAX_HTTP_HEADER_SIZE) { // too big header
@@ -97,7 +96,6 @@ static int http_url_parse(struct http_connection*http, aroop_txt_t*user_data, ar
 		} else if(header_len <= 4) { // if it is \r\n\r\n
 			// the content starts here
 			
-			syslog(LOG_NOTICE, "content:%s\n", header);
 			aroop_txt_embeded_rebuild_copy_shallow(&http->content, user_data);
 			skip_len = header - aroop_txt_to_string(user_data);
 			aroop_txt_shift(&http->content, skip_len);
