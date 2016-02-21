@@ -191,7 +191,7 @@ static int skip_load() {
 	return (load % (NGINZ_NUMBER_OF_PROCESSORS-1));
 }
 
-static int on_bubble_down_send_socket(int fd, int events, const void*unused) {
+static int on_bubble_down_recv_socket(int fd, int events, const void*unused) {
 	int port = 0;
 	int destpid = 0;
 	int acceptfd = -1;
@@ -303,7 +303,7 @@ static int pp_fork_child_after_callback(aroop_txt_t*input, aroop_txt_t*output) {
 	parent = pipefd[1];
 	mparent = mpipefd[1];
 	event_loop_register_fd(parent, on_bubble_down, NULL, NGINZ_POLL_ALL_FLAGS);
-	event_loop_register_fd(mparent, on_bubble_down_send_socket, NULL, NGINZ_POLL_ALL_FLAGS);
+	event_loop_register_fd(mparent, on_bubble_down_recv_socket, NULL, NGINZ_POLL_ALL_FLAGS);
 	// cleanup child
 	event_loop_unregister_fd(child);
 	event_loop_unregister_fd(mchild);

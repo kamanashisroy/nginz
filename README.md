@@ -35,13 +35,14 @@ Features
 NginZ is equiped to serve as communication applications. It has,
 
 - [Plugin](src/plugin.c) and dependency injection.
-- Parallel processing support based on [token-ring and pipeline pattern](src/parallel/pipeline.c).
+- Parallel processing support based on [line-topology, token-passing and pipeline pattern](src/parallel/pipeline.c). [This is elaborated in great details by the networking scenarios here.](src/parallel/README.md).
 - It has scalability features. The requests are load-balanced in the worker processes.
 - It has [memory profiler](src/net/chat/profiler.c).
 - It has [event-loop](src/event_loop.c) module to handle user data in [fibers](src/fiber.c).
 - It has [command shell](src/shake.c) to diagnose the server.
 - Writing new feature for chat server needs very less code(see the following ..). 
 - It has an HTTP interface(It is useful for benchmarking).
+- It has [streamio](src/net/streamio.c) which supports io chaining. It is useful to implement proxy-pattern and chain-of-responsiblity pattern. The chat server is tunneled through http protocol using this feature.
 
 Dependency injection
 ====================
@@ -67,6 +68,7 @@ Module Description
 
 - [Chat Module](src/net/chat/README.md)
 - [HTTP Module](src/net/http/README.md)
+- [Parallel Processing Module](src/parallel/README.md)
 
 livedemo
 ========

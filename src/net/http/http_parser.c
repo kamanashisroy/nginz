@@ -23,7 +23,6 @@ static int http_response_test_and_close(struct http_connection*http) {
 	http->state = HTTP_QUIT;
 	default_streamio_send(&http->strm, &test, 0);
 	http->strm.close(&http->strm);
-	OPPUNREF(http);
 	return -1;
 }
 
@@ -40,6 +39,8 @@ static int http_url_go(struct http_connection*http, aroop_txt_t*target) {
 		aroop_txt_concat_char(&plugin_space, '/');
 	}
 	aroop_txt_concat(&plugin_space, target);
+	if(aroop_txt_char_at(target, 5) == '_') // we do not allow hidden command like http/_webchat_hiddenjoin
+		return http_response_test_and_close(http);
 	ret = composite_plugin_bridge_call(http_plugin_manager_get(), &plugin_space, HTTP_SIGNATURE, http);
 	if(!http->is_processed) { // if not processed
 		// say not found
@@ -139,6 +140,9 @@ static int http_on_client_data(int fd, int status, const void*cb_data) {
 	// cleanup
 	aroop_txt_destroy(&url);
 	aroop_txt_destroy(&http->content);
+	if(http->state & (HTTP_SOFT_QUIT | HTTP_QUIT)) {
+		OPPUNREF(http);
+	}
 	return response;
 }
 

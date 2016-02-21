@@ -35,10 +35,15 @@ struct streamio {
 	 */
 	struct streamio*bubble_up;
 	struct streamio*bubble_down;
+	/**
+	 * It transfers a file descriptor to another processor
+	 */
+	int (*transfer_parallel)(struct streamio*strm, int destpid, int proto_port, aroop_txt_t*cmd);
 };
 
 int default_streamio_send(struct streamio*strm, aroop_txt_t*content, int flag);
 int default_streamio_close(struct streamio*strm);
+int default_transfer_parallel(struct streamio*strm, int destpid, int proto_port, aroop_txt_t*cmd);
 int streamio_initialize(struct streamio*strm);
 int streamio_chain(struct streamio*up, struct streamio*down);
 int streamio_finalize(struct streamio*strm);

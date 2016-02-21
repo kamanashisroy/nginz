@@ -26,6 +26,8 @@ Tasks
 - [ ] Show number of users served
 - [x] Add profiler command to show memory profiler
 - [ ] Add HTTP support for chat
+	- [ ] Create webchat interface
+- [ ] Write pidgin plugin
 
 ### shake
 - [ ] Create memory profiler command to show memory usage.

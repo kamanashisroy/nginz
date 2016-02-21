@@ -18,13 +18,14 @@ C_CAPSULE_START
 
 static struct http_hooks*hooks = NULL;
 int http_accept_module_is_quiting = 0;
+#define HTTP_WELCOME "http/welcome"
 static int http_on_tcp_connection(int fd) {
 	aroop_txt_t bin = {};
 	aroop_txt_embeded_stackbuffer(&bin, 255);
 	binary_coder_reset_for_pid(&bin, 0);
 	binary_pack_int(&bin, NGINZ_HTTP_PORT);
 	aroop_txt_t welcome_command = {};
-	aroop_txt_embeded_set_static_string(&welcome_command, "http/welcome"); 
+	aroop_txt_embeded_set_static_string(&welcome_command, HTTP_WELCOME); 
 	binary_pack_string(&bin, &welcome_command);
 	pp_bubble_down_send_socket(fd, &bin);
 	return 0;
@@ -56,6 +57,8 @@ static int http_on_connection_bubble(int fd, aroop_txt_t*cmd) {
 	}
 
 	int ret = 0;
+	// save the real command in request
+	aroop_txt_embeded_rebuild_copy_shallow(&http->content, &request); // needs cleanup
 	// get the target command
 	aroop_txt_t plugin_space = {};
 	int reqlen = aroop_txt_length(&request);
@@ -79,15 +82,15 @@ static int http_on_connection_bubble(int fd, aroop_txt_t*cmd) {
 #ifdef NGINZ_EVENT_DEBUG
 		event_loop_register_debug(fd, on_http_debug);
 #endif
-
-#if 0 // do nothing for http/welcome
-		// execute the command
-		composite_plugin_bridge_call(http_plugin_manager_get(), &plugin_space, HTTP_SIGNATURE, http);
-#endif
+		if(!aroop_txt_equals_static(&plugin_space, HTTP_WELCOME)) { // skip http welcome
+			// execute the command
+			composite_plugin_bridge_call(http_plugin_manager_get(), &plugin_space, HTTP_SIGNATURE, http);
+		}
 	} while(0);
 	aroop_txt_destroy(&request); // cleanup
 	aroop_txt_destroy(&request_sandbox); // cleanup
 	aroop_txt_destroy(&plugin_space); // cleanup
+	aroop_txt_destroy(&http->content); // cleanup
 	return ret;
 }
 

@@ -44,7 +44,7 @@ static int handle_chat_request(struct streamio*strm, aroop_txt_t*request) {
 	}
 	do {
 		// check if it is a command
-		if(aroop_txt_char_at(request, 0) == '/') {
+		if(aroop_txt_char_at(request, 0) == '/' && (chat->state & CHAT_LOGGED_IN)) {
 			if(!hooks->on_command(chat, request)) {
 				break;
 			}

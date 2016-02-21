@@ -15,7 +15,7 @@ static int chat_join_transfer(struct chat_connection*chat, aroop_txt_t*room, int
 	// leave current chatroom
 	broadcast_room_leave(chat);
 	// remove it from listener
-	event_loop_unregister_fd(chat->strm.fd); // XXX do I need it ??
+	event_loop_unregister_fd(chat->strm.fd);
 	aroop_txt_t cmd = {};
 	aroop_txt_embeded_stackbuffer(&cmd, 128);
 	aroop_txt_concat_string(&cmd, "chat/_hiddenjoin ");
@@ -24,19 +24,7 @@ static int chat_join_transfer(struct chat_connection*chat, aroop_txt_t*room, int
 	aroop_txt_concat(&cmd, &chat->name);
 	aroop_txt_concat_string(&cmd, "\n");
 	aroop_txt_zero_terminate(&cmd);
-	aroop_txt_t bin = {};
-	aroop_txt_embeded_stackbuffer(&bin, 255);
-	binary_coder_reset_for_pid(&bin, pid);
-	binary_pack_int(&bin, NGINZ_CHAT_PORT);
-	binary_pack_string(&bin, &cmd);
-	int mypid = getpid();
-	if(pid > mypid) {
-		//syslog(LOG_INFO, "transfering to %d bubble_down\n", pid);
-		pp_bubble_down_send_socket(chat->strm.fd, &bin);
-	} else {
-		//syslog(LOG_INFO, "transfering to %d bubble_up\n", pid);
-		pp_bubble_up_send_socket(chat->strm.fd, &bin);
-	}
+	chat->strm.transfer_parallel(&chat->strm, pid, NGINZ_CHAT_PORT, &cmd);
 	chat->state |= CHAT_SOFT_QUIT; // quit the user from this process
 	return 0;
 }

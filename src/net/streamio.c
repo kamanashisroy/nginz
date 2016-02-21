@@ -12,7 +12,6 @@
 C_CAPSULE_START
 
 
-
 int default_streamio_send(struct streamio*strm, aroop_txt_t*content, int flag) {
 	if(strm->bubble_up)
 		return strm->bubble_up->send(strm->bubble_up, content, flag);
@@ -32,11 +31,31 @@ int default_streamio_close(struct streamio*strm) {
 	return 0;
 }
 
+int default_transfer_parallel(struct streamio*strm, int destpid, int proto_port, aroop_txt_t*cmd) {
+	if(strm->bubble_up) {
+		return strm->bubble_up->transfer_parallel(strm->bubble_up, destpid, proto_port, cmd);
+	}
+	int mypid = getpid(); // we may do little optimiztion here by saving getpid() value ..
+	aroop_txt_t bin = {};
+	aroop_txt_embeded_stackbuffer(&bin, 255);
+	binary_coder_reset_for_pid(&bin, destpid);
+	binary_pack_int(&bin, proto_port);
+	binary_pack_string(&bin, cmd);
+
+	event_loop_unregister_fd(strm->fd);
+	if(destpid > mypid) {
+		return pp_bubble_down_send_socket(strm->fd, &bin);
+	} else {
+		return pp_bubble_up_send_socket(strm->fd, &bin);
+	}
+}
+
 int streamio_initialize(struct streamio*strm) {
 	strm->fd = -1;
 	strm->on_recv = NULL;
 	strm->send = default_streamio_send;
 	strm->close = default_streamio_close;
+	strm->transfer_parallel = default_transfer_parallel;
 	strm->bubble_up = NULL;
 	strm->bubble_down = NULL;
 	return 0;
