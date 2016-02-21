@@ -3,5 +3,5 @@ Host: localhost
 Content-Length: 0
 Connection: keep-alive
 
-/join FIVE
+Hi
 

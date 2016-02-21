@@ -141,6 +141,7 @@ static int http_on_client_data(int fd, int status, const void*cb_data) {
 	aroop_txt_destroy(&url);
 	aroop_txt_destroy(&http->content);
 	if(http->state & (HTTP_SOFT_QUIT | HTTP_QUIT)) {
+		http->strm.close(&http->strm);
 		OPPUNREF(http);
 	}
 	return response;

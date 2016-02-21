@@ -62,7 +62,6 @@ static int handle_chat_request(struct streamio*strm, aroop_txt_t*request) {
 	if((chat->state & CHAT_QUIT) || (chat->state & CHAT_SOFT_QUIT)) {
 		syslog(LOG_INFO, "Client quited\n");
 		chat->strm.close(&chat->strm);
-		OPPUNREF(chat);
 		return -1;
 	}
 
@@ -90,7 +89,11 @@ static int on_client_data(int fd, int status, const void*cb_data) {
 		return -1;
 	}
 	aroop_txt_set_length(&recv_buffer, count);
-	return handle_chat_request(&chat->strm, &recv_buffer);
+	int ret = handle_chat_request(&chat->strm, &recv_buffer);
+	if((chat->state & CHAT_QUIT) || (chat->state & CHAT_SOFT_QUIT)) {
+		OPPUNREF(chat); // it is owned by us so we unref
+	}
+	return ret;
 }
 
 static int on_tcp_connection(int fd) {

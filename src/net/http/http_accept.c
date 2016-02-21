@@ -71,6 +71,7 @@ static int http_on_connection_bubble(int fd, aroop_txt_t*cmd) {
 		if(aroop_txt_is_empty(&plugin_space)) {
 			aroop_txt_zero_terminate(&request_sandbox);
 			syslog(LOG_ERR, "Possible BUG , cannot handle request %s", aroop_txt_to_string(&request_sandbox));
+			http->strm.close(&http->strm);
 			OPPUNREF(http);
 			break;
 		}

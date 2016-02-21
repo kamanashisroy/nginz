@@ -47,7 +47,6 @@ static int http_webchat_create_helper(struct http_connection*http, aroop_txt_t*p
 	chat->request = request; // the real request
 	composite_plugin_bridge_call(chat_plugin_manager_get(), plugin_space, CHAT_SIGNATURE, chat);
 	chat->request = NULL; // cleanup
-	OPPUNREF(chat); // cleanup
 	return 0;
 }
 

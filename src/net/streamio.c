@@ -23,10 +23,11 @@ int default_streamio_close(struct streamio*strm) {
 	if(strm->bubble_up) {
 		return strm->bubble_up->close(strm->bubble_up);
 	}
+	strm->bubble_up = NULL;
 	if(strm->fd != INVALID_FD) {
 		event_loop_unregister_fd(strm->fd);
 		close(strm->fd);
-		strm->fd = -1;
+		strm->fd = INVALID_FD;
 	}
 	return 0;
 }
@@ -65,7 +66,7 @@ int streamio_finalize(struct streamio*strm) {
 	strm->close(strm);
 	strm->fd = -1;
 	strm->bubble_up = NULL;
-	OPPUNREF(strm->bubble_down);
+	if(strm->bubble_down)OPPUNREF(strm->bubble_down);
 	return 0;
 }
 
