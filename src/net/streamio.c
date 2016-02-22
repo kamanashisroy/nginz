@@ -15,7 +15,10 @@ C_CAPSULE_START
 int default_streamio_send(struct streamio*strm, aroop_txt_t*content, int flag) {
 	if(strm->bubble_up)
 		return strm->bubble_up->send(strm->bubble_up, content, flag);
-	aroop_assert(strm->fd != INVALID_FD);
+	if(strm->fd == INVALID_FD) {
+		syslog(LOG_ERR, "There is a dead chat\n");
+		return -1;
+	}
 	return send(strm->fd, aroop_txt_to_string(content), aroop_txt_length(content), flag);
 }
 
@@ -33,9 +36,9 @@ int default_streamio_close(struct streamio*strm) {
 }
 
 int default_transfer_parallel(struct streamio*strm, int destpid, int proto_port, aroop_txt_t*cmd) {
-	syslog(LOG_NOTICE, "default_transfer_parallel: transfering to %d", destpid);
+	//syslog(LOG_NOTICE, "default_transfer_parallel: transfering to %d", destpid);
 	if(strm->bubble_up) {
-		syslog(LOG_NOTICE, "default_transfer_parallel: bubble up ");
+		//syslog(LOG_NOTICE, "default_transfer_parallel: bubble up ");
 		return strm->bubble_up->transfer_parallel(strm->bubble_up, destpid, proto_port, cmd);
 	}
 	int mypid = getpid(); // we may do little optimiztion here by saving getpid() value ..

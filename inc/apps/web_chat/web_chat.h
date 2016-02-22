@@ -11,6 +11,7 @@ struct web_session_connection {
 	struct streamio strm;
 	aroop_txt_t sid;
 	aroop_txt_t msg;
+	time_t last_activity;
 };
 
 struct web_session_hooks {

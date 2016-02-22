@@ -50,7 +50,7 @@ static struct web_session_connection*web_session_alloc(int fd, aroop_txt_t*sid) 
 	} else {
 		aroop_txt_embeded_copy_deep(&web_session->sid, sid);
 	}
-	syslog(LOG_NOTICE, "saving %d %s\n", aroop_txt_length(&web_session->sid), aroop_txt_to_string(&web_session->sid));
+	//syslog(LOG_NOTICE, "saving %d %s\n", aroop_txt_length(&web_session->sid), aroop_txt_to_string(&web_session->sid));
 	opp_set_hash(web_session, aroop_txt_get_hash(&web_session->sid)); // set the hash so that it can be searched easily
 	struct chat_connection*chat = chooks->on_create(fd);
 	if(!chat) {
@@ -65,7 +65,7 @@ static struct web_session_connection*web_session_alloc(int fd, aroop_txt_t*sid) 
 
 static struct web_session_connection*web_session_search(aroop_txt_t*sid) {
 	struct web_session_connection*wchat = NULL;
-	syslog(LOG_NOTICE, "finding %d %s\n", aroop_txt_length(sid), aroop_txt_to_string(sid));
+	//syslog(LOG_NOTICE, "finding %d %s\n", aroop_txt_length(sid), aroop_txt_to_string(sid));
 	opp_search(&web_session_factory, aroop_txt_get_hash(sid), NULL, NULL, (void**)&wchat);
 	return wchat;
 }
@@ -75,6 +75,11 @@ static struct web_session_hooks web_hooks = {
 	.search = web_session_search,
 };
 
+int web_session_close_wrapper(struct streamio*strm) {
+	struct web_session_connection*web_session = (struct web_session_connection*)strm;
+	web_session->last_activity = 0;
+	return default_streamio_close(strm);
+}
 
 int web_session_send_wrapper(struct streamio*strm, aroop_txt_t*content, int flags) {
 	struct web_session_connection*web_session = (struct web_session_connection*)strm;
@@ -105,7 +110,8 @@ OPP_CB(web_session_connection) {
 			aroop_memclean_raw2(&web_session->msg);
 			streamio_initialize(&web_session->strm);
 			web_session->strm.send = web_session_send_wrapper;
-			//web_session->strm.close = default_web_session_close;
+			web_session->strm.close = web_session_close_wrapper;
+			web_session->last_activity = time(NULL);
 		break;
 		case OPPN_ACTION_FINALIZE:
 			streamio_finalize(&web_session->strm);
@@ -127,7 +133,26 @@ static int web_session_chatapi_plug_desc(aroop_txt_t*plugin_space, aroop_txt_t*o
 	return plugin_desc(output, "web_chat_chatapi", "chat hooking", plugin_space, __FILE__, "It reads the chat-api hooks.\n");
 }
 
-
+static int gear = 0;
+static int web_session_cleanup_fiber(int status) {
+	time_t now = time(NULL);
+	if(gear == 1000) {
+		gear = 0;
+		struct opp_iterator iterator = {};
+		opp_iterator_create(&iterator, &web_session_factory, OPPN_ALL, 0, 0);
+		struct web_session_connection*web_session = NULL;
+		while(web_session = opp_iterator_next(&iterator)) {
+			if(now - web_session->last_activity < 120) {
+				continue;
+			}
+			web_session->strm.close(&web_session->strm);
+			OPPUNREF(web_session); // cleanup
+		}
+		opp_iterator_destroy(&iterator);
+	}
+	gear++;
+	return 0;
+}
 
 int web_session_factory_module_init() {
 	NGINZ_SEARCHABLE_FACTORY_CREATE(&web_session_factory, 64, sizeof(struct web_session_connection), OPP_CB_FUNC(web_session_connection));
@@ -138,9 +163,11 @@ int web_session_factory_module_init() {
 	composite_plugin_bridge_call(pm_get(), &plugin_space, WEB_CHAT_SIGNATURE, &web_hooks);
 	aroop_txt_embeded_set_static_string(&plugin_space, "chatproto/hookup");
 	pm_plug_bridge(&plugin_space, web_session_chatapi_plug, web_session_chatapi_plug_desc);
+	register_fiber(web_session_cleanup_fiber);
 }
 
 int web_session_factory_module_deinit() {
+	unregister_fiber(web_session_cleanup_fiber);
 	pm_unplug_callback(0, web_session_factory_on_softquit);
 	composite_unplug_bridge(pm_get(), 0, web_session_chatapi_plug);
 	web_session_factory_on_softquit(NULL,NULL);

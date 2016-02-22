@@ -43,11 +43,12 @@ C_CAPSULE_START
 		"}\n" \
 	"};\n" \
 "}());\n" \
+"document.onload = chat.submit;\n" \
 "</script>\n" \
 "</head>" \
 "<body>" \
 "<div>" \
-"<textarea id=\"response_box\" rows=\"4\" cols=\"50\">" \
+"<textarea id=\"response_box\" rows=\"20\" cols=\"100\">" \
 "Please write your name. The commands should be prefixed with '/' character. Enjoy." \
 "</textarea>" \
 "<form id=\"chat_form\" onsubmit=\"return chat.submit();\">" \

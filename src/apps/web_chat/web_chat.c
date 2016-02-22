@@ -39,11 +39,11 @@ int web_session_transfer_parallel(struct streamio*strm, int destpid, int proto_p
 	aroop_txt_concat_string_len(&wrapper_cmd, HTTP_WEB_SESSION_TRANSFER_WRAPPER, sizeof(HTTP_WEB_SESSION_TRANSFER_WRAPPER)-1);
 	aroop_txt_concat_char(&wrapper_cmd, ' ');
 	aroop_txt_concat(&wrapper_cmd, cmd);
-	syslog(LOG_NOTICE, "parallel join transfer %d %s\n", destpid, aroop_txt_to_string(cmd));
+	//syslog(LOG_NOTICE, "parallel join transfer %d %s\n", destpid, aroop_txt_to_string(cmd));
 	int ret = default_transfer_parallel(strm, destpid, NGINZ_HTTP_PORT, &wrapper_cmd);
 	struct http_connection*http = (struct http_connection*)strm;
 	http->state |= CHAT_SOFT_QUIT; // quit the user from this process
-	syslog(LOG_NOTICE, "transferred to %d %s\n", destpid, aroop_txt_to_string(&wrapper_cmd));
+	//syslog(LOG_NOTICE, "transferred to %d %s\n", destpid, aroop_txt_to_string(&wrapper_cmd));
 	aroop_txt_destroy(&wrapper_cmd);
 	return ret;
 }
@@ -81,7 +81,7 @@ static int http_web_session_transfer_plug(int signature, void*given) {
 	aroop_txt_embeded_rebuild_copy_shallow(&hidden_join_cmd, &http->content); // needs cleanup
 	aroop_txt_shift(&hidden_join_cmd, sizeof(HTTP_WEB_SESSION_TRANSFER_WRAPPER));
 	//aroop_txt_shift(&hidden_join_cmd, 1); // skip the space
-	aroop_txt_zero_terminate(&hidden_join_cmd);syslog(LOG_NOTICE, "Doing hidden join for[%s]\n", aroop_txt_to_string(&hidden_join_cmd));
+	//aroop_txt_zero_terminate(&hidden_join_cmd);syslog(LOG_NOTICE, "Doing hidden join for[%s]\n", aroop_txt_to_string(&hidden_join_cmd));
 	aroop_txt_t plugin_space = {};
 	aroop_txt_embeded_set_static_string(&plugin_space, "chat/_hiddenjoin");
 	http_webchat_create_helper(http, &plugin_space, &hidden_join_cmd);
@@ -120,7 +120,7 @@ static int http_webchat_get_sessionid(struct http_connection*http, aroop_txt_t*s
 	//syslog(LOG_NOTICE, "parsing = %s", aroop_txt_to_string(sid));
 	// if it is bubbled command then remove the prefix
 	http_webchat_get_sessionid_trim_webchat_prefix(sid);
-	syslog(LOG_NOTICE, " -- parsing \n = %s", aroop_txt_to_string(sid));
+	//syslog(LOG_NOTICE, " -- parsing \n = %s", aroop_txt_to_string(sid));
 	aroop_txt_embeded_rebuild_copy_shallow(rest, sid); // needs cleanup
 	char*content = aroop_txt_to_string(sid);
 	char*newline = strchr(content, '\n');
@@ -167,7 +167,7 @@ static int http_webchat_plug(int signature, void*given) {
 	http_webchat_get_sessionid(http, &sid, &rest, &pid); // needs cleanup
 	int ret = 0;
 	struct web_session_connection*webchat = NULL;
-	syslog(LOG_NOTICE, "rest %s\n", aroop_txt_to_string(&rest));
+	//syslog(LOG_NOTICE, "rest %s\n", aroop_txt_to_string(&rest));
 	http->is_processed = 0;
 	do {
 		if(pid != -1 && pid != getpid()) {
@@ -182,15 +182,15 @@ static int http_webchat_plug(int signature, void*given) {
 			/*      Find the session by id          */
 			/* ************************************ */
 			aroop_assert(web_hooks);
-			syslog(LOG_NOTICE, "searching %d %s\n", aroop_txt_length(&sid), aroop_txt_to_string(&sid));
+			//syslog(LOG_NOTICE, "searching %d %s\n", aroop_txt_length(&sid), aroop_txt_to_string(&sid));
 			webchat = web_hooks->search(&sid);
 			if(webchat) {
-				syslog(LOG_NOTICE, "found %s\n", aroop_txt_to_string(&rest));
+				//syslog(LOG_NOTICE, "found %s\n", aroop_txt_to_string(&rest));
 				webchat_chain_helper(http, webchat); // it increases reference count for [chat]
 			}
 		}
 		if(!webchat) {
-			syslog(LOG_NOTICE, "You are new .. \n");
+			//syslog(LOG_NOTICE, "You are new .. \n");
 			/* ************************************ */
 			/*      Create new session+chat         */
 			/* ************************************ */
@@ -203,9 +203,9 @@ static int http_webchat_plug(int signature, void*given) {
 			ret = -1;
 			break;
 		}
-		syslog(LOG_NOTICE, "You came back .. \n");
+		//syslog(LOG_NOTICE, "You came back .. \n");
 		if(http->is_processed) {
-			syslog(LOG_NOTICE, "Nothing to do .. \n");
+			//syslog(LOG_NOTICE, "Nothing to do .. \n");
 			break;
 		}
 		/* ************************************ */
@@ -213,7 +213,7 @@ static int http_webchat_plug(int signature, void*given) {
 		/* ************************************ */
 		//syslog(LOG_NOTICE, "content:%s\n", aroop_txt_to_string(&http->content));
 		//chat->strm.on_recv(&chat->strm, http->request_data);
-		syslog(LOG_NOTICE, "calling chat on_recv .. %s \n", aroop_txt_to_string(&rest));
+		//syslog(LOG_NOTICE, "calling chat on_recv .. %s \n", aroop_txt_to_string(&rest));
 		struct chat_connection*chat = (struct chat_connection*)webchat->strm.bubble_down;
 		chat->strm.on_recv(&chat->strm, &rest);
 		if(!http->is_processed && !(http->state & (HTTP_SOFT_QUIT | HTTP_QUIT))) {
