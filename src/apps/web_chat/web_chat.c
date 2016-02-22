@@ -15,7 +15,7 @@
 C_CAPSULE_START
 
 #define HTTP_WEBCHAT_PLUG "http/webchat"
-//#define WEBCHAT_HIDDEN_JOIN_PREFIX "http/_webchat_hiddenjoin"
+#define HTTP_WEB_SESSION_TRANSFER_WRAPPER "http/_web_session_transfer"
 
 int webchat_transfer_parallel(struct http_connection*http, int destpid, aroop_txt_t*sid, aroop_txt_t*rest) {
 	aroop_txt_t cmd = {};
@@ -32,7 +32,29 @@ int webchat_transfer_parallel(struct http_connection*http, int destpid, aroop_tx
 	return ret;
 }
 
+int web_session_transfer_parallel(struct streamio*strm, int destpid, int proto_port, aroop_txt_t*cmd) {
+	aroop_txt_t wrapper_cmd = {};
+	int cmdlen = aroop_txt_length(cmd) + sizeof(HTTP_WEB_SESSION_TRANSFER_WRAPPER) + 4;
+	aroop_txt_embeded_stackbuffer(&wrapper_cmd, cmdlen);
+	aroop_txt_concat_string_len(&wrapper_cmd, HTTP_WEB_SESSION_TRANSFER_WRAPPER, sizeof(HTTP_WEB_SESSION_TRANSFER_WRAPPER)-1);
+	aroop_txt_concat_char(&wrapper_cmd, ' ');
+	aroop_txt_concat(&wrapper_cmd, cmd);
+	syslog(LOG_NOTICE, "parallel join transfer %d %s\n", destpid, aroop_txt_to_string(cmd));
+	int ret = default_transfer_parallel(strm, destpid, NGINZ_HTTP_PORT, &wrapper_cmd);
+	struct http_connection*http = (struct http_connection*)strm;
+	http->state |= CHAT_SOFT_QUIT; // quit the user from this process
+	syslog(LOG_NOTICE, "transferred to %d %s\n", destpid, aroop_txt_to_string(&wrapper_cmd));
+	aroop_txt_destroy(&wrapper_cmd);
+	return ret;
+}
+
 static struct web_session_hooks*web_hooks = NULL;
+
+static int webchat_chain_helper(struct http_connection*http, struct web_session_connection*webchat) {
+	streamio_chain(&http->strm, &webchat->strm); // it increases reference count for [webchat]
+	http->strm.transfer_parallel = web_session_transfer_parallel;
+	return 0;
+}
 
 static struct web_session_connection* http_webchat_create_helper(struct http_connection*http, aroop_txt_t*plugin_space, aroop_txt_t*request) {
 	aroop_assert(http->strm.bubble_down == NULL);
@@ -42,10 +64,7 @@ static struct web_session_connection* http_webchat_create_helper(struct http_con
 		syslog(LOG_ERR, "Could not create a chat connection\n");
 		return NULL;
 	}
-	streamio_chain(&http->strm, &webchat->strm); // it increases reference count for [chat]
-#if 0
-	http->strm.transfer_parallel = webchat_transfer_parallel;
-#endif
+	webchat_chain_helper(http, webchat);
 	struct chat_connection*chat = (struct chat_connection*)webchat->strm.bubble_down;
 	chat->request = request; // the real request
 	composite_plugin_bridge_call(chat_plugin_manager_get(), plugin_space, CHAT_SIGNATURE, chat);
@@ -53,25 +72,27 @@ static struct web_session_connection* http_webchat_create_helper(struct http_con
 	return webchat;
 }
 
-#if 0
-static int http_webchat_hiddenjoin_plug(int signature, void*given) {
+static int http_web_session_transfer_plug(int signature, void*given) {
 	aroop_assert(signature == HTTP_SIGNATURE);
 	struct http_connection*http = (struct http_connection*)given;
 	if(!IS_VALID_HTTP(http)) // sanity check
 		return 0;
 	aroop_txt_t hidden_join_cmd = {};
 	aroop_txt_embeded_rebuild_copy_shallow(&hidden_join_cmd, &http->content); // needs cleanup
-	aroop_txt_shift(&hidden_join_cmd, sizeof(WEBCHAT_HIDDEN_JOIN_PREFIX));
-	aroop_txt_shift(&hidden_join_cmd, 1); // skip the space
-	//aroop_txt_zero_terminate(&hidden_join_cmd);syslog(LOG_NOTICE, "Doing hidden join for[%s]\n", aroop_txt_to_string(&hidden_join_cmd));
+	aroop_txt_shift(&hidden_join_cmd, sizeof(HTTP_WEB_SESSION_TRANSFER_WRAPPER));
+	//aroop_txt_shift(&hidden_join_cmd, 1); // skip the space
+	aroop_txt_zero_terminate(&hidden_join_cmd);syslog(LOG_NOTICE, "Doing hidden join for[%s]\n", aroop_txt_to_string(&hidden_join_cmd));
 	aroop_txt_t plugin_space = {};
 	aroop_txt_embeded_set_static_string(&plugin_space, "chat/_hiddenjoin");
 	http_webchat_create_helper(http, &plugin_space, &hidden_join_cmd);
 	aroop_txt_destroy(&hidden_join_cmd);
 	aroop_txt_destroy(&plugin_space);
+	struct web_session_connection*webchat = (struct web_session_connection*)http->strm.bubble_down;
+	if(webchat) {
+		streamio_unchain(&http->strm, &webchat->strm); // unchain and decrease reference count of webchat
+	}
 	return 0;
 }
-#endif
 
 static int http_webchat_get_sessionid_trim_webchat_prefix(aroop_txt_t*sid) {
 	int reallen = aroop_txt_length(sid);
@@ -165,7 +186,7 @@ static int http_webchat_plug(int signature, void*given) {
 			webchat = web_hooks->search(&sid);
 			if(webchat) {
 				syslog(LOG_NOTICE, "found %s\n", aroop_txt_to_string(&rest));
-				streamio_chain(&http->strm, &webchat->strm); // it increases reference count for [chat]
+				webchat_chain_helper(http, webchat); // it increases reference count for [chat]
 			}
 		}
 		if(!webchat) {
@@ -195,9 +216,22 @@ static int http_webchat_plug(int signature, void*given) {
 		syslog(LOG_NOTICE, "calling chat on_recv .. %s \n", aroop_txt_to_string(&rest));
 		struct chat_connection*chat = (struct chat_connection*)webchat->strm.bubble_down;
 		chat->strm.on_recv(&chat->strm, &rest);
-		if(!http->is_processed) {
+		if(!http->is_processed && !(http->state & (HTTP_SOFT_QUIT | HTTP_QUIT))) {
 			// send http OK to let them know we are working ..
-			http->strm.send(&http->strm, NULL, 0);
+			if(aroop_txt_is_empty(&webchat->msg)) {
+				aroop_txt_t SPACE = {};
+				aroop_txt_embeded_set_static_string(&SPACE, " ");
+				webchat->strm.send(&webchat->strm, &SPACE, 0);
+			}
+			if(!aroop_txt_is_empty(&webchat->msg)) {
+				default_streamio_send(&webchat->strm, &webchat->msg, 0); // send the message (through http tunnel may be)
+				aroop_txt_set_length(&webchat->msg, 0); // next time we start empty message cache
+			}
+#if 0
+			if(!http->is_processed) {
+				http->strm.send(&http->strm, NULL, 0);
+			}
+#endif
 		}
 	}while(0);
 	if(webchat) {
@@ -228,10 +262,8 @@ int web_chat_module_init() {
 	aroop_txt_t plugin_space = {};
 	aroop_txt_embeded_set_static_string(&plugin_space, HTTP_WEBCHAT_PLUG);
 	composite_plug_bridge(http_plugin_manager_get(), &plugin_space, http_webchat_plug, http_webchat_plug_desc);
-#if 0
-	aroop_txt_embeded_set_static_string(&plugin_space, WEBCHAT_HIDDEN_JOIN_PREFIX);
-	composite_plug_bridge(http_plugin_manager_get(), &plugin_space, http_webchat_hiddenjoin_plug, http_webchat_plug_desc);
-#endif
+	aroop_txt_embeded_set_static_string(&plugin_space, HTTP_WEB_SESSION_TRANSFER_WRAPPER);
+	composite_plug_bridge(http_plugin_manager_get(), &plugin_space, http_web_session_transfer_plug, http_webchat_plug_desc);
 	aroop_txt_embeded_set_static_string(&plugin_space, "web_session/api/hookup");
 	pm_plug_bridge(&plugin_space, web_session_api_plug, web_session_api_plug_desc);
 	page_chat_module_init();
@@ -244,9 +276,7 @@ int web_chat_module_deinit() {
 	page_chat_module_deinit();
 	pm_unplug_bridge(0, web_session_api_plug);
 	composite_unplug_bridge(http_plugin_manager_get(), 0, http_webchat_plug);
-#if 0
-	composite_unplug_bridge(http_plugin_manager_get(), 0, http_webchat_hiddenjoin_plug);
-#endif
+	composite_unplug_bridge(http_plugin_manager_get(), 0, http_web_session_transfer_plug);
 	return 0;
 }
 

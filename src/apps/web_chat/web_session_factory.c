@@ -90,13 +90,12 @@ int web_session_send_wrapper(struct streamio*strm, aroop_txt_t*content, int flag
 	if(!aroop_txt_is_empty_magical(content)) {
 		aroop_txt_concat(&web_session->msg, content);
 	}
-	if(!aroop_txt_is_empty(&web_session->msg) && !(flags & MSG_MORE)) { // if there is no more data 
+	if(!aroop_txt_is_empty(&web_session->msg) && !(flags & MSG_MORE) && (web_session->strm.bubble_up)) { // if there is no more data 
 		default_streamio_send(&web_session->strm, &web_session->msg, 0); // send the message (through http tunnel may be)
 		aroop_txt_set_length(&web_session->msg, 0); // next time we start empty message cache
 	}
 	return 0;
 }
-
 
 OPP_CB(web_session_connection) {
 	struct web_session_connection*web_session = data;

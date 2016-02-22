@@ -4,6 +4,7 @@
 #include "nginz_config.h"
 #include "log.h"
 #include "plugin.h"
+#include <sys/socket.h>
 #include "net/streamio.h"
 #include "net/chat.h"
 #include "net/chat/chat_plugin_manager.h"
@@ -76,7 +77,7 @@ static int chat_join_plug(int signature, void*given) {
 		}
 		aroop_txt_embeded_stackbuffer(&join_info, 64);
 		aroop_txt_printf(&join_info, "Trying ...(%d)\n", pid);
-		chat->strm.send(&chat->strm, &join_info, 0);
+		chat->strm.send(&chat->strm, &join_info, MSG_MORE);
 		aroop_txt_set_length(&join_info, 0);
 		chat_join_helper(chat, &room, pid);
 	} while(0);

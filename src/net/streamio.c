@@ -33,7 +33,9 @@ int default_streamio_close(struct streamio*strm) {
 }
 
 int default_transfer_parallel(struct streamio*strm, int destpid, int proto_port, aroop_txt_t*cmd) {
+	syslog(LOG_NOTICE, "default_transfer_parallel: transfering to %d", destpid);
 	if(strm->bubble_up) {
+		syslog(LOG_NOTICE, "default_transfer_parallel: bubble up ");
 		return strm->bubble_up->transfer_parallel(strm->bubble_up, destpid, proto_port, cmd);
 	}
 	int mypid = getpid(); // we may do little optimiztion here by saving getpid() value ..
