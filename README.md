@@ -170,3 +170,12 @@ Tasks
 ======
 
 Please refer to [tasks](TASKS.md) page.
+
+Debug notes
+===========
+
+For server crash, use
+
+```
+addr2line -e ./nginz_main_debug ip
+```

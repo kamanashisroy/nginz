@@ -1,4 +1,4 @@
-GET /webchat HTTP/1.1
+POST /webchat HTTP/1.1
 Host: localhost
 Content-Length: 0
 Connection: keep-alive

@@ -15,26 +15,30 @@ C_CAPSULE_START
 "<head>" \
 "<script type=\"text/javascript\">\n" \
 "var chat = (function() {\n" \
+	"var sid = \"\";\n" \
 	"return {\n" \
-		"var xhr = new XMLHttpRequest();\n" \
-		"xhr.open('POST', '/webchat', false);" \
-		"xhr.setRequestHeader('Connection', 'Keep-Alive');" \
-		"xhr.setRequestHeader('Keep-Alive', 'timeout=3600, max=3600');" \
-		"xhr.onload = function (e) {\n" \
-		  "if (xhr.readyState === 4) {\n" \
-		    "if (xhr.status === 200) {\n" \
-		      "console.log(xhr.responseText);\n" \
-		      "document.getElementById(\"response_box\").value = xhr.responseText;\n" \
-		    "} else {\n" \
-		      "console.error(xhr.statusText);\n" \
-		    "}\n" \
-		  "}\n" \
-		"};\n" \
-		"xhr.onerror = function (e) {\n" \
-		  "console.error(xhr.statusText);\n" \
-		"};\n" \
 		"submit : function() {\n" \
-			"xhr.send(document.getElementById('chat_box').value);\n" \
+			"var xhr = new XMLHttpRequest();\n" \
+			"xhr.open('POST', '/webchat', true);" \
+			"xhr.setRequestHeader('Connection', 'Keep-Alive');" \
+			"xhr.setRequestHeader('Keep-Alive', 'timeout=3600, max=3600');" \
+			"xhr.onload = function (e) {\n" \
+				"if (xhr.readyState === 4) {\n" \
+					"if (xhr.status === 200) {\n" \
+						"console.log(xhr.responseText);\n" \
+						"sid = xhr.responseText.slice(0, xhr.responseText.indexOf('\\n')) + '\\n';" \
+						"console.log(\"sid=\"+sid);\n" \
+						"var msg = xhr.responseText.slice(xhr.responseText.indexOf('\\n'));\n" \
+						"document.getElementById(\"response_box\").value = msg;\n" \
+					"} else {\n" \
+						"console.error(xhr.statusText);\n" \
+					"}\n" \
+				"}\n" \
+			"};\n" \
+			"xhr.onerror = function (e) {\n" \
+				"console.error(xhr.statusText);\n" \
+			"};\n" \
+			"xhr.send(sid + document.getElementById('chat_box').value + \"\\n\");\n" \
 			"return false;\n" \
 		"}\n" \
 	"};\n" \
@@ -47,8 +51,8 @@ C_CAPSULE_START
 "Please write your name. The commands should be prefixed with '/' character. Enjoy." \
 "</textarea>" \
 "<form id=\"chat_form\" onsubmit=\"return chat.submit();\">" \
-"<input type=\"text\" name=\"message\"/>" \
-"<input id=\"chat_box\" type=\"submit\" name=\"send\"/>" \
+"<input type=\"text\" id=\"chat_box\" name=\"message\"/>" \
+"<input type=\"submit\" name=\"send\"/>" \
 "</form>" \
 "</div>" \
 "</body>" \

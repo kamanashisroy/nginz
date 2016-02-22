@@ -47,6 +47,7 @@ int default_streamio_close(struct streamio*strm);
 int default_transfer_parallel(struct streamio*strm, int destpid, int proto_port, aroop_txt_t*cmd);
 int streamio_initialize(struct streamio*strm);
 int streamio_chain(struct streamio*up, struct streamio*down);
+int streamio_unchain(struct streamio*up, struct streamio*down);
 int streamio_finalize(struct streamio*strm);
 
 #define IS_VALID_STREAM(x) ((x)->fd != INVALID_FD || (x)->bubble_up != NULL)

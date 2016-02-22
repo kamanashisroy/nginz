@@ -82,6 +82,15 @@ int streamio_chain(struct streamio*up, struct streamio*down) {
 	up->bubble_down = OPPREF(down);
 }
 
+int streamio_unchain(struct streamio*up, struct streamio*down) {
+	down->bubble_up = NULL;
+	if(up->bubble_down == down) {
+		OPPUNREF(up->bubble_down);
+	}
+	return 0;
+}
+
+
 
 C_CAPSULE_END
 
