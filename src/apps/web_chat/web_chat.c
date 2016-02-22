@@ -55,7 +55,7 @@ static int http_webchat_create_helper(struct http_connection*http, aroop_txt_t*p
 static int http_webchat_hiddenjoin_plug(int signature, void*given) {
 	aroop_assert(signature == HTTP_SIGNATURE);
 	struct http_connection*http = (struct http_connection*)given;
-	if(!IS_VALID_CHAT(http)) // sanity check
+	if(!IS_VALID_HTTP(http)) // sanity check
 		return 0;
 	aroop_txt_t hidden_join_cmd = {};
 	aroop_txt_embeded_rebuild_copy_shallow(&hidden_join_cmd, &http->content); // needs cleanup
@@ -73,7 +73,7 @@ static int http_webchat_hiddenjoin_plug(int signature, void*given) {
 static int http_webchat_plug(int signature, void*given) {
 	aroop_assert(signature == HTTP_SIGNATURE);
 	struct http_connection*http = (struct http_connection*)given;
-	if(!IS_VALID_CHAT(http)) // sanity check
+	if(!IS_VALID_HTTP(http)) // sanity check
 		return 0;
 	struct chat_connection*chat = (struct chat_connection*)http->strm.bubble_down;
 	if(!chat) {
@@ -115,10 +115,12 @@ int web_chat_module_init() {
 	composite_plug_bridge(http_plugin_manager_get(), &plugin_space, http_webchat_hiddenjoin_plug, http_webchat_plug_desc);
 	aroop_txt_embeded_set_static_string(&plugin_space, "chatproto/hookup");
 	pm_plug_bridge(&plugin_space, web_chat_chatapi_hookup, web_chat_chatapi_hookup_desc);
+	page_chat_module_init();
 	return 0;
 }
 
 int web_chat_module_deinit() {
+	page_chat_module_deinit();
 	pm_unplug_bridge(0, web_chat_chatapi_hookup);
 	composite_unplug_bridge(http_plugin_manager_get(), 0, http_webchat_plug);
 	composite_unplug_bridge(http_plugin_manager_get(), 0, http_webchat_hiddenjoin_plug);
