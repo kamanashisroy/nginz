@@ -53,6 +53,7 @@ static int http_url_go(struct http_connection*http, aroop_txt_t*target) {
 
 static int http_url_parse(struct http_connection*http, aroop_txt_t*user_data, aroop_txt_t*target_url) {
 	aroop_txt_zero_terminate(user_data);
+	aroop_assert(aroop_txt_is_zero_terminated(user_data));
 	char*content = aroop_txt_to_string(user_data);
 	char*prev_header = NULL;
 	char*header = NULL;

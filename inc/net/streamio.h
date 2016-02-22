@@ -13,6 +13,7 @@ enum {
  */
 
 struct streamio {
+	struct opp_object_ext _ext; // so that it is searchable
 	/**
 	 * The fd of the stream. If there is no fd then it is set to -1/INVALID_FD.
 	 */
