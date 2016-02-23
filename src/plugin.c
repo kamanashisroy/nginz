@@ -2,6 +2,7 @@
 #include "aroop/aroop_core.h"
 #include "aroop/core/thread.h"
 #include "aroop/core/xtring.h"
+#include "nginz_config.h"
 #include "aroop/opp/opp_factory.h"
 #include "aroop/opp/opp_iterator.h"
 #include "aroop/opp/opp_factory_profiler.h"
@@ -62,8 +63,8 @@ OPP_CB(composite_plugin) {
 	struct composite_plugin*cplug = data;
 	switch(callback) {
 		case OPPN_ACTION_INITIALIZE:
-			OPP_PFACTORY_CREATE(&cplug->factory, 2, sizeof(struct internal_plugin), OPP_CB_FUNC(internal_plugin));
-			opp_hash_table_create(&cplug->table, 2, 0, aroop_txt_get_hash_cb, aroop_txt_equals_cb);
+			OPP_PFACTORY_CREATE(&cplug->factory, 32, sizeof(struct internal_plugin), OPP_CB_FUNC(internal_plugin));
+			opp_hash_table_create(&cplug->table, 16, 0, aroop_txt_get_hash_cb, aroop_txt_equals_cb);
 		break;
 		case OPPN_ACTION_FINALIZE:
 			OPP_PFACTORY_DESTROY(&cplug->factory);

@@ -26,7 +26,7 @@ static int rehash() {
 		return 0;
 }
 
-static int nginz_main(char*args) {
+static int nginz_main(char**args) {
 	daemon(0,0);
 	setlogmask (LOG_UPTO (LOG_NOTICE));
 	openlog ("nginz", LOG_CONS | LOG_PID | LOG_NDELAY, LOG_LOCAL1);

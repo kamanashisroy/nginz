@@ -47,7 +47,7 @@ AC_PROG_RANLIB
 
 AROOP_REQUIRED=0.2
 PKG_CHECK_MODULES(AROOP, aroop_core-0.2.0 >= $AROOP_REQUIRED,
-	[AROOP_DEBUG_LIBS=`$PKG_CONFIG --define-variable=variant=debug --static --libs aroop_core-0.2.0`],
+	[AROOP_DEBUG_LIBS=`$PKG_CONFIG --define-variable=variant=nginz --static --libs aroop_core-0.2.0`],
 	[AROOP_DEBUG_LIBS=;])
 AC_SUBST(AROOP_CFLAGS)
 AC_SUBST(AROOP_LIBS)

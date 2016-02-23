@@ -26,7 +26,7 @@ static int chat_profiler_plug(int signature, void*given) {
 	if(!IS_VALID_CHAT(chat)) // sanity check
 		return 0;
 	aroop_txt_t output = {};
-	aroop_txt_embeded_stackbuffer(&output, 2048);
+	aroop_txt_embeded_stackbuffer(&output, 1024<<4);
 	aroop_write_output_stream_t strm = {.cb_data = &output, .cb = chat_profiler_plug_write_cb};
 	aroop_memory_profiler_dump(strm, NULL, 1);
 	aroop_txt_concat_char(&output, '\n');
