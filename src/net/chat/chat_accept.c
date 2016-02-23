@@ -77,13 +77,19 @@ static int on_client_data(int fd, int status, const void*cb_data) {
 	aroop_txt_set_length(&recv_buffer, 1); // without it aroop_txt_to_string() will give NULL
 	int count = recv(chat->strm.fd, aroop_txt_to_string(&recv_buffer), aroop_txt_capacity(&recv_buffer), 0);
 	if(count == 0) {
-		syslog(LOG_INFO, "Client disconnected\n");
+		syslog(LOG_INFO, "Client disconnected");
+		chat->strm.close(&chat->strm);
+		OPPUNREF(chat);
+		return -1;
+	}
+	if(count == -1) {
+		syslog(LOG_ERR, "Error reading chat data %s", strerror(errno));
 		chat->strm.close(&chat->strm);
 		OPPUNREF(chat);
 		return -1;
 	}
 	if(count >= NGINZ_MAX_CHAT_MSG_SIZE) {
-		syslog(LOG_INFO, "Disconnecting client for too big data input\n");
+		syslog(LOG_INFO, "Disconnecting client for too big data input");
 		chat->strm.close(&chat->strm);
 		OPPUNREF(chat);
 		return -1;

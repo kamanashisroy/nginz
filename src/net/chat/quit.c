@@ -20,7 +20,7 @@ static int chat_quit_plug(int signature, void*given) {
 	broadcast_room_leave(chat);
 	// chat->set_state(chat, CHAT_QUIT);
 	chat->state |= CHAT_QUIT;
-	logoff_user(&chat->name);
+	logoff_user(chat);
 	chat->strm.send(&chat->strm, &BYE, 0);
 	return -1;
 }

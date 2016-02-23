@@ -5,7 +5,7 @@
 C_CAPSULE_START
 
 int try_login(aroop_txt_t*name);
-int logoff_user(aroop_txt_t*name);
+int logoff_user(struct chat_connection*chat);
 
 C_CAPSULE_END
 

@@ -20,6 +20,16 @@ C_CAPSULE_START
 
 
 static int default_chat_close(struct streamio*strm) {
+	struct chat_connection*chat = (struct chat_connection*)strm;
+	if(!(chat->state & (CHAT_SOFT_QUIT | CHAT_QUIT))) {
+		chat->state |= CHAT_QUIT;
+	}
+	if(chat->state & CHAT_IN_ROOM) {
+		broadcast_room_leave(chat);
+	}
+	if(chat->state & CHAT_LOGGED_IN) {
+		logoff_user(chat);
+	}
 	if(strm->bubble_up) {
 		return strm->bubble_up->close(strm->bubble_up);
 	}

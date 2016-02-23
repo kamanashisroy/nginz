@@ -5,6 +5,8 @@
 #include <aroop/core/xtring.h>
 #include "db.h"
 #include "log.h"
+#include "net/streamio.h"
+#include "net/chat.h"
 #include "net/chat/user.h"
 
 C_CAPSULE_START
@@ -38,17 +40,18 @@ int try_login(aroop_txt_t*name) {
 	return ret;
 }
 
-int logoff_user(aroop_txt_t*name) {
+int logoff_user(struct chat_connection*chat) {
 	int ret = 0;
-	if(aroop_txt_is_empty_magical(name)) // sanity check
+	if(aroop_txt_is_empty_magical(&chat->name)) // sanity check
 		return -1;
 	aroop_txt_t name_key = {};
 	aroop_txt_embeded_stackbuffer(&name_key, 128);
-	build_name_key(name, &name_key);
+	build_name_key(&chat->name, &name_key);
 	aroop_txt_t result = {};
 	aroop_memclean_raw2(&result);
 	db_set(aroop_txt_to_string(&name_key), aroop_txt_to_string(&result));
 	aroop_txt_destroy(&result);
+	chat->state &= ~CHAT_LOGGED_IN;
 	return ret;
 
 }
