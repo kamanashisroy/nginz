@@ -6,12 +6,13 @@
 #include "aroop/opp/opp_factory_profiler.h"
 #include "nginz_config.h"
 #include "event_loop.h"
-#include "plugin.h"
 #include "log.h"
+#include "plugin.h"
 #include "plugin_manager.h"
 #include "net/protostack.h"
 #include "net/streamio.h"
 #include "net/chat.h"
+#include "net/chat/chat_plugin_manager.h"
 #include "net/chat/chat_factory.h"
 
 C_CAPSULE_START
@@ -48,6 +49,58 @@ static int chat_factory_on_softquit(aroop_txt_t*plugin_space, aroop_txt_t*output
 
 static int chat_factory_on_softquit_desc(aroop_txt_t*plugin_space, aroop_txt_t*output) {
 	return plugin_desc(output, "softquitall", "shake", plugin_space, __FILE__, "It tries to destroy all the connections.\n");
+}
+
+static int chat_state_show(struct chat_connection*chat, aroop_txt_t*output) {
+	aroop_txt_concat_char(output, '[');
+	if(chat->state & CHAT_QUIT) {
+		aroop_txt_concat_string(output, "CHAT_QUIT");
+	} else if(chat->state & CHAT_SOFT_QUIT) {
+		aroop_txt_concat_string(output, "CHAT_SOFT_QUIT");
+	} else if(chat->state & CHAT_IN_ROOM) {
+		aroop_txt_concat_string(output, "CHAT_IN_ROOM");
+	} else if(chat->state & CHAT_LOGGED_IN) {
+		aroop_txt_concat_string(output, "CHAT_LOGGED_IN");
+	} else {
+		aroop_txt_concat_string(output, "CHAT_CONNECTED");
+	}
+	aroop_txt_concat_char(output, ']');
+	return 0;
+}
+
+static int chat_factory_show(int signature, void*given) {
+	aroop_assert(signature == CHAT_SIGNATURE);
+	struct chat_connection*chat = (struct chat_connection*)given;
+	if(!IS_VALID_CHAT(chat)) // sanity check
+		return 0;
+	aroop_txt_t output = {};
+	aroop_txt_embeded_stackbuffer(&output, 1024);
+	struct opp_iterator iterator = {};
+	opp_iterator_create(&iterator, &chat_factory, OPPN_ALL, 0, 0);
+	struct chat_connection*other = NULL;
+	while(other = opp_iterator_next(&iterator)) {
+		aroop_txt_concat_char(&output, '\t');
+		aroop_txt_concat(&output, &other->name);
+		aroop_txt_concat_char(&output, '\t');
+		chat_state_show(other, &output);
+		aroop_txt_concat_char(&output, '\t');
+		if(other->strm.bubble_up) {
+			aroop_txt_concat_string(&output, "chained");
+		}
+		aroop_txt_concat_char(&output, '\t');
+		if(other->strm.fd == INVALID_FD) {
+			aroop_txt_concat_string(&output, "invalid fd");
+		}
+		aroop_txt_concat_char(&output, '\t');
+		aroop_txt_concat_char(&output, '\n');
+	}
+	opp_iterator_destroy(&iterator);
+	chat->strm.send(&chat->strm, &output, 0);
+	return 0;
+}
+
+static int chat_factory_show_desc(aroop_txt_t*plugin_space, aroop_txt_t*output) {
+	return plugin_desc(output, "show", "chat", plugin_space, __FILE__, "It shows the chat objects.\n");
 }
 
 static struct chat_hooks*hooks = NULL;
@@ -93,6 +146,8 @@ static int chat_factory_hookup_desc(aroop_txt_t*plugin_space, aroop_txt_t*output
 int chat_factory_module_init() {
 	NGINZ_FACTORY_CREATE(&chat_factory, 64, sizeof(struct chat_connection), OPP_CB_FUNC(chat_connection));
 	aroop_txt_t plugin_space = {};
+	aroop_txt_embeded_set_static_string(&plugin_space, "chat/show");
+	composite_plug_bridge(chat_plugin_manager_get(), &plugin_space, chat_factory_show, chat_factory_show_desc);
 	aroop_txt_embeded_set_static_string(&plugin_space, "shake/softquitall");
 	pm_plug_callback(&plugin_space, chat_factory_on_softquit, chat_factory_on_softquit_desc);
 	aroop_txt_embeded_set_static_string(&plugin_space, "chatproto/hookup");
@@ -100,6 +155,7 @@ int chat_factory_module_init() {
 }
 
 int chat_factory_module_deinit() {
+	composite_unplug_bridge(chat_plugin_manager_get(), 0, chat_factory_show);
 	pm_unplug_callback(0, chat_factory_on_softquit);
 	pm_unplug_bridge(0, chat_factory_hookup);
 	struct opp_iterator iterator;

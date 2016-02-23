@@ -78,6 +78,7 @@ static struct web_session_hooks web_hooks = {
 int web_session_close_wrapper(struct streamio*strm) {
 	struct web_session_connection*web_session = (struct web_session_connection*)strm;
 	web_session->last_activity = 0;
+	aroop_txt_embeded_rebuild_and_set_static_string(&web_session->sid, "invalid");
 	return default_streamio_close(strm);
 }
 

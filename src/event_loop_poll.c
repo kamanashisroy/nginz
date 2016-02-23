@@ -2,6 +2,7 @@
 #include "aroop/aroop_core.h"
 #include "aroop/core/xtring.h"
 #include "nginz_config.h"
+#include "log.h"
 #include "plugin.h"
 #include "plugin_manager.h"
 #include "event_loop.h"
@@ -102,6 +103,10 @@ static int event_loop_step(int status) {
 	int count = 0;
 	if(!(count = poll(internal_fds, internal_nfds, 100)))
 		return 0;
+	if(count == -1) {
+		syslog(LOG_ERR, "event_loop.c poll failed %s", strerror(errno));
+	}
+	aroop_assert(count != -1);
 	return event_loop_step_helper(count);
 }
 

@@ -9,7 +9,6 @@ lib_LIBRARIES=$(TARGET_AR)
 NGINZ_SOURCE_FILES = \
 src/fiber.c     src/plugin.c	src/plugin_manager.c	src/scanner.c \
 src/db.c \
-src/event_loop.c \
 src/binary_coder.c \
 src/net/streamio.c \
 src/shake.c	src/shake/help.c	src/shake/test.c	src/shake/quitall.c \
@@ -19,6 +18,7 @@ src/net/chat.c	src/net/chat/chat_plugin_manager.c	src/net/chat/welcome.c	src/net
 src/net/http.c	src/net/http/http_accept.c	src/net/http/http_factory.c	src/net/http/http_parser.c	src/net/http/http_plugin_manager.c	src/net/http/http_tunnel.c \
 src/apps/web_chat/web_chat.c	src/apps/web_chat/page_chat.c	src/apps/web_chat/web_session_factory.c
 
+NGINZ_SOURCE_FILES += src/event_loop_poll.c
 pkgincludedir=$(includedir)/nginz@PACKAGE_SUFFIX@
 nobase_pkginclude_HEADERS= \
 inc/event_loop.h \

@@ -8,25 +8,26 @@ Tasks
 - [x] Write a version command.
 
 ### Aroop
-- [ ] Turn off the HAS_THREAD from aroop core. We do not need threading or locking.
+- [x] Turn off the HAS_THREAD from aroop core. We do not need threading or locking.
 - [ ] Use OPP_PFACTORY_CREATE_FULL to tune all the flags.
 
 ### net
 - [x] Add HTTP support.
-- [ ] Use epoll instead of poll.
+- [ ] add event_loop_epoll.c implementation based on epoll .
+- [ ] add event_loop_poll_openmp.c implementation based on partitioned polling.
 
 ### parallel
 
 ### chat
-- [ ] Limit the username and chatroom length.
+- [x] Limit the username and chatroom length.
 - [x] Limit user input length.
 - [x] Disallow hidden command from user.
 - [ ] Add uname command
 - [x] Add uptime command
-- [ ] Show number of users served
+- [x] Show number of users served
 - [x] Add profiler command to show memory profiler
-- [ ] Add HTTP support for chat
-	- [ ] Create webchat interface
+- [x] Add HTTP support for chat
+	- [x] Create webchat interface
 - [ ] Write pidgin plugin
 
 ### shake
