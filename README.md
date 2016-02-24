@@ -112,6 +112,12 @@ BYE
 Connection closed by foreign host.
 ```
 
+Webchat
+========
+The nginz http uses session to tunnel state-ful chat server.
+
+The [web-chat live demo prototype is available here](ec2-54-191-149-216.us-west-2.compute.amazonaws.com/pagechat).
+
 Command shell
 =============
 
