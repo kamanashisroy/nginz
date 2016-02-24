@@ -116,7 +116,7 @@ Webchat
 ========
 The nginz http uses session to tunnel state-ful chat server.
 
-The [web-chat live demo prototype is available here](ec2-54-191-149-216.us-west-2.compute.amazonaws.com/pagechat).
+The [web-chat live demo prototype is available here](http://ec2-54-191-149-216.us-west-2.compute.amazonaws.com/pagechat).
 
 Command shell
 =============
