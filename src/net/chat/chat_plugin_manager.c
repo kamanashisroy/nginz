@@ -23,6 +23,7 @@
 #include "net/chat/broadcast.h"
 #include "net/chat/leave.h"
 #include "net/chat/quit.h"
+#include "net/chat/private_message.h"
 #include "net/chat/uptime.h"
 #include "net/chat/version.h"
 
@@ -100,6 +101,7 @@ int chat_plugin_manager_module_init() {
 	hiddenjoin_module_init();
 	leave_module_init();
 	quit_module_init();
+	private_message_module_init();
 	uptime_module_init();
 	version_module_init();
 	chat_profiler_module_init();
@@ -118,6 +120,7 @@ int chat_plugin_manager_module_deinit() {
 	chat_profiler_module_deinit();
 	version_module_deinit();
 	uptime_module_deinit();
+	private_message_module_deinit();
 	quit_module_deinit();
 	leave_module_deinit();
 	hiddenjoin_module_deinit();

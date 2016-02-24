@@ -23,6 +23,29 @@ struct internal_room {
 };
 static struct opp_factory room_factory;
 
+int broadcast_private_message(struct chat_connection*chat, aroop_txt_t*to, aroop_txt_t*msg) {
+	struct internal_room*rm = (struct internal_room*)(chat->callback_data);
+	if(!rm) {
+		syslog(LOG_ERR, "We do not know how we send private message\n");
+		return 0;
+	}
+	// iterate through all
+	struct opp_iterator iterator = {};
+	opp_iterator_create(&iterator, &rm->user_list, OPPN_ALL, 0, 0);
+	opp_pointer_ext_t*pt;
+	while(pt = opp_iterator_next(&iterator)) {
+		struct chat_connection*other = (struct chat_connection*)pt->obj_data;
+		if(!aroop_txt_equals(to, &other->name))
+			continue; // do not broadcast to self
+
+		// pm
+		other->strm.send(&other->strm, msg, 0);
+		break;
+	}
+	opp_iterator_destroy(&iterator);
+	return 0;
+}
+
 static int broadcast_callback_helper(struct chat_connection*chat, struct internal_room*rm, aroop_txt_t*msg) {
 	// iterate through all
 	struct opp_iterator iterator = {};
@@ -48,7 +71,7 @@ static int broadcast_callback(struct chat_connection*chat, aroop_txt_t*msg) {
 	}
 	// iterate all the user
 	aroop_txt_t resp = {};
-	aroop_txt_embeded_stackbuffer(&resp, 1024);
+	aroop_txt_embeded_stackbuffer(&resp, NGINZ_MAX_CHAT_USER_NAME_SIZE + NGINZ_MAX_CHAT_MSG_SIZE);
 	aroop_txt_concat(&resp, &chat->name); // show the message sender name
 	aroop_txt_concat_char(&resp, ':');
 	aroop_txt_concat(&resp, msg); // show the message

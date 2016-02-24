@@ -49,7 +49,7 @@ C_CAPSULE_START
 "<body>" \
 "<div>" \
 "<textarea id=\"response_box\" rows=\"20\" cols=\"100\">" \
-"Please write your name. The commands should be prefixed with '/' character. Enjoy." \
+"Please write your name. The commands should be prefixed with '/' character. Type /help for the list of commands. Enjoy." \
 "</textarea>" \
 "<form id=\"chat_form\" onsubmit=\"return chat.submit();\">" \
 "<input type=\"text\" id=\"chat_box\" name=\"message\"/>" \

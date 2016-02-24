@@ -14,9 +14,10 @@ C_CAPSULE_START
 static int chat_hiddenjoin_get_room_and_name(aroop_txt_t*request, aroop_txt_t*room, aroop_txt_t*name) {
 	aroop_txt_t request_sandbox = {};
 	aroop_txt_t token = {};
-	int reqlen = aroop_txt_length(request);
-	aroop_txt_embeded_stackbuffer(&request_sandbox, reqlen);
-	aroop_txt_concat(&request_sandbox, request);
+	//int reqlen = aroop_txt_length(request);
+	//aroop_txt_embeded_stackbuffer(&request_sandbox, reqlen);
+	//aroop_txt_concat(&request_sandbox, request);
+	aroop_txt_embeded_stackbuffer_from_txt(&request_sandbox, request);
 	shotodol_scanner_next_token(&request_sandbox, &token); // chat/_hiddenjoin
 	if(aroop_txt_is_empty(&token)) {
 		return -1;
