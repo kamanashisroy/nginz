@@ -13,7 +13,7 @@ C_CAPSULE_START
 /**
  * Event loop configuration
  */
-#define MAX_POLL_FD 10000
+#define MAX_POLL_FD 10000 // for some implementation this value must by devisible by some POLL_PARTITION value
 #define NGINZ_POLL_LISTEN_FLAGS POLLIN | POLLPRI | POLLHUP
 #define NGINZ_POLL_ALL_FLAGS POLLIN
 
