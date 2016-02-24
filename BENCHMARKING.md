@@ -60,3 +60,40 @@ Percentage of the requests served within a certain time (ms)
   99%  16549
  100%  63958 (longest request)
 ```
+
+We did some perfomance update
+==============================
+ab -r -n 1000000 -c 12000 http://localhost:80/
+
+```
+Concurrency Level:      12000
+Time taken for tests:   224.543 seconds
+Complete requests:      1000000
+Failed requests:        2409
+   (Connect: 0, Receive: 803, Length: 803, Exceptions: 803)
+Write errors:           0
+Total transferred:      48993238 bytes
+HTML transferred:       10998482 bytes
+Requests per second:    4453.49 [#/sec] (mean)
+Time per request:       2694.516 [ms] (mean)
+Time per request:       0.225 [ms] (mean, across all concurrent requests)
+Transfer rate:          213.08 [Kbytes/sec] received
+
+Connection Times (ms)
+              min  mean[+/-sd] median   max
+Connect:        0 1644 1828.4   1140   32307
+Processing:    99 1032 1666.8    989   64408
+Waiting:        0  741 332.8    731   36514
+Total:        315 2676 2483.7   2169   64408
+
+Percentage of the requests served within a certain time (ms)
+  50%   2169
+  66%   2437
+  75%   2872
+  80%   3066
+  90%   3608
+  95%   4963
+  98%   8785
+  99%   9217
+ 100%  64408 (longest request)
+```

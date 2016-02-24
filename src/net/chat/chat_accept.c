@@ -102,6 +102,7 @@ static int on_client_data(int fd, int status, const void*cb_data) {
 	return ret;
 }
 
+static int toggler = 0;
 static int on_tcp_connection(int fd) {
 	aroop_txt_t bin = {};
 	aroop_txt_embeded_stackbuffer(&bin, 255);
@@ -110,7 +111,13 @@ static int on_tcp_connection(int fd) {
 	aroop_txt_t welcome_command = {};
 	aroop_txt_embeded_set_static_string(&welcome_command, "chat/_welcome"); 
 	binary_pack_string(&bin, &welcome_command);
-	pp_bubble_down_send_socket(fd, &bin);
+	if(toggler) {
+		toggler = 0;
+		pp_bubble_down_send_socket(fd, &bin);
+	} else {
+		toggler = 1;
+		pp_bubble_up_send_socket(fd, &bin);
+	}
 	return 0;
 }
 

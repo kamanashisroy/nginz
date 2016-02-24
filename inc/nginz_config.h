@@ -17,7 +17,7 @@ enum parallel_config {
  * Event loop configuration
  */
 enum event_loop_config {
-	MAX_POLL_FD = 10000, // for some implementation this value must by devisible by some POLL_PARTITION value
+	MAX_POLL_FD = 20000, // for some implementation this value must by devisible by some POLL_PARTITION value
 	NGINZ_POLL_LISTEN_FLAGS = POLLIN | POLLPRI | POLLHUP,
 	NGINZ_POLL_ALL_FLAGS = POLLIN | POLLPRI | POLLHUP,
 };
@@ -35,7 +35,7 @@ enum protocol_config {
  * TCP listen config
  */
 enum tcp_config {
-	NGINZ_TCP_LISTENER_BACKLOG = 1024, /* XXX we are setting this too high */
+	NGINZ_TCP_LISTENER_BACKLOG = 1024<<1, /* XXX we are setting this too high */
 };
 
 /**

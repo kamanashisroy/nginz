@@ -17,8 +17,9 @@
 C_CAPSULE_START
 
 static struct http_hooks*hooks = NULL;
-int http_accept_module_is_quiting = 0;
+static int http_accept_module_is_quiting = 0;
 #define HTTP_WELCOME "http/welcome"
+static int toggler = 0;
 static int http_on_tcp_connection(int fd) {
 	aroop_txt_t bin = {};
 	aroop_txt_embeded_stackbuffer(&bin, 255);
@@ -27,7 +28,13 @@ static int http_on_tcp_connection(int fd) {
 	aroop_txt_t welcome_command = {};
 	aroop_txt_embeded_set_static_string(&welcome_command, HTTP_WELCOME); 
 	binary_pack_string(&bin, &welcome_command);
-	pp_bubble_down_send_socket(fd, &bin);
+	if(toggler) {
+		toggler = 0;
+		pp_bubble_down_send_socket(fd, &bin);
+	} else {
+		toggler = 1;
+		pp_bubble_up_send_socket(fd, &bin);
+	}
 	return 0;
 }
 

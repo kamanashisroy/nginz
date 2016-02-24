@@ -26,10 +26,13 @@ struct connection {
 /****************************************************/
 C_CAPSULE_START
 
-int child = -1;
-int mchild = -1;
-int parent = -1;
-int mparent = -1;
+static int loop_pipefd[2];
+static int mloop_pipefd[2];
+/****************************************************/
+static int child = -1;
+static int mchild = -1;
+static int parent = -1;
+static int mparent = -1;
 
 NGINZ_INLINE int pp_bubble_down(aroop_txt_t*pkt) {
 	// sanity check
@@ -77,21 +80,24 @@ NGINZ_INLINE static int pp_sendmsg_helper(int through, int target, aroop_txt_t*c
 }
 
 NGINZ_INLINE int pp_bubble_down_send_socket(int socket, aroop_txt_t*cmd) {
-	//printf("Sending fd %d to child\n", socket);
+	//syslog(LOG_NOTICE, "[pid:%d]\tsending fd %d to child", getpid(), socket);
 	return pp_sendmsg_helper(mchild, socket, cmd);
 }
 
 NGINZ_INLINE int pp_bubble_up(aroop_txt_t*pkt) {
 	// sanity check
-	if(parent == -1)
-		return -1;
-	send(parent, aroop_txt_to_string(pkt), aroop_txt_length(pkt), 0);
-	return 0;
+	if(parent == -1) {
+		return send(loop_pipefd[1], aroop_txt_to_string(pkt), aroop_txt_length(pkt), 0);
+	}
+	return send(parent, aroop_txt_to_string(pkt), aroop_txt_length(pkt), 0);
 }
 
 NGINZ_INLINE int pp_bubble_up_send_socket(int socket, aroop_txt_t*cmd) {
-	if(mparent == -1)
-		return -1;
+	if(mparent == -1) {
+		//syslog(LOG_NOTICE, "[pid:%d]\tsending fd %d to last child", getpid(), socket);
+		return pp_sendmsg_helper(mloop_pipefd[1], socket, cmd);
+	}
+	//syslog(LOG_NOTICE, "[pid:%d]\tsending fd %d to parent", getpid(), socket);
 	return pp_sendmsg_helper(mparent, socket, cmd);
 }
 
@@ -191,6 +197,10 @@ static int skip_load() {
 	return (load % (NGINZ_NUMBER_OF_PROCESSORS-1));
 }
 
+static int has_child() {
+	return (mchild != -1) && (mchild != mloop_pipefd[0]);
+}
+
 static int on_bubble_down_recv_socket(int fd, int events, const void*unused) {
 	int port = 0;
 	int destpid = 0;
@@ -198,6 +208,7 @@ static int on_bubble_down_recv_socket(int fd, int events, const void*unused) {
 	aroop_txt_t cmd = {};
 	aroop_assert(fd == mparent);
 	do {
+		//syslog(LOG_NOTICE, "[pid:%d]\treceiving from parent", getpid());
 		if(pp_recvmsg_helper(fd, &acceptfd, &cmd)) {
 			break;
 		}
@@ -214,7 +225,7 @@ static int on_bubble_down_recv_socket(int fd, int events, const void*unused) {
 			pp_bubble_down_send_socket(acceptfd, &cmd);
 			break;
 		}
-		if(destpid <= 0 && mchild != -1 && skip_load()) {
+		if(destpid <= 0 && has_child() && skip_load()) {
 			//printf("balancing load on %d\n", getpid());
 			pp_bubble_down_send_socket(acceptfd, &cmd);
 			break;
@@ -245,6 +256,7 @@ static int on_bubble_up_send_socket(int fd, int events, const void*unused) {
 		aroop_assert("We cannot handle client in master\n");
 	}
 	do {
+		//syslog(LOG_NOTICE, "[pid:%d]\treceiving from child", getpid());
 		if(pp_recvmsg_helper(fd, &acceptfd, &cmd)) {
 			break;
 		}
@@ -255,7 +267,7 @@ static int on_bubble_up_send_socket(int fd, int events, const void*unused) {
 			//printf("It(%d) is not ours(%d) on bubble_up doing bubble_down\n", destpid, getpid());
 			// it is not ours
 			if(destpid > getpid()) {
-				syslog(LOG_ERR, "BUG, it cannot happen, we not not bubble_downing anymore\n");
+				syslog(LOG_ERR, "BUG, it cannot happen, we do not bubble_downing anymore\n");
 				break;
 			}
 			pp_bubble_up_send_socket(acceptfd, &cmd);
@@ -311,6 +323,10 @@ static int pp_fork_child_after_callback(aroop_txt_t*input, aroop_txt_t*output) {
 	aroop_assert(mchild == -1);
 	child = -1;
 	mchild = -1;
+	child = loop_pipefd[0];
+	mchild = mloop_pipefd[0];
+	event_loop_register_fd(child, on_bubble_up, NULL, NGINZ_POLL_ALL_FLAGS);
+	event_loop_register_fd(mchild, on_bubble_up_send_socket, NULL, NGINZ_POLL_ALL_FLAGS);
 	//close(pipefd[0]);
 	//close(mpipefd[0]);
 	return 0;
@@ -320,6 +336,16 @@ static int pp_fork_parent_after_callback(aroop_txt_t*input, aroop_txt_t*output) 
 	/****************************************************/
 	/********* We care about the child ******************/
 	/****************************************************/
+	if(child != -1) {
+		event_loop_unregister_fd(child); // we have nothing to do with looped child 
+		close(child);
+		child = -1;
+	}
+	if(mchild != -1) {
+		event_loop_unregister_fd(mchild); // we have nothing to do with looped child
+		close(mchild);
+		mchild = -1;
+	}
 	aroop_assert(child == -1);
 	aroop_assert(mchild == -1);
 	child = pipefd[0];
@@ -335,10 +361,13 @@ static int pp_fork_callback_desc(aroop_txt_t*plugin_space,aroop_txt_t*output) {
 	return plugin_desc(output, "pipeline", "fork", plugin_space, __FILE__, "It allows the processes to pipeline messages to and forth.\n");
 }
 
-/****************************************************/
 /****** Module constructors and destructors *********/
 /****************************************************/
 int pp_module_init() {
+	if(socketpair(AF_UNIX, SOCK_DGRAM, 0, loop_pipefd) || socketpair(AF_UNIX, SOCK_DGRAM, 0, mloop_pipefd)) {
+		syslog(LOG_ERR, "Failed to create pipe:%s\n", strerror(errno));
+		return -1;
+	}
 	aroop_txt_embeded_buffer(&recv_buffer, 255);
 	aroop_txt_t plugin_space = {};
 	aroop_txt_embeded_set_static_string(&plugin_space, "fork/before");

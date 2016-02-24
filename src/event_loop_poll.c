@@ -16,7 +16,6 @@ struct event_callback {
 	int (*on_debug)(int fd, const void*debug_data);
 #endif
 	const void*event_data;
-	int is_valid;
 };
 
 static struct pollfd internal_fds[MAX_POLL_FD];
@@ -35,7 +34,6 @@ int event_loop_register_fd(int fd, int (*on_event)(int fd, int returned_events, 
 	internal_fds[internal_nfds].revents = 0; // make sure we continue the event_loop without any conflict
 	internal_callback[internal_nfds].on_event = on_event;
 	internal_callback[internal_nfds].event_data = event_data;
-	internal_callback[internal_nfds].is_valid = 1;
 	internal_nfds++;
 }
 
@@ -52,7 +50,7 @@ int event_loop_register_debug(int fd, int (*on_debug)(int fd, const void*debug_d
 static int event_loop_debug() {
 	int i = 0;
 	for(i = 0; i < internal_nfds; i++) {
-		if(internal_callback[i].is_valid && internal_callback[i].on_debug)
+		if(internal_fds[i].events && internal_callback[i].on_debug)
 			internal_callback[i].on_debug(internal_fds[i].fd, internal_callback[i].event_data);
 	}
 }
@@ -64,9 +62,9 @@ int event_loop_unregister_fd(const int fd) {
 	for(i = 0; i < count; i++) {
 		if(internal_fds[i].fd != fd)
 			continue;
-		if(!internal_callback[i].is_valid)
+		if(!internal_fds[i].events)
 			continue;
-		internal_callback[i].is_valid = 0; // lazy unregister
+		internal_fds[i].events = 0; // lazy unregister
 		break;
 	}
 	return 0;
@@ -76,15 +74,15 @@ static int event_loop_batch_unregister() {
 	int i = 0;
 	int last = internal_nfds - 1;
 	// trim the last invalid elements
-	for(; last >= 0 && !internal_callback[last].is_valid; last--);
+	for(; last >= 0 && !internal_fds[last].events; last--);
 	// now we swap the invalid with last
 	for(i=0; i < last; i++) {
-		if(internal_callback[i].is_valid)
+		if(internal_fds[i].events)
 			continue;
 		internal_fds[i] = internal_fds[last];
 		internal_callback[i] = internal_callback[last];
 		last--;
-		for(; last >= 0 && !internal_callback[last].is_valid; last--);
+		for(; last >= 0 && !internal_fds[last].events; last--);
 	}
 	internal_nfds = last+1;
 	return 0;
@@ -94,7 +92,7 @@ static int event_loop_batch_unregister() {
 static int event_loop_step_helper(int count) {
 	int i = 0;
 	for(i = 0; i < internal_nfds && count; i++) {
-		if(!internal_fds[i].revents) {
+		if(!internal_fds[i].events || !internal_fds[i].revents) {
 			continue;
 		}
 		count--;
@@ -155,11 +153,13 @@ int event_loop_module_init() {
 	aroop_txt_t plugin_space;
 	aroop_txt_embeded_set_static_string(&plugin_space, "test/event_loop_test");
 	pm_plug_callback(&plugin_space, event_loop_test, event_loop_test_desc);
+	return 0;
 }
 
 int event_loop_module_deinit() {
 	unregister_fiber(event_loop_step);
 	pm_unplug_callback(0, event_loop_test);
+	return 0;
 }
 
 C_CAPSULE_END

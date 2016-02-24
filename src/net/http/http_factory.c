@@ -86,7 +86,7 @@ static int http_factory_hookup_desc(aroop_txt_t*plugin_space, aroop_txt_t*output
 
 
 int http_factory_module_init() {
-	NGINZ_FACTORY_CREATE(&http_factory, 64, sizeof(struct http_connection), OPP_CB_FUNC(http_connection));
+	NGINZ_FACTORY_CREATE(&http_factory, 256, sizeof(struct http_connection), OPP_CB_FUNC(http_connection));
 	aroop_txt_t plugin_space = {};
 	aroop_txt_embeded_set_static_string(&plugin_space, "shake/softquitall");
 	pm_plug_callback(&plugin_space, http_factory_on_softquit, http_factory_on_softquit_desc);
