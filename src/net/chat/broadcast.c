@@ -75,6 +75,7 @@ static int broadcast_callback(struct chat_connection*chat, aroop_txt_t*msg) {
 	aroop_txt_concat(&resp, &chat->name); // show the message sender name
 	aroop_txt_concat_char(&resp, ':');
 	aroop_txt_concat(&resp, msg); // show the message
+	chat->strm.send(&chat->strm, msg, 0); // show the message to the user himself ..
 	return broadcast_callback_helper(chat, rm, &resp);
 }
 

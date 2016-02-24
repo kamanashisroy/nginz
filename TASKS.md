@@ -29,6 +29,7 @@ Tasks
 - [x] Add HTTP support for chat
 	- [x] Create webchat interface
 - [ ] Write pidgin plugin
+- [ ] User should see his/her message.
 
 ### shake
 - [ ] Create memory profiler command to show memory usage.

@@ -13,123 +13,85 @@ C_CAPSULE_START
 struct event_callback {
 	int is_valid;
 	int (*on_event)(int fd, int returned_events, const void*event_data);
-#ifdef NGINZ_EVENT_DEBUG
-	int (*on_debug)(int fd, const void*debug_data);
-#endif
 	const void*event_data;
 };
 
-#define POLL_PARTITION 8
+enum {
+	POLL_PARTITION = (1<<3),
+	MAX_POLL_FD_PER_PARTITION = (MAX_POLL_FD/POLL_PARTITION),
+};
 
-static struct pollfd internal_fds[POLL_PARTITION][MAX_POLL_FD/POLL_PARTITION];
-static struct event_callback internal_callback[POLL_PARTITION][MAX_POLL_FD/POLL_PARTITION];
-static int internal_nfds[POLL_PARTITION] = {0,0,0,0};
+static struct event_loop_data {
+	struct pollfd fds[MAX_POLL_FD_PER_PARTITION];
+	struct event_callback cbs[MAX_POLL_FD_PER_PARTITION];
+	int count;
+} edata[POLL_PARTITION];
 static int grand_nfds = 0;
 
 
 NGINZ_INLINE int event_loop_fd_count() {
-#if 0
-	int count = 0;
-	int i = 0;
-	for(i = 0; i < POLL_PARTITION; i++) {
-		count += internal_nfds;
-	}
-	return count;
-#else
 	return grand_nfds;
-#endif
 }
 
 int event_loop_register_fd(int fd, int (*on_event)(int fd, int returned_events, const void*event_data), const void*event_data, short requested_events) {
 	aroop_assert(event_loop_fd_count() < MAX_POLL_FD); // it should not be assert
-	int part = fd%POLL_PARTITION;
-	internal_fds[part][internal_nfds[part]].fd = fd;
-	internal_fds[part][internal_nfds[part]].events = requested_events;
-	internal_fds[part][internal_nfds[part]].revents = 0; // make sure we continue the event_loop without any conflict
-	internal_callback[part][internal_nfds[part]].is_valid = 1;
-	internal_callback[part][internal_nfds[part]].on_event = on_event;
-	internal_callback[part][internal_nfds[part]].event_data = event_data;
-	internal_nfds[part]++;
+	const int part = fd%POLL_PARTITION;
+	const int index = edata[part].count;
+	edata[part].fds[index].fd = fd;
+	edata[part].fds[index].events = requested_events;
+	edata[part].fds[index].revents = 0; // make sure we continue the event_loop without any conflict
+	edata[part].cbs[index].is_valid = 1;
+	edata[part].cbs[index].on_event = on_event;
+	edata[part].cbs[index].event_data = event_data;
+	edata[part].count++;
 	grand_nfds++;
 }
 
-#ifdef NGINZ_EVENT_DEBUG
-int event_loop_register_debug(int fd, int (*on_debug)(int fd, const void*debug_data)) {
+int event_loop_unregister_fd(const int fd) {
 	int i = 0;
-	int part = fd%POLL_PARTITION;
-	for(i = 0; i < internal_nfds[part]; i++) {
-		if(internal_fds[part][i].fd == fd) {
-			internal_callback[part][i].on_debug = on_debug;
-		}
-	}
-}
-
-static int event_loop_debug() {
-	int i = 0;
-	int part = 0;
-	for(part = 0; part < POLL_PARTITION; part++) {
-		for(i = 0; i < internal_nfds[part]; i++) {
-			if(internal_callback[part][i].is_valid && internal_callback[part][i].on_debug)
-				internal_callback[part][i].on_debug(internal_fds[part][i].fd, internal_callback[part][i].event_data);
-		}
-	}
-}
-#endif
-
-int event_loop_unregister_fd(int fd) {
-	int i = 0;
-	int part = fd%POLL_PARTITION;
-	for(i = 0; i < internal_nfds[part]; i++) {
-		if(internal_fds[part][i].fd != fd)
+	const int part = fd%POLL_PARTITION;
+	const int count = edata[part].count;
+	for(i = 0; i < count; i++) {
+		if(edata[part].fds[i].fd != fd)
 			continue;
-		if(!internal_callback[part][i].is_valid)
+		if(!edata[part].cbs[i].is_valid)
 			continue;
-		internal_callback[part][i].is_valid = 0;
+		edata[part].cbs[i].is_valid = 0; // lazy unregister
 		break;
-	
 	}
 	return 0;
 }
 
 
-int event_loop_batch_unregister(int part) {
+int event_loop_batch_unregister(struct event_loop_data*const pt) {
 	int i = 0;
-	for(i = 0; i < internal_nfds[part]; i++) {
-		if(internal_callback[part][i].is_valid)
+	int top = pt->count - 1;
+	// trim the last invalid elements
+	for(; top >= 0; top--) {
+		if(pt->cbs[top].is_valid)
+			break;
+	}
+	// now we swap the invalid with top
+	for(i=0; i < top; i++) {
+		if(pt->cbs[i].is_valid)
 			continue;
-#ifdef NGINZ_EVENT_DEBUG
-		event_loop_debug();
-#endif
-		if((internal_nfds[part] - i - 1) > 0) {
-			memmove(internal_fds[part]+i, internal_fds[part]+i+1, sizeof(struct pollfd)*(internal_nfds[part]-i-1));
-			memmove(internal_callback[part]+i, internal_callback[part]+i+1, sizeof(internal_callback[0][0])*(internal_nfds[part]-i-1));
-		}
-		internal_nfds[part]--;
-#ifdef NGINZ_EVENT_DEBUG
-		event_loop_debug();
-#endif
-		i--;
-	
+		pt->fds[i] = pt->fds[top];
+		pt->cbs[i] = pt->cbs[top];
+		top--;
 	}
+	pt->count = top+1;
 	return 0;
 }
 
 
-static int event_loop_step_helper(int part, int count) {
+static int event_loop_step_helper(struct event_loop_data*const pt, int count) {
 	int i = 0;
-	for(i = 0; i < internal_nfds[part] && count; i++) {
-		if(!internal_callback[part][i].is_valid || !internal_fds[part][i].revents) {
+	for(i = 0; i < pt->count && count; i++) {
+		if(!pt->cbs[i].is_valid || !pt->fds[i].revents) {
 			continue;
 		}
 		count--;
-		if(internal_callback[part][i].on_event(internal_fds[part][i].fd, internal_fds[part][i].revents, internal_callback[part][i].event_data)) {
-#ifdef NGINZ_EVENT_DEBUG
-			event_loop_debug();
-#endif
-			// fd is closed and may be removed.
-			//return event_loop_step_helper(count); // start over
-			// it is OK
-		}
+		pt->cbs[i].on_event(pt->fds[i].fd, pt->fds[i].revents, pt->cbs[i].event_data);
 	}
 	return 0;
 }
@@ -139,82 +101,41 @@ static int event_loop_step(int status) {
 		usleep(1000);
 		return 0;
 	}
-	int count[POLL_PARTITION];
+	int ecount = 0;
 	int part = 0;
+	#pragma omp for private(ecount)
 	for(part = 0; part < POLL_PARTITION; part++) {
-		count[part] = 0;
-	}
-	#pragma omp for
-	for(part = 0; part < POLL_PARTITION; part++) {
-		if(!internal_nfds[part])
+		if(!edata[part].count)
 			continue;
-		if(!(count[part] = poll(internal_fds[part], internal_nfds[part], 100)))
+		if(!(ecount = poll(edata[part].fds, edata[part].count, 100)))
 			continue;
-		if(count[part] == -1) {
+		if(ecount == -1) {
 			syslog(LOG_ERR, "event_loop.c poll failed %s", strerror(errno));
-			aroop_assert(count[part] != -1);
+			aroop_assert(ecount != -1);
 		}
 		#pragma omp critical
-		event_loop_step_helper(part, count[part]);
-		event_loop_batch_unregister(part);
+		event_loop_step_helper(edata+part, ecount);
+		event_loop_batch_unregister(edata+part);
 	}
 	// fix grand total
 	grand_nfds = 0;
 	for(part = 0; part < POLL_PARTITION; part++) {
-		grand_nfds += internal_nfds[part];
+		grand_nfds += edata[part].count;
 	}
 	return 0;
 }
-
-#if 0
-static int event_loop_test_helper(int count) {
-	int fd = 5000;
-	int ncount = count;
-	int prev = event_loop_fd_count();
-	while(ncount--) {
-		event_loop_register_fd(fd+ncount, NULL, NULL, POLLIN);
-	}
-	ncount = count;
-	while(ncount--) {
-		event_loop_unregister_fd(fd+ncount);
-	}
-	
-	return !(prev == event_loop_fd_count());
-}
-
-static int event_loop_test(aroop_txt_t*input, aroop_txt_t*output) {
-	aroop_txt_embeded_buffer(output, 512);
-	if(event_loop_test_helper(1000)) {
-		aroop_txt_printf(output, "event_loop.c:FAILED\n");
-	} else {
-		aroop_txt_concat_string(output, "event_loop.c:successful\n");
-	}
-	return 0;
-}
-
-static int event_loop_test_desc(aroop_txt_t*plugin_space, aroop_txt_t*output) {
-	return plugin_desc(output, "event_loop_test", "test", plugin_space, __FILE__, "It is test code for event loop.\n");
-}
-#endif
 
 int event_loop_module_init() {
 	int i = 0;
 	for(i = 0; i < POLL_PARTITION; i++) {
-		internal_nfds[i] = 0;
+		edata[i].count = 0;
 	}
+	grand_nfds = 0;
 	register_fiber(event_loop_step);
-#if 0
-	aroop_txt_t plugin_space;
-	aroop_txt_embeded_set_static_string(&plugin_space, "test/event_loop_test");
-	pm_plug_callback(&plugin_space, event_loop_test, event_loop_test_desc);
-#endif
 }
 
 int event_loop_module_deinit() {
 	unregister_fiber(event_loop_step);
-#if 0
-	pm_unplug_callback(0, event_loop_test);
-#endif
 }
 
 C_CAPSULE_END

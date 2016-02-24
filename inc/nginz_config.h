@@ -8,26 +8,35 @@ C_CAPSULE_START
 /**
  * Parallel computing
  */
-#define NGINZ_NUMBER_OF_PROCESSORS 5
+enum parallel_config {
+	NGINZ_NUMBER_OF_PROCESSORS = 5,
+};
 
+#include <poll.h> // to define POLLIN, POLLPRI, POLLHUP
 /**
  * Event loop configuration
  */
-#define MAX_POLL_FD 10000 // for some implementation this value must by devisible by some POLL_PARTITION value
-#define NGINZ_POLL_LISTEN_FLAGS POLLIN | POLLPRI | POLLHUP
-#define NGINZ_POLL_ALL_FLAGS POLLIN
+enum event_loop_config {
+	MAX_POLL_FD = 10000, // for some implementation this value must by devisible by some POLL_PARTITION value
+	NGINZ_POLL_LISTEN_FLAGS = POLLIN | POLLPRI | POLLHUP,
+	NGINZ_POLL_ALL_FLAGS = POLLIN | POLLPRI | POLLHUP,
+};
 
 /**
  * Protocol implemenation
  */
-#define NGINZ_MAX_PROTO 4
-#define NGINZ_CHAT_PORT 9399
-#define NGINZ_HTTP_PORT 80
+enum protocol_config {
+	NGINZ_MAX_PROTO = 4,
+	NGINZ_CHAT_PORT = 9399,
+	NGINZ_HTTP_PORT = 80,
+};
 
 /**
  * TCP listen config
  */
-#define NGINZ_TCP_LISTENER_BACKLOG 1024 /* XXX we are setting this too high */
+enum tcp_config {
+	NGINZ_TCP_LISTENER_BACKLOG = 1024, /* XXX we are setting this too high */
+};
 
 /**
  * object pool factory
@@ -39,18 +48,22 @@ C_CAPSULE_START
 /**
  * Chat server configuration
  */
-#define NGINZ_MAX_CHAT_USER_NAME_SIZE 32
-#define NGINZ_MAX_CHAT_ROOM_NAME_SIZE 32
-#define NGINZ_MAX_CHAT_MSG_SIZE 255
-#define NGINZ_MAX_WEBCHAT_MSG_SIZE 1024
-#define NGINZ_MAX_WEBCHAT_SID_SIZE 32
-#define NGINZ_MAX_COMMANDS 16
+enum chat_config {
+	NGINZ_MAX_CHAT_USER_NAME_SIZE = 32,
+	NGINZ_MAX_CHAT_ROOM_NAME_SIZE = 32,
+	NGINZ_MAX_CHAT_MSG_SIZE = 255,
+	NGINZ_MAX_WEBCHAT_MSG_SIZE = 1024,
+	NGINZ_MAX_WEBCHAT_SID_SIZE = 32,
+	NGINZ_MAX_COMMANDS = 16,
+};
 
 /**
  * Http server configuration
  */
-#define NGINZ_MAX_HTTP_MSG_SIZE 1024
-#define NGINZ_MAX_HTTP_HEADER_SIZE 1024
+enum http_config {
+	NGINZ_MAX_HTTP_MSG_SIZE = 1024,
+	NGINZ_MAX_HTTP_HEADER_SIZE = 1024,
+};
 
 //#define NGINZ_EVENT_DEBUG 
 
