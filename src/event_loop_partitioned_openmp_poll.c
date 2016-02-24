@@ -24,7 +24,7 @@ enum {
 static struct event_loop_data {
 	struct pollfd fds[MAX_POLL_FD_PER_PARTITION];
 	struct event_callback cbs[MAX_POLL_FD_PER_PARTITION];
-	int count;
+	int nfds;
 } edata[POLL_PARTITION];
 static int grand_nfds = 0;
 
@@ -36,57 +36,58 @@ NGINZ_INLINE int event_loop_fd_count() {
 int event_loop_register_fd(int fd, int (*on_event)(int fd, int returned_events, const void*event_data), const void*event_data, short requested_events) {
 	aroop_assert(event_loop_fd_count() < MAX_POLL_FD); // it should not be assert
 	const int part = fd%POLL_PARTITION;
-	const int index = edata[part].count;
-	edata[part].fds[index].fd = fd;
-	edata[part].fds[index].events = requested_events;
-	edata[part].fds[index].revents = 0; // make sure we continue the event_loop without any conflict
-	edata[part].cbs[index].is_valid = 1;
-	edata[part].cbs[index].on_event = on_event;
-	edata[part].cbs[index].event_data = event_data;
-	edata[part].count++;
+	struct event_loop_data*const pt = edata+part;
+	const int index = pt->nfds;
+	pt->fds[index].fd = fd;
+	pt->fds[index].events = requested_events;
+	pt->fds[index].revents = 0; // make sure we continue the event_loop without any conflict
+	pt->cbs[index].is_valid = 1;
+	pt->cbs[index].on_event = on_event;
+	pt->cbs[index].event_data = event_data;
+	pt->nfds++;
 	grand_nfds++;
 }
 
 int event_loop_unregister_fd(const int fd) {
 	int i = 0;
 	const int part = fd%POLL_PARTITION;
-	const int count = edata[part].count;
+	struct event_loop_data*const pt = edata+part;
+	const int count = pt->nfds;
 	for(i = 0; i < count; i++) {
-		if(edata[part].fds[i].fd != fd)
+		if(pt->fds[i].fd != fd)
 			continue;
-		if(!edata[part].cbs[i].is_valid)
+		if(!pt->cbs[i].is_valid)
 			continue;
-		edata[part].cbs[i].is_valid = 0; // lazy unregister
+		pt->cbs[i].is_valid = 0; // lazy unregister
 		break;
 	}
 	return 0;
 }
 
 
-int event_loop_batch_unregister(struct event_loop_data*const pt) {
+static int event_loop_batch_unregister(struct event_loop_data*const pt) {
 	int i = 0;
-	int top = pt->count - 1;
+	int last = pt->nfds - 1;
 	// trim the last invalid elements
-	for(; top >= 0; top--) {
-		if(pt->cbs[top].is_valid)
-			break;
-	}
-	// now we swap the invalid with top
-	for(i=0; i < top; i++) {
+	for(; last >= 0 && !pt->cbs[last].is_valid; last--);
+	// now we swap the invalid with last
+	for(i=0; i < last; i++) {
 		if(pt->cbs[i].is_valid)
 			continue;
-		pt->fds[i] = pt->fds[top];
-		pt->cbs[i] = pt->cbs[top];
-		top--;
+		pt->fds[i] = pt->fds[last];
+		pt->cbs[i] = pt->cbs[last];
+		last--;
+		// trim the last invalid elements
+		for(; last >= 0 && !pt->cbs[last].is_valid; last--);
 	}
-	pt->count = top+1;
+	pt->nfds = last+1;
 	return 0;
 }
 
 
 static int event_loop_step_helper(struct event_loop_data*const pt, int count) {
 	int i = 0;
-	for(i = 0; i < pt->count && count; i++) {
+	for(i = 0; i < pt->nfds && count; i++) {
 		if(!pt->cbs[i].is_valid || !pt->fds[i].revents) {
 			continue;
 		}
@@ -105,9 +106,9 @@ static int event_loop_step(int status) {
 	int part = 0;
 	#pragma omp for private(ecount)
 	for(part = 0; part < POLL_PARTITION; part++) {
-		if(!edata[part].count)
+		if(!edata[part].nfds)
 			continue;
-		if(!(ecount = poll(edata[part].fds, edata[part].count, 100)))
+		if(!(ecount = poll(edata[part].fds, edata[part].nfds, 100)))
 			continue;
 		if(ecount == -1) {
 			syslog(LOG_ERR, "event_loop.c poll failed %s", strerror(errno));
@@ -120,7 +121,7 @@ static int event_loop_step(int status) {
 	// fix grand total
 	grand_nfds = 0;
 	for(part = 0; part < POLL_PARTITION; part++) {
-		grand_nfds += edata[part].count;
+		grand_nfds += edata[part].nfds;
 	}
 	return 0;
 }
@@ -128,7 +129,7 @@ static int event_loop_step(int status) {
 int event_loop_module_init() {
 	int i = 0;
 	for(i = 0; i < POLL_PARTITION; i++) {
-		edata[i].count = 0;
+		edata[i].nfds = 0;
 	}
 	grand_nfds = 0;
 	register_fiber(event_loop_step);

@@ -16,6 +16,7 @@ struct event_callback {
 	int (*on_debug)(int fd, const void*debug_data);
 #endif
 	const void*event_data;
+	int is_valid;
 };
 
 static struct pollfd internal_fds[MAX_POLL_FD];
@@ -34,6 +35,7 @@ int event_loop_register_fd(int fd, int (*on_event)(int fd, int returned_events, 
 	internal_fds[internal_nfds].revents = 0; // make sure we continue the event_loop without any conflict
 	internal_callback[internal_nfds].on_event = on_event;
 	internal_callback[internal_nfds].event_data = event_data;
+	internal_callback[internal_nfds].is_valid = 1;
 	internal_nfds++;
 }
 
@@ -50,32 +52,44 @@ int event_loop_register_debug(int fd, int (*on_debug)(int fd, const void*debug_d
 static int event_loop_debug() {
 	int i = 0;
 	for(i = 0; i < internal_nfds; i++) {
-		if(internal_callback[i].on_debug)
+		if(internal_callback[i].is_valid && internal_callback[i].on_debug)
 			internal_callback[i].on_debug(internal_fds[i].fd, internal_callback[i].event_data);
 	}
 }
 #endif
 
-int event_loop_unregister_fd(int fd) {
+int event_loop_unregister_fd(const int fd) {
 	int i = 0;
-	for(i = 0; i < internal_nfds; i++) {
-		if(internal_fds[i].fd == fd) {
-#ifdef NGINZ_EVENT_DEBUG
-			event_loop_debug();
-#endif
-			if((internal_nfds - i - 1) > 0) {
-				memmove(internal_fds+i, internal_fds+i+1, sizeof(struct pollfd)*(internal_nfds-i-1));
-				memmove(internal_callback+i, internal_callback+i+1, sizeof(internal_callback[0])*(internal_nfds-i-1));
-			}
-			internal_nfds--;
-#ifdef NGINZ_EVENT_DEBUG
-			event_loop_debug();
-#endif
-			return 0;
-		}
+	const int count = internal_nfds;
+	for(i = 0; i < count; i++) {
+		if(internal_fds[i].fd != fd)
+			continue;
+		if(!internal_callback[i].is_valid)
+			continue;
+		internal_callback[i].is_valid = 0; // lazy unregister
+		break;
 	}
 	return 0;
 }
+
+static int event_loop_batch_unregister() {
+	int i = 0;
+	int last = internal_nfds - 1;
+	// trim the last invalid elements
+	for(; last >= 0 && !internal_callback[last].is_valid; last--);
+	// now we swap the invalid with last
+	for(i=0; i < last; i++) {
+		if(internal_callback[i].is_valid)
+			continue;
+		internal_fds[i] = internal_fds[last];
+		internal_callback[i] = internal_callback[last];
+		last--;
+		for(; last >= 0 && !internal_callback[last].is_valid; last--);
+	}
+	internal_nfds = last+1;
+	return 0;
+}
+
 
 static int event_loop_step_helper(int count) {
 	int i = 0;
@@ -84,16 +98,13 @@ static int event_loop_step_helper(int count) {
 			continue;
 		}
 		count--;
-		if(internal_callback[i].on_event(internal_fds[i].fd, internal_fds[i].revents, internal_callback[i].event_data)) {
-#ifdef NGINZ_EVENT_DEBUG
-			event_loop_debug();
-#endif
-			// fd is closed and may be removed.
-			return event_loop_step_helper(count); // start over
-		}
+		internal_callback[i].on_event(internal_fds[i].fd, internal_fds[i].revents, internal_callback[i].event_data);
 	}
+	event_loop_batch_unregister();
 	return 0;
 }
+
+
 
 static int event_loop_step(int status) {
 	if(internal_nfds == 0) {
