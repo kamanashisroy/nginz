@@ -1,6 +1,7 @@
 
 #include "aroop/aroop_core.h"
 #include "aroop/core/xtring.h"
+#include <signal.h>
 #include "nginz_config.h"
 #include "log.h"
 #include "plugin.h"
@@ -149,6 +150,7 @@ static int event_loop_test_desc(aroop_txt_t*plugin_space, aroop_txt_t*output) {
 }
 
 int event_loop_module_init() {
+	signal(SIGPIPE, SIG_IGN); // avoid crash on sigpipe
 	register_fiber(event_loop_step);
 	aroop_txt_t plugin_space;
 	aroop_txt_embeded_set_static_string(&plugin_space, "test/event_loop_test");
