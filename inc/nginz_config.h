@@ -8,6 +8,7 @@ C_CAPSULE_START
 /**
  * Parallel computing
  */
+// XXX token ring parallel processing requires that there are at least 2 processes
 enum parallel_config {
 	NGINZ_NUMBER_OF_PROCESSORS = 5,
 };

@@ -3,6 +3,7 @@
 #include "aroop/core/xtring.h"
 #include "nginz_config.h"
 #include "log.h"
+#include <signal.h>
 #include "plugin_manager.h"
 #include "fiber.h"
 #include "fork.h"
@@ -26,6 +27,10 @@ static int rehash() {
 		return 0;
 }
 
+static void signal_callback(int sigval) {
+	fiber_quit();
+}
+
 static int nginz_main(char**args) {
 	daemon(0,0);
 	setlogmask (LOG_UPTO (LOG_NOTICE));
@@ -42,6 +47,8 @@ static int nginz_main(char**args) {
 	web_chat_module_init();
 	pp_module_init();
 	rehash();
+	signal(SIGPIPE, SIG_IGN); // avoid crash on sigpipe
+	signal(SIGINT, signal_callback);
 	fork_processors(NGINZ_NUMBER_OF_PROCESSORS);
 	/**
 	 * Setup for master

@@ -27,7 +27,7 @@ Building
 
 The compilation command is. `./autogen.sh;make;make install;`
 
-And the output binary is `nginz_main`, `nginz_debug_main`, `nginz_profiler_main`
+And the output binary is `nginz_main`, `nginz_main_debug`.
 
 Features
 ========
