@@ -40,7 +40,7 @@ class NginZChatClient:
 
 
 if __name__ == '__main__':
-	for index in range(1, 1000):
+	for index in range(1, 10):
 		client = NginZChatClient()
 		client.connect(index);
 

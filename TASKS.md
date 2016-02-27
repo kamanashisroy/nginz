@@ -29,6 +29,7 @@ Tasks
 - [x] Add HTTP support for chat
 	- [x] Create webchat interface
 - [ ] Write pidgin plugin
+- [ ] Add a REST-API
 
 ### shake
 - [ ] Create memory profiler command to show memory usage.
@@ -36,4 +37,7 @@ Tasks
 
 ### logging
 - [x] Use syslog.
+
+### DB
+- [ ] Write own db. And remove dependency from memcached.
 
