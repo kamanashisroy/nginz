@@ -173,18 +173,24 @@ static int on_bubble_down(int fd, int events, const void*unused) {
 	aroop_txt_set_length(&recv_buffer, count);
 	//aroop_txt_embeded_rebuild_and_set_content(&recv_buffer, rbuf)
 	aroop_txt_t x = {};
+	int destpid = 0;
 	//printf("There is bubble_down from the parent, %d, (count=%d)\n", (int)aroop_txt_char_at(&recv_buffer, 0), count);
-	binary_unpack_string(&recv_buffer, 0, &x); // needs cleanup
-	if(aroop_txt_is_empty(&x)) {
-		aroop_txt_destroy(&x);
-		return 0;
-	}
-	//printf("request from parent %s\n", aroop_txt_to_string(&x));
-	aroop_txt_t input = {};
-	aroop_txt_t output = {};
-	pm_call(&x, &input, &output);
-	aroop_txt_destroy(&input);
-	aroop_txt_destroy(&output);
+	binary_unpack_int(&recv_buffer, 0, &destpid);
+	//syslog(LOG_NOTICE, "[pid:%d]\treceiving from parent for %d", getpid(), destpid);
+	binary_unpack_string(&recv_buffer, 2, &x); // needs cleanup
+	do {
+		if((destpid != 0 && destpid != getpid())) {
+			pp_bubble_down(&recv_buffer);
+			break;
+		}
+		if(aroop_txt_is_empty(&x)) {
+			break;
+		}
+		aroop_txt_t output = {};
+		pm_call(&x, &recv_buffer, &output);
+		aroop_txt_destroy(&output);
+	} while(0);
+	//syslog(LOG_NOTICE, "[pid:%d]\texecuting command:%s", getpid(), aroop_txt_to_string(&x));
 	aroop_txt_destroy(&x);
 	return 0;
 }
@@ -243,7 +249,33 @@ static int on_bubble_up(int fd, int events, const void*unused) {
 	aroop_assert(fd == child);
 	aroop_txt_set_length(&recv_buffer, 1); // without it aroop_txt_to_string() will give NULL
 	int count = recv(fd, aroop_txt_to_string(&recv_buffer), aroop_txt_capacity(&recv_buffer), 0);
-	// TODO do something with the recv_buffer
+	if(count <= 0) {
+		syslog(LOG_ERR, "Error receiving bubble_down:%s\n", strerror(errno));
+		return 0;
+	}
+
+	aroop_txt_set_length(&recv_buffer, count);
+	//aroop_txt_embeded_rebuild_and_set_content(&recv_buffer, rbuf)
+	aroop_txt_t x = {};
+	int destpid = 0;
+	//printf("There is bubble_down from the parent, %d, (count=%d)\n", (int)aroop_txt_char_at(&recv_buffer, 0), count);
+	binary_unpack_int(&recv_buffer, 0, &destpid);
+	binary_unpack_string(&recv_buffer, 2, &x); // needs cleanup
+	do {
+		if((destpid != 0 && destpid != getpid())) {
+			pp_bubble_up(&recv_buffer);
+			break;
+		}
+		if(aroop_txt_is_empty(&x)) {
+			break;
+		}
+		aroop_txt_t output = {};
+		pm_call(&x, &recv_buffer, &output);
+		aroop_txt_destroy(&output);
+	} while(0);
+	//printf("request from parent %s\n", aroop_txt_to_string(&x));
+	aroop_txt_destroy(&x);
+	return 0;
 }
 
 static int on_bubble_up_send_socket(int fd, int events, const void*unused) {
@@ -377,9 +409,11 @@ int pp_module_init() {
 	aroop_txt_embeded_set_static_string(&plugin_space, "fork/parent/after");
 	pm_plug_callback(&plugin_space, pp_fork_parent_after_callback, pp_fork_callback_desc);
 	ping_module_init();
+	async_db_init();
 }
 
 int pp_module_deinit() {
+	async_db_deinit();
 	ping_module_deinit();
 	// TODO unregister all
 	aroop_txt_destroy(&recv_buffer);

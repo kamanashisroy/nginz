@@ -15,6 +15,7 @@ enum chat_state {
 
 struct chat_hooks {
 	struct chat_connection*(*on_create)(int fd);
+	struct chat_connection*(*get)(int token);
 	//int (*on_client_data)(int fd, int status, const void*cb_data); // it is used to read user input
 	int (*on_command)(struct chat_connection*chat, aroop_txt_t*cmd); // it is used for command
 	int (*handle_chat_request)(struct streamio*strm, aroop_txt_t*request); // it processes chat request

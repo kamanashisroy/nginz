@@ -94,6 +94,7 @@ int chat_plugin_manager_module_init() {
 	aroop_assert(chat_plug == NULL);
 	chat_plug = composite_plugin_create();
 	chat_factory_module_init();
+	user_module_init();
 	welcome_module_init();
 	broadcast_module_init(); // XXX we have to load broadcast module before room module
 	room_module_init();
@@ -128,6 +129,7 @@ int chat_plugin_manager_module_deinit() {
 	room_module_deinit();
 	broadcast_module_deinit();
 	welcome_module_deinit();
+	user_module_deinit();
 	chat_factory_module_deinit();
 	composite_unplug_bridge(chat_plugin_manager_get(), 0, chat_help_plug);
 	composite_plugin_destroy(chat_plug);

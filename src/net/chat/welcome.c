@@ -3,6 +3,7 @@
 #include <aroop/core/xtring.h>
 #include "nginz_config.h"
 #include "plugin.h"
+#include "plugin_manager.h"
 #include "log.h"
 #include "net/streamio.h"
 #include "net/chat.h"
@@ -12,7 +13,39 @@
 
 C_CAPSULE_START
 
+struct chat_hooks*hooks = NULL;
 aroop_txt_t greet_on_login = {};
+static int on_login_complete(int token, aroop_txt_t*name, int success) {
+	if(aroop_txt_is_empty_magical(name)) {
+		syslog(LOG_ERR, "Error, we do not know user name\n");
+		return 0;
+	}
+	struct chat_connection*chat = hooks->get(token); // needs cleanup
+	if(!chat) {
+		syslog(LOG_ERR, "Error, could not find the logged in user\n");
+		return 0;
+	}
+	if(success) {
+		// save name
+		aroop_txt_embeded_copy_deep(&chat->name, name);
+		// say welcome
+		aroop_txt_set_length(&greet_on_login, 0);
+		aroop_txt_concat_string(&greet_on_login, "Welcome ");
+		aroop_txt_concat(&greet_on_login, name);
+		aroop_txt_concat_char(&greet_on_login, '!');
+		aroop_txt_concat_char(&greet_on_login, '\n');
+		chat->on_response_callback = NULL;
+		chat->state |= CHAT_LOGGED_IN;
+	} else {
+		aroop_txt_set_length(&greet_on_login, 0);
+		aroop_txt_concat_string(&greet_on_login, "Sorry, name taken.\n");
+	}
+	if(!aroop_txt_is_empty(&greet_on_login))
+		chat->strm.send(&chat->strm, &greet_on_login, 0);
+	OPPUNREF(chat);
+	return 0;
+}
+
 static int on_login_data(struct chat_connection*chat, aroop_txt_t*answer) {
 	if(aroop_txt_is_empty_magical(answer))
 		return 0;
@@ -35,23 +68,10 @@ static int on_login_data(struct chat_connection*chat, aroop_txt_t*answer) {
 			break;
 		}
 		// check availability
-		if(try_login(&name)) {
-			aroop_txt_set_length(&greet_on_login, 0);
-			aroop_txt_concat_string(&greet_on_login, "Sorry, name taken.\n");
-			break;
-		}
-		// save name
-		aroop_txt_embeded_copy_deep(&chat->name, &name);
-		// say welcome
-		aroop_txt_set_length(&greet_on_login, 0);
-		aroop_txt_concat_string(&greet_on_login, "Welcome ");
-		aroop_txt_concat(&greet_on_login, &name);
-		aroop_txt_concat_char(&greet_on_login, '!');
-		aroop_txt_concat_char(&greet_on_login, '\n');
-		chat->on_response_callback = NULL;
-		chat->state |= CHAT_LOGGED_IN;
+		async_try_login(&name, on_login_complete, chat->strm._ext.token);
 	} while(0);
-	chat->strm.send(&chat->strm, &greet_on_login, 0);
+	if(!aroop_txt_is_empty(&greet_on_login))
+		chat->strm.send(&chat->strm, &greet_on_login, 0);
 	aroop_txt_destroy(&input);
 	aroop_txt_destroy(&name);
 	return 0;
@@ -72,6 +92,11 @@ static int chat_welcome_plug(int signature, void*given) {
 	return 0;
 }
 
+static int chat_welcome_hookup(int signature, void*given) {
+	hooks = (struct chat_hooks*)given;
+	return 0;
+}
+
 static int chat_welcome_plug_desc(aroop_txt_t*plugin_space, aroop_txt_t*output) {
 	return plugin_desc(output, "welcome", "chat", plugin_space, __FILE__, "It greets the new connection.\n");
 }
@@ -81,9 +106,12 @@ int welcome_module_init() {
 	aroop_txt_t plugin_space = {};
 	aroop_txt_embeded_set_static_string(&plugin_space, "chat/_welcome");
 	composite_plug_bridge(chat_plugin_manager_get(), &plugin_space, chat_welcome_plug, chat_welcome_plug_desc);
+	aroop_txt_embeded_set_static_string(&plugin_space, "chatproto/hookup");
+	pm_plug_bridge(&plugin_space, chat_welcome_hookup, chat_welcome_plug_desc);
 }
 
 int welcome_module_deinit() {
+	pm_unplug_bridge(0, chat_welcome_hookup);
 	composite_unplug_bridge(chat_plugin_manager_get(), 0, chat_welcome_plug);
 	aroop_txt_destroy(&greet_on_login);
 }

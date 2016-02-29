@@ -52,3 +52,9 @@ Then it can skip the task and pass onto the child worker process. It can also no
 
 In the scenario above the `worker 1` processes user request.
 
+Compare and Swap database
+==========================
+
+There is a compare and swap database available. It can be used to set a key,value pair accross all the processes. Please see the `async\_db.c` for the implementation details.
+
+

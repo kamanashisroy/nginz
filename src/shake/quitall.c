@@ -21,6 +21,8 @@ static int shake_soft_quitall_command(aroop_txt_t*input, aroop_txt_t*output) {
 	binary_coder_reset(&bin);
 	aroop_txt_t quitall_command = {};
 	aroop_txt_embeded_set_static_string(&quitall_command, "shake/softquitall"); 
+	binary_pack_int(&bin, 0);
+	binary_pack_int(&bin, getpid());
 	binary_pack_string(&bin, &quitall_command);
 	pp_bubble_down(&bin);
 	soft_quitall = 1;
@@ -36,6 +38,8 @@ static int shake_quitall_command(aroop_txt_t*input, aroop_txt_t*output) {
 	aroop_txt_t bin = {};
 	aroop_txt_embeded_stackbuffer(&bin, 255);
 	binary_coder_reset(&bin);
+	binary_pack_int(&bin, 0);
+	binary_pack_int(&bin, getpid());
 	aroop_txt_t quitall_command = {};
 	aroop_txt_embeded_set_static_string(&quitall_command, "shake/quitall"); 
 	binary_pack_string(&bin, &quitall_command);

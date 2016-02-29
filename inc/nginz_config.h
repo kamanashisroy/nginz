@@ -43,6 +43,7 @@ enum tcp_config {
  * object pool factory
  */
 #define NGINZ_FACTORY_CREATE(obuff, psize, objsize, callback) ({OPP_PFACTORY_CREATE_FULL(obuff, psize, objsize, 1, OPPF_SWEEP_ON_UNREF, callback);})
+#define NGINZ_EXTENDED_FACTORY_CREATE(obuff, psize, objsize, callback) ({OPP_PFACTORY_CREATE_FULL(obuff, psize, objsize, 1, OPPF_EXTENDED | OPPF_SWEEP_ON_UNREF, callback);})
 #define NGINZ_HASHABLE_FACTORY_CREATE(obuff, psize, objsize, callback) ({OPP_PFACTORY_CREATE_FULL(obuff, psize, objsize, 1, OPPF_EXTENDED | OPPF_SWEEP_ON_UNREF, callback);})
 #define NGINZ_SEARCHABLE_FACTORY_CREATE(obuff, psize, objsize, callback) ({OPP_PFACTORY_CREATE_FULL(obuff, psize, objsize, 1, OPPF_SEARCHABLE | OPPF_EXTENDED | OPPF_SWEEP_ON_UNREF, callback);})
 

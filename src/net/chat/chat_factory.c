@@ -141,10 +141,15 @@ static struct chat_connection*chat_alloc(int fd) {
 	return chat;
 }
 
+static struct chat_connection*chat_get(int token) {
+	return opp_get(&chat_factory, token);
+}
+
 static int chat_factory_hookup(int signature, void*given) {
 	hooks = (struct chat_hooks*)given;
 	aroop_assert(hooks != NULL);
 	hooks->on_create = chat_alloc;
+	hooks->get = chat_get;
 	return 0;
 }
 
@@ -154,7 +159,7 @@ static int chat_factory_hookup_desc(aroop_txt_t*plugin_space, aroop_txt_t*output
 
 
 int chat_factory_module_init() {
-	NGINZ_FACTORY_CREATE(&chat_factory, 64, sizeof(struct chat_connection), OPP_CB_FUNC(chat_connection));
+	NGINZ_EXTENDED_FACTORY_CREATE(&chat_factory, 64, sizeof(struct chat_connection), OPP_CB_FUNC(chat_connection));
 	aroop_txt_t plugin_space = {};
 	aroop_txt_embeded_set_static_string(&plugin_space, "chat/show");
 	composite_plug_bridge(chat_plugin_manager_get(), &plugin_space, chat_factory_show, chat_factory_show_desc);
