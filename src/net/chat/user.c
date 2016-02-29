@@ -54,11 +54,9 @@ int async_try_login(aroop_txt_t*name, int on_try_login_complete(int token, aroop
 	aroop_txt_t name_key = {};
 	aroop_txt_embeded_stackbuffer(&name_key, 128);
 	build_name_key(name, &name_key);
-	aroop_txt_t value = {};
-	aroop_txt_embeded_rebuild_and_set_static_string(&value, "1");
 	aroop_txt_t login_hook = {};
 	aroop_txt_embeded_set_static_string(&login_hook, "chatuser/on/login");
-	async_db_compare_and_swap(token, &login_hook, name, &value, NULL);
+	async_db_compare_and_swap(token, &login_hook, &name_key, name, NULL);
 	on_login_callback = on_try_login_complete;
 	return 0;
 }
@@ -96,7 +94,7 @@ static int user_try_login_response_hook(aroop_txt_t*bin, aroop_txt_t*output) {
 	aroop_txt_t name = {};
 	binary_unpack_int(bin, 3, &cb_token); // id/token
 	binary_unpack_int(bin, 5, &success);
-	binary_unpack_string(bin, 6, &name);
+	binary_unpack_string(bin, 7, &name);
 	if(!aroop_txt_is_empty(&name)) {
 		aroop_txt_shift(&name, sizeof(USER_PREFIX));
 	}

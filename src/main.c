@@ -97,9 +97,6 @@ static int nginz_main(char**args) {
 	setlogmask (LOG_UPTO (LOG_NOTICE));
 	openlog ("nginz", LOG_CONS | LOG_PID | LOG_NDELAY, LOG_LOCAL1);
 	nginz_init();
-	/**
-	 * master initialization complete ..
-	 */
 	fiber_module_run();
 	nginz_deinit();
 	closelog();

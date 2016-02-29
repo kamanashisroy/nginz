@@ -25,13 +25,14 @@ static int help_command_helper(
 	aroop_txt_t prefix = {};
 	aroop_txt_t*output = (aroop_txt_t*)visitor_data;
 	aroop_txt_t xdesc = {};
-	aroop_txt_embeded_copy_on_demand(&prefix, plugin_space);
+	aroop_txt_embeded_copy_on_demand(&prefix, plugin_space); // needs destroy
 	aroop_txt_set_length(&prefix, 6);
-	if(!aroop_txt_equals_static(&prefix, "shake/"))
-		return 0;
-	desc(plugin_space, &xdesc);
-	aroop_txt_concat(output, &xdesc);
+	if(aroop_txt_equals_static(&prefix, "shake/")) {
+		desc(plugin_space, &xdesc);
+		aroop_txt_concat(output, &xdesc);
+	}
 	aroop_txt_destroy(&xdesc); // cleanup
+	aroop_txt_destroy(&prefix);
 }
 
 static int help_command(aroop_txt_t*input, aroop_txt_t*output) {

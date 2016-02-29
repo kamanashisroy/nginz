@@ -7,6 +7,7 @@
 #include <aroop/opp/opp_hash_table.h>
 #include "nginz_config.h"
 #include "log.h"
+#include "plugin.h"
 #include "plugin_manager.h"
 #include "event_loop.h"
 #include "parallel/pipeline.h"
@@ -253,6 +254,7 @@ int async_db_init() {
 	pm_plug_callback(&plugin_space, async_db_response_hook , async_db_hook_desc);
 	aroop_txt_embeded_set_static_string(&plugin_space, "shake/dbdump");
 	pm_plug_callback(&plugin_space, async_db_dump_hook, async_db_dump_desc);
+	return 0;
 }
 
 int async_db_deinit() {
