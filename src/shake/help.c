@@ -35,7 +35,7 @@ static int help_command_helper(
 }
 
 static int help_command(aroop_txt_t*input, aroop_txt_t*output) {
-	aroop_txt_embeded_buffer(output, 512);
+	aroop_txt_embeded_buffer(output, 1024);
 	composite_plugin_visit_all(pm_get(), help_command_helper, output);
 }
 

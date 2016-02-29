@@ -1,4 +1,5 @@
 
+#ifdef HAS_MEMCACHED_MODULE
 #include <aroop/aroop_core.h>
 #include <aroop/core/thread.h>
 #include <aroop/core/xtring.h>
@@ -88,3 +89,4 @@ int db_module_deinit() {
 }
 
 C_CAPSULE_END
+#endif

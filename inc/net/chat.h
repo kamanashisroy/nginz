@@ -13,7 +13,7 @@ enum chat_state {
 	CHAT_SOFT_QUIT = 1<<4
 };
 
-struct chat_hooks {
+struct chat_api {
 	struct chat_connection*(*on_create)(int fd);
 	struct chat_connection*(*get)(int token);
 	//int (*on_client_data)(int fd, int status, const void*cb_data); // it is used to read user input
@@ -30,6 +30,7 @@ struct chat_connection {
 	const void*callback_data; // XXX do not unref/ref it ..
 };
 
+struct chat_api*chat_api_get();
 int chat_module_init();
 int chat_module_deinit();
 

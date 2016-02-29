@@ -3,6 +3,7 @@
 
 C_CAPSULE_START
 
+#ifdef HAS_MEMCACHED_MODULE
 int db_set(const char*key, const char*value);
 /**
  * Note that the implementation allocates memroy. To release the memory aroop_txt_destroy(output) call is needed.
@@ -14,6 +15,7 @@ int db_set_int(const char*key, int value);
 
 int db_module_init();
 int db_module_deinit();
+#endif
 
 C_CAPSULE_END
 

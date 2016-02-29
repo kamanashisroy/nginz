@@ -17,7 +17,9 @@
 C_CAPSULE_START
 
 static int chat_module_is_quiting = 0;
+#if 0
 static struct chat_hooks*hooks = NULL;
+#endif
 static int chat_accept_on_softquit(aroop_txt_t*plugin_space, aroop_txt_t*output) {
 	chat_module_is_quiting = 1;
 	return 0;
@@ -45,7 +47,7 @@ static int handle_chat_request(struct streamio*strm, aroop_txt_t*request) {
 	do {
 		// check if it is a command
 		if(aroop_txt_char_at(request, 0) == '/' && (chat->state & CHAT_LOGGED_IN)) {
-			if(!hooks->on_command(chat, request)) {
+			if(!chat_api_get()->on_command(chat, request)) {
 				break;
 			}
 		} else if(chat->on_response_callback != NULL) {
@@ -122,12 +124,11 @@ static int on_tcp_connection(int fd) {
 }
 
 static int on_connection_bubble(int fd, aroop_txt_t*cmd) {
-	aroop_assert(hooks != NULL);
 	if(chat_module_is_quiting)
 		return 0;
 	int ret = 0;
 	// create new connection
-	struct chat_connection*chat = hooks->on_create(fd);
+	struct chat_connection*chat = chat_api_get()->on_create(fd);
 	aroop_txt_t x = {};
 	binary_unpack_string(cmd, 2, &x); // needs cleanup
 	chat->request = &x; // set the request/command
@@ -161,6 +162,7 @@ static int on_connection_bubble(int fd, aroop_txt_t*cmd) {
 	return ret;
 }
 
+#if 0
 static int chat_accept_hookup(int signature, void*given) {
 	struct chat_hooks*ghooks = (struct chat_hooks*)given;
 	hooks = ghooks;
@@ -171,6 +173,7 @@ static int chat_accept_hookup(int signature, void*given) {
 static int chat_accept_hookup_desc(aroop_txt_t*plugin_space, aroop_txt_t*output) {
 	return plugin_desc(output, "chat_accept", "chat hooking", plugin_space, __FILE__, "It registers connection creation and destruction hooks.\n");
 }
+#endif
 
 static struct protostack chat_protostack = {
 	.on_tcp_connection = on_tcp_connection,
@@ -182,15 +185,20 @@ int chat_accept_module_init() {
 	aroop_txt_embeded_buffer(&recv_buffer, NGINZ_MAX_CHAT_MSG_SIZE);
 	protostack_set(NGINZ_CHAT_PORT, &chat_protostack);
 	aroop_txt_t plugin_space = {};
+#if 0
 	aroop_txt_embeded_set_static_string(&plugin_space, "chatproto/hookup");
 	pm_plug_bridge(&plugin_space, chat_accept_hookup, chat_accept_hookup_desc);
+#endif
 	aroop_txt_embeded_set_static_string(&plugin_space, "shake/softquitall");
 	pm_plug_callback(&plugin_space, chat_accept_on_softquit, chat_accept_on_softquit_desc);
+	chat_api_get()->handle_chat_request = handle_chat_request;
 }
 
 int chat_accept_module_deinit() {
 	protostack_set(NGINZ_HTTP_PORT, NULL);
+#if 0
 	pm_unplug_bridge(0, chat_accept_hookup);
+#endif
 	pm_unplug_callback(0, chat_accept_on_softquit);
 	aroop_txt_destroy(&recv_buffer);
 }

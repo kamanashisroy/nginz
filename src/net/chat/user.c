@@ -69,16 +69,23 @@ int logoff_user(struct chat_connection*chat) {
 	int ret = 0;
 	if(aroop_txt_is_empty_magical(&chat->name)) // sanity check
 		return -1;
+	aroop_txt_t null_plug = {};
+	aroop_txt_embeded_set_static_string(&null_plug, "null");
 	aroop_txt_t name_key = {};
 	aroop_txt_embeded_stackbuffer(&name_key, 128);
 	build_name_key(&chat->name, &name_key);
+	async_db_unset(-1, &null_plug, &name_key);
+	chat->state &= ~CHAT_LOGGED_IN;
+	return 0;
+#if 0
 	aroop_txt_t result = {};
 	aroop_memclean_raw2(&result);
 	db_set(aroop_txt_to_string(&name_key), aroop_txt_to_string(&result));
 	aroop_txt_destroy(&result);
 	chat->state &= ~CHAT_LOGGED_IN;
 	return ret;
-
+#else
+#endif
 }
 
 static int user_try_login_response_hook(aroop_txt_t*bin, aroop_txt_t*output) {
@@ -99,7 +106,7 @@ static int user_try_login_response_hook(aroop_txt_t*bin, aroop_txt_t*output) {
 }
 
 static int user_async_hook_desc(aroop_txt_t*plugin_space, aroop_txt_t*output) {
-	return plugin_desc(output, "chat user", "hookup", plugin_space, __FILE__, "It helps chat user to collect the hooks.\n");
+	return plugin_desc(output, "get chat hooks", "chatuser", plugin_space, __FILE__, "It helps chat user to collect the hooks.\n");
 }
 
 int user_module_init() {

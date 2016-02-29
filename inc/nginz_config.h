@@ -56,7 +56,7 @@ enum chat_config {
 	NGINZ_MAX_CHAT_MSG_SIZE = 255,
 	NGINZ_MAX_WEBCHAT_MSG_SIZE = 1024,
 	NGINZ_MAX_WEBCHAT_SID_SIZE = 32,
-	NGINZ_MAX_COMMANDS = 16,
+	//NGINZ_MAX_COMMANDS = 16,
 };
 
 /**
@@ -73,6 +73,29 @@ enum http_config {
 #undef AROOP_MODULE_NAME
 #endif
 #define AROOP_MODULE_NAME "NginZ"
+
+/**************************************************************************/
+/***************************** enable modules *****************************/
+/**************************************************************************/
+// http module allows to load http
+//#define HAS_HTTP_MODULE
+
+// chat module allows telnet chat
+#define HAS_CHAT_MODULE
+// web chat module tunnels chat over htp
+#define HAS_WEB_CHAT_MODULE
+//#define HAS_MEMCACHED_MODULE
+
+
+// fixup
+#ifndef HAS_CHAT_MODULE
+#undef HAS_WEB_CHAT_MODULE
+#endif
+#ifndef HAS_HTTP_MODULE
+#undef HAS_WEB_CHAT_MODULE
+#endif
+/**************************************************************************/
+
 
 C_CAPSULE_END
 

@@ -63,7 +63,7 @@ OPP_CB(composite_plugin) {
 	struct composite_plugin*cplug = data;
 	switch(callback) {
 		case OPPN_ACTION_INITIALIZE:
-			OPP_PFACTORY_CREATE(&cplug->factory, 32, sizeof(struct internal_plugin), OPP_CB_FUNC(internal_plugin));
+			NGINZ_FACTORY_CREATE(&cplug->factory, 32, sizeof(struct internal_plugin), OPP_CB_FUNC(internal_plugin));
 			opp_hash_table_create(&cplug->table, 16, 0, aroop_txt_get_hash_cb, aroop_txt_equals_cb);
 		break;
 		case OPPN_ACTION_FINALIZE:
@@ -105,7 +105,7 @@ static int composite_plug_helper(struct composite_plugin*container
 		aroop_assert(!"Unrecognised plugin\n");
 	}
 	plugin->desc = desc;
-	plugin->plugin_space = aroop_txt_new_copy_deep(plugin_space, NULL);
+	plugin->plugin_space = aroop_txt_new_copy_deep(plugin_space, NULL); // We must create xtring not extring ..
 	aroop_assert(plugin->plugin_space != NULL);
 	aroop_txt_zero_terminate(plugin->plugin_space);
 	struct internal_plugin*root = opp_hash_table_get(&(container->table), plugin->plugin_space);
@@ -213,6 +213,8 @@ int plugin_desc(aroop_txt_t*output, char*plugin_name, char*plugin_type, aroop_tx
 	aroop_txt_concat_char(output, '\t');
 	aroop_txt_concat_string(output, source_file);
 	aroop_txt_concat_char(output, '\n');
+	aroop_txt_concat_char(output, '\t');
+	aroop_txt_concat_char(output, '\t');
 	aroop_txt_concat_string(output, desc);
 	return 0;
 }

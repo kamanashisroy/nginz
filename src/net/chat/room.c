@@ -25,7 +25,11 @@ int chat_room_get_user_count(aroop_txt_t*my_room) {
 	aroop_txt_concat_string(&db_room_key, ROOM_USER_KEY);
 	aroop_txt_concat(&db_room_key, my_room);
 	aroop_txt_zero_terminate(&db_room_key);
+#ifdef HAS_MEMCACHED_MODULE
 	return db_get_int(aroop_txt_to_string(&db_room_key));
+#else
+	return 0;
+#endif
 }
 
 int chat_room_set_user_count(aroop_txt_t*my_room, int user_count) {
@@ -38,7 +42,11 @@ int chat_room_set_user_count(aroop_txt_t*my_room, int user_count) {
 	aroop_txt_concat_string(&db_room_key, ROOM_USER_KEY);
 	aroop_txt_concat(&db_room_key, my_room);
 	aroop_txt_zero_terminate(&db_room_key);
+#ifdef HAS_MEMCACHED_MODULE
 	return db_set_int(aroop_txt_to_string(&db_room_key), user_count);
+#else
+	return 0;
+#endif
 }
 
 int chat_room_get_pid(aroop_txt_t*my_room) {
@@ -51,7 +59,11 @@ int chat_room_get_pid(aroop_txt_t*my_room) {
 	aroop_txt_concat_string(&db_room_key, ROOM_PID_KEY);
 	aroop_txt_concat(&db_room_key, my_room);
 	aroop_txt_zero_terminate(&db_room_key);
+#ifdef HAS_MEMCACHED_MODULE
 	return db_get_int(aroop_txt_to_string(&db_room_key));
+#else
+	return 0;
+#endif
 }
 
 static int chat_room_set_pid(const char*my_room, int pid) {
@@ -61,7 +73,11 @@ static int chat_room_set_pid(const char*my_room, int pid) {
 	aroop_txt_concat_string(&db_room_key, ROOM_PID_KEY);
 	aroop_txt_concat_string(&db_room_key, my_room);
 	aroop_txt_zero_terminate(&db_room_key);
+#ifdef HAS_MEMCACHED_MODULE
 	return db_set_int(aroop_txt_to_string(&db_room_key), pid);
+#else
+	return 0;
+#endif
 }
 
 
@@ -108,7 +124,9 @@ static int chat_room_lookup_plug(int signature, void*given) {
 		return 0;
 	aroop_txt_t room_info = {};
 	aroop_txt_t db_data = {};
+#ifdef HAS_MEMCACHED_MODULE
 	db_get(ROOM_KEY, &db_data); // needs cleanup
+#endif
 	if(aroop_txt_is_empty(&db_data)) {
 		aroop_txt_embeded_set_static_string(&room_info, "There is no room\n");
 	} else {
@@ -146,7 +164,9 @@ static int default_room_setup() {
 	aroop_txt_shift(&roomstr, -1);// trim the last space
 	aroop_txt_zero_terminate(&roomstr);
 
+#ifdef HAS_MEMCACHED_MODULE
 	db_set(ROOM_KEY, aroop_txt_to_string(&roomstr));
+#endif
 	return 0;
 }
 
