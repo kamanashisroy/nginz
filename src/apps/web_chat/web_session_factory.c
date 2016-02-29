@@ -20,7 +20,6 @@ C_CAPSULE_START
 
 
 static struct opp_factory web_session_factory;
-static struct chat_hooks*chooks = NULL;
 
 static int web_session_factory_on_softquit(aroop_txt_t*plugin_space, aroop_txt_t*output) {
 	// iterate through all
@@ -123,19 +122,6 @@ OPP_CB(web_session_connection) {
 	return 0;
 }
 
-#if 0
-static int web_session_chatapi_plug(int signature, void*given) {
-	aroop_assert(signature = CHAT_SIGNATURE);
-	chooks = (struct chat_hooks*)given;
-	aroop_assert(chooks != NULL);
-	return 0;
-}
-
-static int web_session_chatapi_plug_desc(aroop_txt_t*plugin_space, aroop_txt_t*output) {
-	return plugin_desc(output, "web_chat_chatapi", "chat hooking", plugin_space, __FILE__, "It reads the chat-api hooks.\n");
-}
-#endif
-
 static int gear = 0;
 static int web_session_cleanup_fiber(int status) {
 	time_t now = time(NULL);
@@ -164,19 +150,12 @@ int web_session_factory_module_init() {
 	pm_plug_callback(&plugin_space, web_session_factory_on_softquit, web_session_factory_on_softquit_desc);
 	aroop_txt_embeded_set_static_string(&plugin_space, "web_session/api/hookup");
 	composite_plugin_bridge_call(pm_get(), &plugin_space, WEB_CHAT_SIGNATURE, &web_hooks);
-#if 0
-	aroop_txt_embeded_set_static_string(&plugin_space, "chatproto/hookup");
-	pm_plug_bridge(&plugin_space, web_session_chatapi_plug, web_session_chatapi_plug_desc);
-#endif
 	register_fiber(web_session_cleanup_fiber);
 }
 
 int web_session_factory_module_deinit() {
 	unregister_fiber(web_session_cleanup_fiber);
 	pm_unplug_callback(0, web_session_factory_on_softquit);
-#if 0
-	composite_unplug_bridge(pm_get(), 0, web_session_chatapi_plug);
-#endif
 	web_session_factory_on_softquit(NULL,NULL);
 	OPP_PFACTORY_DESTROY(&web_session_factory);
 	return 0;

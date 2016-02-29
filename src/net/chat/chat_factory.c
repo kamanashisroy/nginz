@@ -113,9 +113,6 @@ static int chat_factory_show_desc(aroop_txt_t*plugin_space, aroop_txt_t*output) 
 	return plugin_desc(output, "show", "chat", plugin_space, __FILE__, "It shows the chat objects.\n");
 }
 
-#if 0
-static struct chat_hooks*hooks = NULL;
-#endif
 OPP_CB(chat_connection) {
 	struct chat_connection*chat = data;
 	switch(callback) {
@@ -147,20 +144,6 @@ static struct chat_connection*chat_get(int token) {
 	return opp_get(&chat_factory, token);
 }
 
-#if 0
-static int chat_factory_hookup(int signature, void*given) {
-	hooks = (struct chat_hooks*)given;
-	aroop_assert(hooks != NULL);
-	hooks->on_create = chat_alloc;
-	hooks->get = chat_get;
-	return 0;
-}
-
-static int chat_factory_hookup_desc(aroop_txt_t*plugin_space, aroop_txt_t*output) {
-	return plugin_desc(output, "chat_factory", "chat hooking", plugin_space, __FILE__, "It registers connection creation and destruction hooks.\n");
-}
-#endif
-
 int chat_factory_module_init() {
 	NGINZ_EXTENDED_FACTORY_CREATE(&chat_factory, 64, sizeof(struct chat_connection), OPP_CB_FUNC(chat_connection));
 	aroop_txt_t plugin_space = {};
@@ -168,10 +151,6 @@ int chat_factory_module_init() {
 	composite_plug_bridge(chat_plugin_manager_get(), &plugin_space, chat_factory_show, chat_factory_show_desc);
 	aroop_txt_embeded_set_static_string(&plugin_space, "shake/softquitall");
 	pm_plug_callback(&plugin_space, chat_factory_on_softquit, chat_factory_on_softquit_desc);
-#if 0
-	aroop_txt_embeded_set_static_string(&plugin_space, "chatproto/hookup");
-	pm_plug_bridge(&plugin_space, chat_factory_hookup, chat_factory_hookup_desc);
-#endif
 	chat_api_get()->on_create = chat_alloc;
 	chat_api_get()->get = chat_get;
 	return 0;
@@ -180,9 +159,6 @@ int chat_factory_module_init() {
 int chat_factory_module_deinit() {
 	composite_unplug_bridge(chat_plugin_manager_get(), 0, chat_factory_show);
 	pm_unplug_callback(0, chat_factory_on_softquit);
-#if 0
-	pm_unplug_bridge(0, chat_factory_hookup);
-#endif
 	struct opp_iterator iterator;
 	opp_iterator_create(&iterator, &chat_factory, OPPN_ALL, 0, 0);
 	do {

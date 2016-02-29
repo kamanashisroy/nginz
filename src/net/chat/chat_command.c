@@ -55,30 +55,10 @@ static int command_hook(struct chat_connection*chat, aroop_txt_t*given_request) 
 	return ret;
 }
 
-#if 0
-static int chat_command_hook_plug(int signature, void*given) {
-	aroop_assert(given != NULL);
-	struct chat_hooks*ghooks = (struct chat_hooks*)given;
-	ghooks->on_command = command_hook;
-}
-
-static int chat_command_hook_plug_desc(aroop_txt_t*plugin_space, aroop_txt_t*output) {
-	return plugin_desc(output, "chat_command", "chat hooking", plugin_space, __FILE__, "It registers command hooks.\n");
-}
-#endif
-
 int chat_command_module_init() {
-#if 0
-	aroop_txt_t plugin_space = {};
-	aroop_txt_embeded_set_static_string(&plugin_space, "chatproto/hookup");
-	pm_plug_bridge(&plugin_space, chat_command_hook_plug, chat_command_hook_plug_desc);
-#endif
 	chat_api_get()->on_command = command_hook;
 }
 
 int chat_command_module_deinit() {
-#if 0
-	pm_unplug_bridge(0, chat_command_hook_plug);
-#endif
 }
 

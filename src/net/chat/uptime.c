@@ -42,39 +42,17 @@ static struct chat_connection*uptime_count_chat_create(int fd) {
 	return real_on_create(fd);
 }
 
-#if 0
-static int chat_uptime_hookup(int signature, void*given) {
-	struct chat_hooks*hooks = (struct chat_hooks*)given;
-	aroop_assert(hooks != NULL);
-	real_on_create = hooks->on_create;
-	hooks->on_create = uptime_count_chat_create;
-	return 0;
-}
-
-static int chat_uptime_hookup_desc(aroop_txt_t*plugin_space, aroop_txt_t*output) {
-	return plugin_desc(output, "uptime", "chat hooking", plugin_space, __FILE__, "It counts the number of connections created.\n");
-}
-#endif
-
-
 int uptime_module_init() {
 	time(&start_time);
 	aroop_txt_t plugin_space = {};
 	aroop_txt_embeded_set_static_string(&plugin_space, "chat/uptime");
 	composite_plug_bridge(chat_plugin_manager_get(), &plugin_space, chat_uptime_plug, chat_uptime_plug_desc);
-#if 0
-	aroop_txt_embeded_set_static_string(&plugin_space, "chatproto/hookup");
-	pm_plug_bridge(&plugin_space, chat_uptime_hookup, chat_uptime_hookup_desc);
-#endif
 	real_on_create = chat_api_get()->on_create;
 	chat_api_get()->on_create = uptime_count_chat_create;
 }
 
 int uptime_module_deinit() {
 	composite_unplug_bridge(chat_plugin_manager_get(), 0, chat_uptime_plug);
-#if 0
-	pm_unplug_bridge(0, chat_uptime_hookup);
-#endif
 }
 
 

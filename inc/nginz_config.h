@@ -78,7 +78,7 @@ enum http_config {
 /***************************** enable modules *****************************/
 /**************************************************************************/
 // http module allows to load http
-//#define HAS_HTTP_MODULE
+#define HAS_HTTP_MODULE
 
 // chat module allows telnet chat
 #define HAS_CHAT_MODULE
