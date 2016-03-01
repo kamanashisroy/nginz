@@ -61,6 +61,7 @@ static int handle_chat_request(struct streamio*strm, aroop_txt_t*request) {
 	if(chat->strm.error || (chat->state & CHAT_QUIT) || (chat->state & CHAT_SOFT_QUIT)) {
 		syslog(LOG_INFO, "Client quited\n");
 		chat->strm.close(&chat->strm);
+		chat->state |= CHAT_ZOMBIE;
 		return -1;
 	}
 

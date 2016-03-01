@@ -34,12 +34,31 @@ static int mchild = -1;
 static int parent = -1;
 static int mparent = -1;
 
+NGINZ_INLINE static int pp_simple_sendmsg(int through, aroop_txt_t*pkt) {
+#if 0
+	return send(through, aroop_txt_to_string(pkt), aroop_txt_length(pkt), 0);
+#else
+	struct msghdr msg;
+	struct iovec iov[1];
+	memset(&msg, 0, sizeof(msg));
+	memset(iov, 0, sizeof(iov));
+	iov[0].iov_base = aroop_txt_to_string(pkt);
+	iov[0].iov_len  = aroop_txt_length(pkt);
+	msg.msg_iov = iov;
+	msg.msg_iovlen = 1;
+	if(sendmsg(through, &msg, 0) < 0) {
+		syslog(LOG_ERR, "Cannot send simple message to child:%s\n", strerror(errno));
+		return -1;
+	}
+#endif
+	return 0;
+}
+
 NGINZ_INLINE int pp_bubble_down(aroop_txt_t*pkt) {
 	// sanity check
 	if(child == -1)
 		return -1;
-	send(child, aroop_txt_to_string(pkt), aroop_txt_length(pkt), 0);
-	return 0;
+	return pp_simple_sendmsg(child, pkt);
 }
 
 NGINZ_INLINE static int pp_sendmsg_helper(int through, int target, aroop_txt_t*cmd) {
@@ -87,9 +106,9 @@ NGINZ_INLINE int pp_bubble_down_send_socket(int socket, aroop_txt_t*cmd) {
 NGINZ_INLINE int pp_bubble_up(aroop_txt_t*pkt) {
 	// sanity check
 	if(parent == -1) {
-		return send(loop_pipefd[1], aroop_txt_to_string(pkt), aroop_txt_length(pkt), 0);
+		return pp_simple_sendmsg(loop_pipefd[1], pkt);
 	}
-	return send(parent, aroop_txt_to_string(pkt), aroop_txt_length(pkt), 0);
+	return pp_simple_sendmsg(parent, pkt);
 }
 
 NGINZ_INLINE int pp_bubble_up_send_socket(int socket, aroop_txt_t*cmd) {
@@ -157,6 +176,30 @@ NGINZ_INLINE static int pp_recvmsg_helper(int through, int*target, aroop_txt_t*c
 	return 0;
 }
 
+NGINZ_INLINE static int pp_simple_recvmsg_helper(int through, aroop_txt_t*cmd) {
+	struct msghdr msg;
+	struct iovec iov[1];
+	if(through == -1)
+		return -1;
+	memset(&msg, 0, sizeof(msg));
+	memset(iov, 0, sizeof(iov));
+	iov[0].iov_base = aroop_txt_to_string(cmd);
+	iov[0].iov_len  = aroop_txt_capacity(cmd);
+	msg.msg_iov = iov;
+	msg.msg_iovlen = 1;
+	
+	int recvlen = 0;
+	if(recvlen = recvmsg(through, &msg, 0) < 0) {
+		syslog(LOG_ERR, "Cannot recv msg:%s\n", strerror(errno));
+		return -1;
+	}
+	if(msg.msg_iovlen == 1 && iov[0].iov_len > 0) {
+		aroop_txt_set_length(cmd, iov[0].iov_len);
+	}
+	return 0;
+}
+
+
 static aroop_txt_t recv_buffer;
 static int on_bubble_down(int fd, int events, const void*unused) {
 	//printf("There is bubble_down from the parent\n");
@@ -164,13 +207,12 @@ static int on_bubble_down(int fd, int events, const void*unused) {
 	//char rbuf[255];
 	//int count = recv(parent, rbuf, sizeof(rbuf), 0);
 	aroop_assert(fd == parent);
-	int count = recv(fd, aroop_txt_to_string(&recv_buffer), aroop_txt_capacity(&recv_buffer), 0);
-	if(count <= 0) {
+	pp_simple_recvmsg_helper(fd, &recv_buffer);
+	if(aroop_txt_is_empty(&recv_buffer)) {
 		syslog(LOG_ERR, "Error receiving bubble_down:%s\n", strerror(errno));
 		return 0;
 	}
 
-	aroop_txt_set_length(&recv_buffer, count);
 	//aroop_txt_embeded_rebuild_and_set_content(&recv_buffer, rbuf)
 	aroop_txt_t x = {};
 	int destpid = 0;
@@ -248,13 +290,11 @@ static int on_bubble_down_recv_socket(int fd, int events, const void*unused) {
 static int on_bubble_up(int fd, int events, const void*unused) {
 	aroop_assert(fd == child);
 	aroop_txt_set_length(&recv_buffer, 1); // without it aroop_txt_to_string() will give NULL
-	int count = recv(fd, aroop_txt_to_string(&recv_buffer), aroop_txt_capacity(&recv_buffer), 0);
-	if(count <= 0) {
+	pp_simple_recvmsg_helper(fd, &recv_buffer);
+	if(aroop_txt_is_empty(&recv_buffer)) {
 		syslog(LOG_ERR, "Error receiving bubble_down:%s\n", strerror(errno));
 		return 0;
 	}
-
-	aroop_txt_set_length(&recv_buffer, count);
 	//aroop_txt_embeded_rebuild_and_set_content(&recv_buffer, rbuf)
 	aroop_txt_t x = {};
 	int destpid = 0;

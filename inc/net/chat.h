@@ -10,7 +10,8 @@ enum chat_state {
 	CHAT_LOGGED_IN = 1<<1,
 	CHAT_IN_ROOM = 1<<2,
 	CHAT_QUIT = 1<<3,
-	CHAT_SOFT_QUIT = 1<<4
+	CHAT_SOFT_QUIT = 1<<4,
+	CHAT_ZOMBIE = 1<<5
 };
 
 struct chat_api {

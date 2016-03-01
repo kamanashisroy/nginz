@@ -21,30 +21,6 @@ static int build_name_key(aroop_txt_t*name, aroop_txt_t*output) {
 	return 0;
 }
 
-#if 0
-int try_login(aroop_txt_t*name) {
-	int ret = 0;
-	if(aroop_txt_is_empty_magical(name)) // sanity check
-		return -1;
-	aroop_txt_t name_key = {};
-	aroop_txt_embeded_stackbuffer(&name_key, 128);
-	build_name_key(name, &name_key);
-	aroop_txt_t result = {};
-	db_get(aroop_txt_to_string(&name_key), &result); // needs cleanup
-	if(!aroop_txt_is_empty(&result)) {
-		//syslog(LOG_INFO, "User already exists %s\n", aroop_txt_to_string(&result));
-		ret = -1;
-	} else {
-		// XXX there is a race condition ..
-		aroop_txt_destroy(&result);
-		aroop_txt_embeded_rebuild_and_set_static_string(&result, "1");
-		aroop_txt_zero_terminate(&result);
-		db_set(aroop_txt_to_string(&name_key), aroop_txt_to_string(&result));
-	}
-	aroop_txt_destroy(&result); // cleanup
-	return ret;
-}
-#else
 int async_try_login(aroop_txt_t*name, int token, aroop_txt_t*response_hook) {
 	int ret = 0;
 	if(aroop_txt_is_empty_magical(name)) // sanity check
@@ -52,10 +28,10 @@ int async_try_login(aroop_txt_t*name, int token, aroop_txt_t*response_hook) {
 	aroop_txt_t name_key = {};
 	aroop_txt_embeded_stackbuffer(&name_key, 128);
 	build_name_key(name, &name_key);
+	syslog(LOG_NOTICE, "requesting user %s\n", aroop_txt_to_string(name));
 	async_db_compare_and_swap(token, response_hook, &name_key, name, NULL);
 	return 0;
 }
-#endif
 
 
 int logoff_user(struct chat_connection*chat) {

@@ -63,7 +63,9 @@ static int chat_factory_on_softquit_desc(aroop_txt_t*plugin_space, aroop_txt_t*o
 
 static int chat_state_show(struct chat_connection*chat, aroop_txt_t*output) {
 	aroop_txt_concat_char(output, '[');
-	if(chat->state & CHAT_QUIT) {
+	if(chat->state & CHAT_ZOMBIE) {
+		aroop_txt_concat_string(output, "CHAT_ZOMBIE");
+	} else if(chat->state & CHAT_QUIT) {
 		aroop_txt_concat_string(output, "CHAT_QUIT");
 	} else if(chat->state & CHAT_SOFT_QUIT) {
 		aroop_txt_concat_string(output, "CHAT_SOFT_QUIT");
@@ -136,13 +138,14 @@ OPP_CB(chat_connection) {
 
 static struct chat_connection*chat_alloc(int fd) {
 	struct chat_connection*chat = OPP_ALLOC1(&chat_factory);
+	OPPREF(chat); // do not really destroy it ..
 	chat->strm.fd = fd;
 	return chat;
 }
 
 static struct chat_connection*chat_get(int token) {
 	struct chat_connection*chat = opp_get(&chat_factory, token);
-	if(chat->state & (CHAT_QUIT | CHAT_SOFT_QUIT))
+	if(chat->state & (CHAT_QUIT | CHAT_SOFT_QUIT | CHAT_ZOMBIE))
 		return NULL;
 	return chat;
 }
