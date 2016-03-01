@@ -4,6 +4,7 @@
 #include "nginz_config.h"
 #include "log.h"
 #include "plugin.h"
+#include "plugin_manager.h"
 #include <sys/socket.h>
 #include "net/streamio.h"
 #include "net/chat.h"
@@ -58,20 +59,31 @@ static int chat_join_get_room(aroop_txt_t*request, aroop_txt_t*room) {
 	return 0;
 }
 
-static int chat_join_plug(int signature, void*given) {
-	aroop_assert(signature == CHAT_SIGNATURE);
-	struct chat_connection*chat = (struct chat_connection*)given;
-	if(!IS_VALID_CHAT(chat)) // sanity check
-		return 0;
+static int on_asyncchat_room_pid(aroop_txt_t*bin, aroop_txt_t*unused) {
+	aroop_assert(!aroop_txt_is_empty_magical(bin));
+	// 0 = pid, 1 = srcpid, 2 = command, 3 = token, 4 = cb_hook, 5 = success, 6 = key, 7 = newvalue
+	//syslog(LOG_NOTICE, "------------ ..............  \n");
+	int cb_token = 0;
+	aroop_txt_t pidstr = {};
 	aroop_txt_t join_info = {};
+	aroop_txt_t room_key = {};
 	aroop_txt_t room = {};
-	int pid = -1;
+	binary_unpack_int(bin, 3, &cb_token); // id/token
+	binary_unpack_string(bin, 6, &room_key);
+	//syslog(LOG_NOTICE, "Joining ..............  %d to %s\n", cb_token, aroop_txt_to_string(&room_key));
+	chat_room_convert_room_from_room_pid_key(&room_key, &room); // needs cleanup
+	//syslog(LOG_NOTICE, "Joining ..............  %d to %s\n", cb_token, aroop_txt_to_string(&room));
+	binary_unpack_string(bin, 7, &pidstr); // needs cleanup
+	struct chat_connection*chat = chat_api_get()->get(cb_token); // needs cleanup
 	do {
-		if(aroop_txt_is_empty_magical(&chat->name)) {
-			aroop_txt_embeded_set_static_string(&join_info, "Please login first\n");
+		if(!chat) {
+			syslog(LOG_ERR, "Join failed, chat object not found %d\n", cb_token);
 			break;
 		}
-		if(aroop_txt_is_empty_magical(chat->request) || chat_join_get_room(chat->request, &room) || (pid = chat_room_get_pid(&room)) == -1) {
+		int pid = aroop_txt_to_int(&pidstr);
+		//syslog(LOG_NOTICE, "Joining ..............  %d to %s : %d\n", cb_token, aroop_txt_to_string(&room), pid);
+		if(pid <= 0 || aroop_txt_is_empty(&room)) {
+			// say room not found
 			aroop_txt_embeded_set_static_string(&join_info, "The room is not avilable\n");
 			break;
 		}
@@ -80,6 +92,41 @@ static int chat_join_plug(int signature, void*given) {
 		chat->strm.send(&chat->strm, &join_info, MSG_MORE);
 		aroop_txt_set_length(&join_info, 0);
 		chat_join_helper(chat, &room, pid);
+	} while(0);
+	if(!aroop_txt_is_empty(&join_info)) {
+		chat->strm.send(&chat->strm, &join_info, 0);
+	}
+	aroop_txt_destroy(&pidstr);
+	aroop_txt_destroy(&join_info);
+	aroop_txt_destroy(&room_key);
+	aroop_txt_destroy(&room);
+	if(chat)
+		OPPUNREF(chat); // cleanup
+	return 0;
+}
+
+static int chat_join_plug(int signature, void*given) {
+	aroop_assert(signature == CHAT_SIGNATURE);
+	struct chat_connection*chat = (struct chat_connection*)given;
+	if(!IS_VALID_CHAT(chat)) // sanity check
+		return 0;
+	aroop_txt_t join_info = {};
+	aroop_txt_t room = {};
+	aroop_txt_t room_lookup_hook = {};
+	aroop_txt_embeded_set_static_string(&room_lookup_hook, "on/asyncchat/room/pid");
+	do {
+		if(aroop_txt_is_empty_magical(&chat->name)) {
+			aroop_txt_embeded_set_static_string(&join_info, "Please login first\n");
+			break;
+		}
+		if(aroop_txt_is_empty_magical(chat->request) || chat_join_get_room(chat->request, &room) || (chat_room_get_pid(&room, chat->strm._ext.token, &room_lookup_hook)) == -1) {
+			aroop_txt_embeded_set_static_string(&join_info, "The room is not avilable\n");
+			break;
+		}
+		aroop_txt_embeded_stackbuffer(&join_info, 64);
+		aroop_txt_printf(&join_info, "Trying ...\n");
+		chat->strm.send(&chat->strm, &join_info, MSG_MORE);
+		aroop_txt_set_length(&join_info, 0);
 	} while(0);
 	if(!aroop_txt_is_empty(&join_info)) {
 		chat->strm.send(&chat->strm, &join_info, 0);
@@ -93,14 +140,21 @@ static int chat_join_plug_desc(aroop_txt_t*plugin_space, aroop_txt_t*output) {
 	return plugin_desc(output, "join", "chat", plugin_space, __FILE__, "It respons to join command.\n");
 }
 
+static int on_asyncchat_room_pid_desc(aroop_txt_t*plugin_space, aroop_txt_t*output) {
+	return plugin_desc(output, "react to callback", "asyncchat", plugin_space, __FILE__, "It asynchronously responds to join request.\n");
+}
+
 int join_module_init() {
 	aroop_txt_t plugin_space = {};
 	aroop_txt_embeded_set_static_string(&plugin_space, "chat/join");
 	composite_plug_bridge(chat_plugin_manager_get(), &plugin_space, chat_join_plug, chat_join_plug_desc);
+	aroop_txt_embeded_set_static_string(&plugin_space, "on/asyncchat/room/pid");
+	pm_plug_callback(&plugin_space, on_asyncchat_room_pid, on_asyncchat_room_pid_desc);
 }
 
 int join_module_deinit() {
 	composite_unplug_bridge(chat_plugin_manager_get(), 0, chat_join_plug);
+	pm_unplug_callback(0, on_asyncchat_room_pid);
 }
 
 

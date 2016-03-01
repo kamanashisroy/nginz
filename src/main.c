@@ -45,6 +45,7 @@ static int nginz_init() {
 	db_module_init();
 #endif
 	pm_init();
+	pp_module_init();
 	shake_quitall_module_init();
 	binary_coder_module_init();
 	fiber_module_init();
@@ -59,7 +60,6 @@ static int nginz_init() {
 #ifdef HAS_WEB_CHAT_MODULE
 	web_chat_module_init();
 #endif
-	pp_module_init();
 	rehash();
 	signal(SIGPIPE, SIG_IGN); // avoid crash on sigpipe
 	signal(SIGINT, signal_callback);
@@ -70,7 +70,6 @@ static int nginz_init() {
 
 static int nginz_deinit() {
 	tcp_listener_deinit();
-	pp_module_deinit();
 #ifdef HAS_WEB_CHAT_MODULE
 	web_chat_module_deinit();
 #endif
@@ -86,6 +85,7 @@ static int nginz_deinit() {
 	fiber_module_deinit();
 	binary_coder_module_deinit();
 	shake_quitall_module_deinit();
+	pp_module_deinit();
 	pm_deinit();
 #ifdef HAS_MEMCACHED_MODULE
 	db_module_deinit();

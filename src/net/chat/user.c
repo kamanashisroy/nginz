@@ -55,7 +55,7 @@ int async_try_login(aroop_txt_t*name, int on_try_login_complete(int token, aroop
 	aroop_txt_embeded_stackbuffer(&name_key, 128);
 	build_name_key(name, &name_key);
 	aroop_txt_t login_hook = {};
-	aroop_txt_embeded_set_static_string(&login_hook, "chatuser/on/login");
+	aroop_txt_embeded_set_static_string(&login_hook, "asyncchat/on/login");
 	async_db_compare_and_swap(token, &login_hook, &name_key, name, NULL);
 	on_login_callback = on_try_login_complete;
 	return 0;
@@ -67,12 +67,10 @@ int logoff_user(struct chat_connection*chat) {
 	int ret = 0;
 	if(aroop_txt_is_empty_magical(&chat->name)) // sanity check
 		return -1;
-	aroop_txt_t null_plug = {};
-	aroop_txt_embeded_set_static_string(&null_plug, "null");
 	aroop_txt_t name_key = {};
 	aroop_txt_embeded_stackbuffer(&name_key, 128);
 	build_name_key(&chat->name, &name_key);
-	async_db_unset(-1, &null_plug, &name_key);
+	async_db_unset(-1, NULL, &name_key);
 	chat->state &= ~CHAT_LOGGED_IN;
 	return 0;
 #if 0
@@ -94,7 +92,7 @@ static int user_try_login_response_hook(aroop_txt_t*bin, aroop_txt_t*output) {
 	aroop_txt_t name = {};
 	binary_unpack_int(bin, 3, &cb_token); // id/token
 	binary_unpack_int(bin, 5, &success);
-	binary_unpack_string(bin, 7, &name);
+	binary_unpack_string(bin, 7, &name); // needs cleanup
 	if(!aroop_txt_is_empty(&name)) {
 		aroop_txt_shift(&name, sizeof(USER_PREFIX));
 	}
@@ -109,7 +107,7 @@ static int user_async_hook_desc(aroop_txt_t*plugin_space, aroop_txt_t*output) {
 
 int user_module_init() {
 	aroop_txt_t plugin_space = {};
-	aroop_txt_embeded_set_static_string(&plugin_space, "chatuser/on/login");
+	aroop_txt_embeded_set_static_string(&plugin_space, "asyncchat/on/login");
 	pm_plug_callback(&plugin_space, user_try_login_response_hook , user_async_hook_desc);
 }
 

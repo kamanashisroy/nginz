@@ -14,9 +14,12 @@
 
 C_CAPSULE_START
 
+static aroop_txt_t null_hook = {};
 static int masterpid = 0;
 int async_db_compare_and_swap(int cb_token, aroop_txt_t*cb_hook, aroop_txt_t*key, aroop_txt_t*newval, aroop_txt_t*oldval) {
-	aroop_assert(!aroop_txt_is_empty_magical(cb_hook));
+	if(cb_hook == NULL) {
+		cb_hook = &null_hook;
+	}
 	aroop_assert(!aroop_txt_is_empty_magical(key));
 	if(oldval)
 		aroop_assert(!aroop_txt_is_empty_magical(newval));
@@ -50,7 +53,44 @@ int async_db_compare_and_swap(int cb_token, aroop_txt_t*cb_hook, aroop_txt_t*key
 }
 
 int async_db_unset(int cb_token, aroop_txt_t*cb_hook, aroop_txt_t*key) {
+	if(cb_hook == NULL) {
+		cb_hook = &null_hook;
+	}
 	return async_db_compare_and_swap(cb_token, cb_hook, key, NULL, NULL);
+}
+
+int async_db_set_int(int cb_token, aroop_txt_t*cb_hook, aroop_txt_t*key, int intval) {
+	if(cb_hook == NULL) {
+		cb_hook = &null_hook;
+	}
+	aroop_txt_t intstr = {};
+	aroop_txt_embeded_stackbuffer(&intstr, 32);
+	aroop_txt_printf(&intstr, "%d", intval);
+	async_db_compare_and_swap(cb_token, cb_hook, key, &intstr, NULL);
+	aroop_txt_destroy(&intstr);
+}
+
+int async_db_get(int cb_token, aroop_txt_t*cb_hook, aroop_txt_t*key) {
+	if(cb_hook == NULL) {
+		cb_hook = &null_hook;
+	}
+	aroop_assert(!aroop_txt_is_empty_magical(key));
+	aroop_txt_t app = {};
+	aroop_txt_embeded_set_static_string(&app, "asyncdb/get/request"); 
+	aroop_txt_t bin = {}; // binary response
+	// send response
+	aroop_txt_embeded_stackbuffer(&bin, 255);
+	binary_coder_reset(&bin);
+	// 0 = pid, 1 = srcpid, 2 = command, 3 = token, 4 = cb_hook, 5 = key
+	binary_pack_int(&bin, masterpid); // send destination pid
+	binary_pack_int(&bin, getpid()); // send source pid
+	binary_pack_string(&bin, &app);
+	binary_pack_int(&bin, cb_token); // id/token
+	binary_pack_string(&bin, cb_hook); // callback hook
+	binary_pack_string(&bin, key);
+	//syslog(LOG_NOTICE, "compare and swap .. sending to master %d", masterpid);
+	pp_bubble_up(&bin);
+	return 0;
 }
 
 static opp_hash_table_t global_db; // TODO create partitioned db in future
@@ -85,9 +125,8 @@ static int async_db_op_helper(aroop_txt_t*key, aroop_txt_t*newval, aroop_txt_t*e
 		opp_hash_table_set(&global_db, key, NULL); // unset
 		return 0;
 	}
-	aroop_txt_t*oldval = (aroop_txt_t*)opp_hash_table_get(&global_db, key);
+	aroop_txt_t*oldval = (aroop_txt_t*)opp_hash_table_get_no_ref(&global_db, key); // no cleanup needed
 	if(!((oldval == NULL && expval == NULL) || (oldval != NULL && expval != NULL && aroop_txt_equals(expval, oldval)))) {
-		if(oldval)OPPUNREF(oldval);
 		return -1;
 	}
 	aroop_txt_t*xnval = aroop_txt_new_copy_deep(newval, NULL);
@@ -96,7 +135,6 @@ static int async_db_op_helper(aroop_txt_t*key, aroop_txt_t*newval, aroop_txt_t*e
 	opp_hash_table_set(&global_db, xkey, xnval);
 	OPPUNREF(xnval);
 	OPPUNREF(xkey);
-	if(oldval)OPPUNREF(oldval);
 	return 0;
 }
 
@@ -183,7 +221,7 @@ static int async_db_unset_hook(aroop_txt_t*bin, aroop_txt_t*output) {
 	binary_unpack_int(bin, 3, &cb_token);
 	binary_unpack_string(bin, 4, &cb_hook); // needs cleanup
 	binary_unpack_string(bin, 5, &key); // needs cleanup
-	syslog(LOG_NOTICE, "[pid:%d]\tdeleting:%s", getpid(), aroop_txt_to_string(&key));
+	//syslog(LOG_NOTICE, "[pid:%d]\tdeleting:%s", getpid(), aroop_txt_to_string(&key));
 	int success = 0;
 	success = !async_db_op_helper(&key, NULL, NULL);
 	if(destpid > 0) {
@@ -197,6 +235,41 @@ static int async_db_unset_hook(aroop_txt_t*bin, aroop_txt_t*output) {
 	return 0;
 }
 
+static int async_db_get_hook(aroop_txt_t*bin, aroop_txt_t*output) {
+	/**
+	 * The database is available only in the master process
+	 */
+	aroop_assert(is_master());
+	aroop_txt_t key = {}; // the key to set
+	int destpid = 0;
+	int srcpid = 0;
+	int cb_token = 0;
+	aroop_txt_t cb_hook = {};
+	// 0 = pid, 1 = srcpid, 2 = command, 3 = token, 4 = cb_hook, 5 = key, 6 = val
+	binary_unpack_int(bin, 0, &destpid);
+	binary_unpack_int(bin, 1, &srcpid);
+	binary_unpack_int(bin, 3, &cb_token);
+	binary_unpack_string(bin, 4, &cb_hook); // needs cleanup
+	binary_unpack_string(bin, 5, &key); // needs cleanup
+	//syslog(LOG_NOTICE, "[pid:%d]\tgetting:%s", getpid(), aroop_txt_to_string(&key));
+	aroop_txt_t*oldval = NULL;
+	do {
+		oldval = (aroop_txt_t*)opp_hash_table_get_no_ref(&global_db, &key); // no cleanup needed
+		if(destpid <= 0) {
+			break;
+		}
+		//syslog(LOG_NOTICE, "[pid:%d]\tgot:%s", getpid(), aroop_txt_to_string(oldval));
+		aroop_txt_t app = {};
+		aroop_txt_embeded_set_static_string(&app, "asyncdb/response"); 
+		async_db_op_reply(cb_token, &cb_hook, srcpid, &app, 1, &key, oldval);
+	} while(0);
+	
+	// cleanup
+	aroop_txt_destroy(&cb_hook);
+	aroop_txt_destroy(&key);
+	return 0;
+}
+
 static int async_db_response_hook(aroop_txt_t*bin, aroop_txt_t*output) {
 	aroop_assert(!aroop_txt_is_empty_magical(bin));
 	// 0 = pid, 1 = srcpid, 2 = command, 3 = token, 4 = cb_hook, 5 = success
@@ -204,6 +277,7 @@ static int async_db_response_hook(aroop_txt_t*bin, aroop_txt_t*output) {
 	binary_unpack_string(bin, 4, &cb_hook); // needs cleanup
 	//syslog(LOG_NOTICE, "[pid:%d]\texecuting command:%s", getpid(), aroop_txt_to_string(&cb_hook));
 	aroop_txt_t outval = {};
+	//syslog(LOG_NOTICE, "[pid:%d]\texecuting:%s", getpid(), aroop_txt_to_string(&cb_hook));
 	pm_call(&cb_hook, bin, &outval);
 	aroop_txt_destroy(&cb_hook);
 	aroop_txt_destroy(&outval);
@@ -240,6 +314,7 @@ static int async_db_dump_desc(aroop_txt_t*plugin_space, aroop_txt_t*output) {
 }
 
 int async_db_init() {
+	aroop_txt_embeded_set_static_string(&null_hook, "null");
 	masterpid = getpid();
 	if(is_master())
 		opp_hash_table_create(&global_db, 16, 0, aroop_txt_get_hash_cb, aroop_txt_equals_cb);
@@ -250,6 +325,8 @@ int async_db_init() {
 	pm_plug_callback(&plugin_space, async_db_set_if_null_hook, async_db_hook_desc);
 	aroop_txt_embeded_set_static_string(&plugin_space, "asyncdb/unset/request");
 	pm_plug_callback(&plugin_space, async_db_unset_hook, async_db_hook_desc);
+	aroop_txt_embeded_set_static_string(&plugin_space, "asyncdb/get/request");
+	pm_plug_callback(&plugin_space, async_db_get_hook, async_db_hook_desc);
 	aroop_txt_embeded_set_static_string(&plugin_space, "asyncdb/response");
 	pm_plug_callback(&plugin_space, async_db_response_hook , async_db_hook_desc);
 	aroop_txt_embeded_set_static_string(&plugin_space, "shake/dbdump");
@@ -263,6 +340,7 @@ int async_db_deinit() {
 	pm_unplug_callback(0, async_db_CAS_hook);
 	pm_unplug_callback(0, async_db_set_if_null_hook);
 	pm_unplug_callback(0, async_db_unset_hook);
+	pm_unplug_callback(0, async_db_get_hook);
 	pm_unplug_callback(0, async_db_response_hook);
 	pm_unplug_callback(0, async_db_dump_hook);
 }

@@ -15,6 +15,16 @@ C_CAPSULE_START
 
 static const char*ROOM_PID_KEY = "room/pid/";
 static const char*ROOM_USER_KEY = "room/user/";
+int chat_room_convert_room_from_room_pid_key(aroop_txt_t*room_key, aroop_txt_t*room) {
+	aroop_assert(room_key);
+	aroop_assert(room);
+	aroop_txt_embeded_buffer(room, 64); // XXX it can break any time !
+	aroop_txt_concat(room, room_key);
+	int len = strlen(ROOM_PID_KEY);
+	aroop_txt_shift(room, len);
+	return 0;
+}
+
 int chat_room_get_user_count(aroop_txt_t*my_room) {
 	if(aroop_txt_is_empty(my_room)) {
 		return -1;
@@ -42,14 +52,11 @@ int chat_room_set_user_count(aroop_txt_t*my_room, int user_count) {
 	aroop_txt_concat_string(&db_room_key, ROOM_USER_KEY);
 	aroop_txt_concat(&db_room_key, my_room);
 	aroop_txt_zero_terminate(&db_room_key);
-#ifdef HAS_MEMCACHED_MODULE
-	return db_set_int(aroop_txt_to_string(&db_room_key), user_count);
-#else
+	async_db_set_int(-1, NULL, &db_room_key, user_count);
 	return 0;
-#endif
 }
 
-int chat_room_get_pid(aroop_txt_t*my_room) {
+int chat_room_get_pid(aroop_txt_t*my_room, int token, aroop_txt_t*callback_hook) {
 	if(aroop_txt_is_empty(my_room)) {
 		return -1;
 	}
@@ -59,11 +66,8 @@ int chat_room_get_pid(aroop_txt_t*my_room) {
 	aroop_txt_concat_string(&db_room_key, ROOM_PID_KEY);
 	aroop_txt_concat(&db_room_key, my_room);
 	aroop_txt_zero_terminate(&db_room_key);
-#ifdef HAS_MEMCACHED_MODULE
-	return db_get_int(aroop_txt_to_string(&db_room_key));
-#else
+	async_db_get(token, callback_hook, &db_room_key);
 	return 0;
-#endif
 }
 
 static int chat_room_set_pid(const char*my_room, int pid) {
@@ -73,11 +77,8 @@ static int chat_room_set_pid(const char*my_room, int pid) {
 	aroop_txt_concat_string(&db_room_key, ROOM_PID_KEY);
 	aroop_txt_concat_string(&db_room_key, my_room);
 	aroop_txt_zero_terminate(&db_room_key);
-#ifdef HAS_MEMCACHED_MODULE
-	return db_set_int(aroop_txt_to_string(&db_room_key), pid);
-#else
+	async_db_set_int(-1, NULL, &db_room_key, pid);
 	return 0;
-#endif
 }
 
 
@@ -116,31 +117,53 @@ static int chat_room_describe(aroop_txt_t*roomstr, aroop_txt_t*room_info) {
 	return 0;
 }
 
-static const char*ROOM_KEY = "rooms";
+#define ROOM_KEY "rooms"
 static int chat_room_lookup_plug(int signature, void*given) {
 	aroop_assert(signature == CHAT_SIGNATURE);
 	struct chat_connection*chat = (struct chat_connection*)given;
 	if(!IS_VALID_CHAT(chat)) // sanity check
 		return 0;
-	aroop_txt_t room_info = {};
-	aroop_txt_t db_data = {};
-#ifdef HAS_MEMCACHED_MODULE
-	db_get(ROOM_KEY, &db_data); // needs cleanup
-#endif
-	if(aroop_txt_is_empty(&db_data)) {
-		aroop_txt_embeded_set_static_string(&room_info, "There is no room\n");
-	} else {
-		int len = aroop_txt_length(&db_data)*8 + 32;
-		aroop_txt_embeded_stackbuffer(&room_info, len); // FIXME too many chatroom will cause stack overflow ..
-		chat_room_describe(&db_data, &room_info);
-		//aroop_txt_concat(&room_info, &db_data);
-		//aroop_txt_concat_char(&room_info, '\n');
-	}
-	chat->strm.send(&chat->strm, &room_info, 0);
-	aroop_txt_destroy(&room_info); // cleanup
-	aroop_txt_destroy(&db_data); // cleanup
+	aroop_txt_t room_response_hook = {};
+	aroop_txt_embeded_set_static_string(&room_response_hook, "on/asyncchat/rooms");
+	aroop_txt_t key = {};
+	aroop_txt_embeded_set_static_string(&key, ROOM_KEY);
+	async_db_get(chat->strm._ext.token, &room_response_hook, &key);
 	return 0;
 }
+
+static int on_asyncchat_rooms(aroop_txt_t*bin, aroop_txt_t*output) {
+	aroop_assert(!aroop_txt_is_empty_magical(bin));
+	aroop_txt_t room_info = {};
+	// 0 = pid, 1 = srcpid, 2 = command, 3 = token, 4 = cb_hook, 5 = success, 6 = key, 7 = info
+	int cb_token = 0;
+	aroop_txt_t info = {};
+	binary_unpack_int(bin, 3, &cb_token); // id/token
+	binary_unpack_string(bin, 7, &info); // needs cleanup
+	struct chat_connection*chat = chat_api_get()->get(cb_token); // needs cleanup
+	do {
+		if(!chat) {
+			syslog(LOG_ERR, "Error, could not find the chat user:%d\n", cb_token);
+			break;
+		}
+		if(aroop_txt_is_empty(&info)) {
+			aroop_txt_embeded_set_static_string(&room_info, "There is no room\n");
+		} else {
+			const int len = aroop_txt_length(&info)*8 + 32;
+			aroop_txt_embeded_stackbuffer(&room_info, len); // FIXME too many chatroom will cause stack overflow ..
+			chat_room_describe(&info, &room_info);
+		}
+		chat->strm.send(&chat->strm, &room_info, 0);
+	} while(0);
+	aroop_txt_destroy(&room_info); // cleanup
+	aroop_txt_destroy(&info); // cleanup
+	OPPUNREF(chat); // cleanup
+	return 0;
+}
+
+static int on_asyncchat_rooms_desc(aroop_txt_t*plugin_space,aroop_txt_t*output) {
+	return plugin_desc(output, "on/asyncchat/rooms", "asyncchat", plugin_space, __FILE__, "It responds to asynchronous response from db.\n");
+}
+
 
 static int chat_room_lookup_plug_desc(aroop_txt_t*plugin_space, aroop_txt_t*output) {
 	return plugin_desc(output, "room", "chat", plugin_space, __FILE__, "It respons to room command.\n");
@@ -163,10 +186,9 @@ static int default_room_setup() {
 	}
 	aroop_txt_shift(&roomstr, -1);// trim the last space
 	aroop_txt_zero_terminate(&roomstr);
-
-#ifdef HAS_MEMCACHED_MODULE
-	db_set(ROOM_KEY, aroop_txt_to_string(&roomstr));
-#endif
+	aroop_txt_t key = {};
+	aroop_txt_embeded_set_static_string(&key, ROOM_KEY);
+	async_db_compare_and_swap(-1, NULL, &key, &roomstr, NULL);
 	return 0;
 }
 
@@ -194,12 +216,15 @@ int room_module_init() {
 	aroop_txt_t plugin_space = {};
 	aroop_txt_embeded_set_static_string(&plugin_space, "chat/rooms");
 	composite_plug_bridge(chat_plugin_manager_get(), &plugin_space, chat_room_lookup_plug, chat_room_lookup_plug_desc);
+	aroop_txt_embeded_set_static_string(&plugin_space, "on/asyncchat/rooms");
+	pm_plug_callback(&plugin_space, on_asyncchat_rooms, on_asyncchat_rooms_desc);
 	aroop_txt_embeded_set_static_string(&plugin_space, "fork/child/after");
 	pm_plug_callback(&plugin_space, default_room_fork_child_after_callback, default_room_fork_callback_desc);
 }
 
 int room_module_deinit() {
 	composite_unplug_bridge(chat_plugin_manager_get(), 0, chat_room_lookup_plug);
+	pm_unplug_callback(0, on_asyncchat_rooms);
 	pm_unplug_callback(0, default_room_fork_child_after_callback);
 }
 

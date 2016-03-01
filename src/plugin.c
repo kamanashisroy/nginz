@@ -108,17 +108,19 @@ static int composite_plug_helper(struct composite_plugin*container
 	plugin->plugin_space = aroop_txt_new_copy_deep(plugin_space, NULL); // We must create xtring not extring ..
 	aroop_assert(plugin->plugin_space != NULL);
 	aroop_txt_zero_terminate(plugin->plugin_space);
-	struct internal_plugin*root = opp_hash_table_get(&(container->table), plugin->plugin_space);
+	struct internal_plugin*root = opp_hash_table_get(&(container->table), plugin->plugin_space); // needs cleanup
 	if(root) {
-		OPPREF(plugin);
 		while(root->next != NULL)
 			root = root->next;
+		OPPREF(plugin);
 		root->next = plugin;
 	} else {
 		opp_hash_table_set(&(container->table), plugin->plugin_space, plugin);
 	}
 	int ret = 0; // XXX TOKEN DOES NOT WORK
 	OPPUNREF(plugin); // cleanup : unref the plugin, it is already saved in the hashtable
+	if(root)
+		OPPUNREF(root);
 	return ret;
 }
 
@@ -148,7 +150,7 @@ int composite_unplug_inner_composite(struct composite_plugin*container, int plug
 }
 
 int composite_plugin_call(struct composite_plugin*container, aroop_txt_t*plugin_space, aroop_txt_t*input, aroop_txt_t*output) {
-	struct internal_plugin*plugin = opp_hash_table_get(&container->table, plugin_space);
+	struct internal_plugin*plugin = opp_hash_table_get_no_ref(&container->table, plugin_space);
 	int ret = 0;
 	while(plugin) {
 		aroop_assert(plugin->category == CALLBACK_PLUGIN);
@@ -160,7 +162,7 @@ int composite_plugin_call(struct composite_plugin*container, aroop_txt_t*plugin_
 
 
 int composite_plugin_bridge_call(struct composite_plugin*container, aroop_txt_t*plugin_space, int signature, void*data) {
-	struct internal_plugin*plugin = opp_hash_table_get(&container->table, plugin_space);
+	struct internal_plugin*plugin = opp_hash_table_get_no_ref(&container->table, plugin_space);
 	int ret = 0;
 	while(plugin) {
 		aroop_assert(plugin->category == BRIDGE_PLUGIN);
