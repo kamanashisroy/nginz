@@ -21,11 +21,17 @@ C_CAPSULE_START
 
 static int (*real_send)(struct streamio*strm, aroop_txt_t*content, int flags);
 static int default_chat_send(struct streamio*strm, aroop_txt_t*content, int flags) {
+	int ret = 0;
 	struct chat_connection*chat = (struct chat_connection*)strm;
-	if(chat->state & (CHAT_QUIT | CHAT_SOFT_QUIT | CHAT_ZOMBIE))
+	if(chat->state & (CHAT_QUIT | CHAT_SOFT_QUIT | CHAT_ZOMBIE)) {
 		return -1;
-	else
-		return real_send(strm, content, flags);
+	} else {
+		ret = real_send(strm, content, flags);
+		if(strm->error) {
+			chat->state |= CHAT_SOFT_QUIT;
+		}
+	}
+	return ret;
 }
 
 static int default_chat_close(struct streamio*strm) {

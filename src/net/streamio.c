@@ -40,7 +40,7 @@ int default_streamio_send_nonblock(struct streamio*strm, aroop_txt_t*content, in
 		}
 		syslog(LOG_ERR, "closing socket because while streaming :%s", strerror(errno));
 		strm->error = errno;
-		strm->close(strm);
+		//strm->close(strm);
 		return err;
 	}
 	return err;

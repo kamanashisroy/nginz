@@ -34,12 +34,9 @@ static int mchild = -1;
 static int parent = -1;
 static int mparent = -1;
 static int is_first_worker = -1;
-static int is_last_worker = -1;
+static int is_last_worker = 0;
 
 NGINZ_INLINE static int pp_simple_sendmsg(int through, aroop_txt_t*pkt) {
-#if 0
-	return send(through, aroop_txt_to_string(pkt), aroop_txt_length(pkt), 0);
-#else
 	struct msghdr msg;
 	struct iovec iov[1];
 	memset(&msg, 0, sizeof(msg));
@@ -52,7 +49,6 @@ NGINZ_INLINE static int pp_simple_sendmsg(int through, aroop_txt_t*pkt) {
 		syslog(LOG_ERR, "Cannot send simple message to child:%s\n", strerror(errno));
 		return -1;
 	}
-#endif
 	return 0;
 }
 
@@ -275,6 +271,9 @@ static int on_bubble_down_recv_socket(int fd, int events, const void*unused) {
 			}
 			pp_bubble_down_send_socket(acceptfd, &cmd);
 			break;
+		}
+		if(is_last_worker && destpid > getpid()) {
+			syslog(LOG_ERR, "BUG Invalid pid %d\n", destpid);
 		}
 		if(destpid <= 0 && !is_last_worker && skip_load()) {
 			pp_bubble_down_send_socket(acceptfd, &cmd);
