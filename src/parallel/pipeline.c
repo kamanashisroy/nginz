@@ -33,6 +33,8 @@ static int child = -1;
 static int mchild = -1;
 static int parent = -1;
 static int mparent = -1;
+static int is_first_worker = -1;
+static int is_last_worker = -1;
 
 NGINZ_INLINE static int pp_simple_sendmsg(int through, aroop_txt_t*pkt) {
 #if 0
@@ -245,9 +247,11 @@ static int skip_load() {
 	return (load % (NGINZ_NUMBER_OF_PROCESSORS-1));
 }
 
+#if 0
 static int has_child() {
 	return (mchild != -1) && (mchild != mloop_pipefd[0]);
 }
+#endif
 
 static int on_bubble_down_recv_socket(int fd, int events, const void*unused) {
 	int port = 0;
@@ -265,16 +269,14 @@ static int on_bubble_down_recv_socket(int fd, int events, const void*unused) {
 		binary_unpack_int(&cmd, 0, &destpid);
 		if(destpid > 0 && destpid != getpid()) {
 			// it is not ours
-			//printf("It(%d) is not ours(%d) on bubble_down doing more bubble_down\n", destpid, getpid());
 			if(destpid < getpid()) {
-				syslog(LOG_ERR, "BUG, it cannot happen, we not not bubble_uping anymore\n");
+				syslog(LOG_ERR, "BUG, it cannot happen, we not not bubble down anymore\n");
 				break;
 			}
 			pp_bubble_down_send_socket(acceptfd, &cmd);
 			break;
 		}
-		if(destpid <= 0 && has_child() && skip_load()) {
-			//printf("balancing load on %d\n", getpid());
+		if(destpid <= 0 && !is_last_worker && skip_load()) {
 			pp_bubble_down_send_socket(acceptfd, &cmd);
 			break;
 		}
@@ -345,7 +347,7 @@ static int on_bubble_up_send_socket(int fd, int events, const void*unused) {
 			pp_bubble_up_send_socket(acceptfd, &cmd);
 			break;
 		}
-		if(destpid <= 0 && mparent != -1 && skip_load()) {
+		if(destpid <= 0 && !is_first_worker && skip_load()) {
 			//printf("balancing load on %d\n", getpid());
 			pp_bubble_up_send_socket(acceptfd, &cmd);
 			break;
@@ -401,6 +403,8 @@ static int pp_fork_child_after_callback(aroop_txt_t*input, aroop_txt_t*output) {
 	event_loop_register_fd(mchild, on_bubble_up_send_socket, NULL, NGINZ_POLL_ALL_FLAGS);
 	//close(pipefd[0]);
 	//close(mpipefd[0]);
+	is_first_worker = (is_first_worker == -1)?1:0;
+	is_last_worker = 1;
 	return 0;
 }
 
@@ -426,6 +430,7 @@ static int pp_fork_parent_after_callback(aroop_txt_t*input, aroop_txt_t*output) 
 	event_loop_register_fd(child, on_bubble_up, NULL, NGINZ_POLL_ALL_FLAGS);
 	event_loop_register_fd(mchild, on_bubble_up_send_socket, NULL, NGINZ_POLL_ALL_FLAGS);
 	//close(pipefd[1]);
+	is_last_worker = 0;
 	return 0;
 }
 
