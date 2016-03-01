@@ -17,6 +17,7 @@ class NginZChatClient:
 		#print data
 		self.stream.write(b"name" + `self.index` + "\n")
 		self.stream.read_until(b"!\n", self.on_login)
+		print("name:" + "name" + `self.index` + "\n");
 
 	def on_login(self, data):
 		#print data
@@ -39,7 +40,7 @@ class NginZChatClient:
 
 
 if __name__ == '__main__':
-	for index in range(1, 100):
+	for index in range(1, 30):
 		client = NginZChatClient()
 		client.connect(index);
 

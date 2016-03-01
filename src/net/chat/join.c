@@ -74,13 +74,17 @@ static int on_asyncchat_room_pid(aroop_txt_t*bin, aroop_txt_t*unused) {
 	chat_room_convert_room_from_room_pid_key(&room_key, &room); // needs cleanup
 	//syslog(LOG_NOTICE, "Joining ..............  %d to %s\n", cb_token, aroop_txt_to_string(&room));
 	binary_unpack_string(bin, 7, &pidstr); // needs cleanup
+	aroop_txt_t pidstrdup = {};
+	aroop_txt_embeded_stackbuffer(&pidstrdup, 32);
+	aroop_txt_concat(&pidstrdup, &pidstr);
+	aroop_txt_zero_terminate(&pidstrdup);
 	struct chat_connection*chat = chat_api_get()->get(cb_token); // needs cleanup
 	do {
 		if(!chat) {
 			syslog(LOG_ERR, "Join failed, chat object not found %d\n", cb_token);
 			break;
 		}
-		int pid = aroop_txt_to_int(&pidstr);
+		int pid = aroop_txt_to_int(&pidstrdup);
 		//syslog(LOG_NOTICE, "Joining ..............  %d to %s : %d\n", cb_token, aroop_txt_to_string(&room), pid);
 		if(pid <= 0 || aroop_txt_is_empty(&room)) {
 			// say room not found
