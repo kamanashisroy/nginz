@@ -19,8 +19,20 @@ C_CAPSULE_START
 
 
 
+static int (*real_send)(struct streamio*strm, aroop_txt_t*content, int flags);
+static int default_chat_send(struct streamio*strm, aroop_txt_t*content, int flags) {
+	struct chat_connection*chat = (struct chat_connection*)strm;
+	if(chat->state & (CHAT_QUIT | CHAT_SOFT_QUIT | CHAT_ZOMBIE))
+		return -1;
+	else
+		return real_send(strm, content, flags);
+}
+
 static int default_chat_close(struct streamio*strm) {
 	struct chat_connection*chat = (struct chat_connection*)strm;
+	if(!chat->quited_at) {
+		chat->quited_at = time(NULL);
+	}
 	if(!(chat->state & (CHAT_SOFT_QUIT | CHAT_QUIT))) {
 		chat->state |= CHAT_QUIT;
 	}
@@ -37,7 +49,7 @@ static int default_chat_close(struct streamio*strm) {
 		struct chat_connection*chat = (struct chat_connection*)strm;
 		event_loop_unregister_fd(strm->fd);
 		if(!(chat->state & CHAT_SOFT_QUIT))close(strm->fd);
-		strm->fd = -1;
+		strm->fd = INVALID_FD;
 	}
 	return 0;
 }
@@ -126,7 +138,10 @@ OPP_CB(chat_connection) {
 			chat->request = NULL;
 			streamio_initialize(&chat->strm);
 			chat->strm.close = default_chat_close;
+			real_send = chat->strm.send;
+			chat->strm.send = default_chat_send;
 			chat->strm.on_recv = chat_api_get()->handle_chat_request;
+			chat->quited_at = 0;
 		break;
 		case OPPN_ACTION_FINALIZE:
 			streamio_finalize(&chat->strm);
@@ -150,6 +165,30 @@ static struct chat_connection*chat_get(int token) {
 	return chat;
 }
 
+static int gear = 0;
+static int chat_lazy_cleanup_fiber(int status) {
+	if(gear != 1000) {
+		gear++;
+		return 0;
+	}
+	time_t now = time(NULL);
+	gear = 0;
+	struct opp_iterator iterator = {};
+	opp_iterator_create(&iterator, &chat_factory, OPPN_ALL, 0, 0);
+	struct chat_connection*chat = NULL;
+	while(chat = opp_iterator_next(&iterator)) {
+		if(chat->quited_at == 0 || ((now - chat->quited_at) < 120)) {
+			continue;
+		}
+		chat->strm.close(&chat->strm);
+		OPPUNREF(chat); // cleanup
+	}
+	opp_iterator_destroy(&iterator);
+	gear++;
+	return 0;
+}
+
+
 int chat_factory_module_init() {
 	NGINZ_EXTENDED_FACTORY_CREATE(&chat_factory, 64, sizeof(struct chat_connection), OPP_CB_FUNC(chat_connection));
 	aroop_txt_t plugin_space = {};
@@ -159,10 +198,12 @@ int chat_factory_module_init() {
 	pm_plug_callback(&plugin_space, chat_factory_on_softquit, chat_factory_on_softquit_desc);
 	chat_api_get()->on_create = chat_alloc;
 	chat_api_get()->get = chat_get;
+	register_fiber(chat_lazy_cleanup_fiber);
 	return 0;
 }
 
 int chat_factory_module_deinit() {
+	unregister_fiber(chat_lazy_cleanup_fiber);
 	composite_unplug_bridge(chat_plugin_manager_get(), 0, chat_factory_show);
 	pm_unplug_callback(0, chat_factory_on_softquit);
 	struct opp_iterator iterator;

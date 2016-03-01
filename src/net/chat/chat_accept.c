@@ -38,6 +38,7 @@ static int handle_chat_request(struct streamio*strm, aroop_txt_t*request) {
 	if(aroop_txt_char_at(request, last_index) != '\n') {
 		syslog(LOG_INFO, "Disconnecting client for unrecognized data\n");
 		chat->strm.close(&chat->strm);
+		chat->state |= CHAT_ZOMBIE;
 		OPPUNREF(chat);
 		return -1;
 	}
@@ -73,30 +74,41 @@ static int on_client_data(int fd, int status, const void*cb_data) {
 	if(chat_module_is_quiting)
 		return 0;
 	struct chat_connection*chat = (struct chat_connection*)cb_data;
+	if((chat->state & CHAT_QUIT) || (chat->state & CHAT_SOFT_QUIT)) {
+		chat->strm.close(&chat->strm);
+		chat->state |= CHAT_ZOMBIE;
+		OPPUNREF(chat); // it is owned by us so we unref
+		return -1;
+	}
 	aroop_assert(fd == chat->strm.fd);
 	aroop_txt_set_length(&recv_buffer, 1); // without it aroop_txt_to_string() will give NULL
 	int count = recv(chat->strm.fd, aroop_txt_to_string(&recv_buffer), aroop_txt_capacity(&recv_buffer), 0);
 	if(count == 0) {
 		syslog(LOG_INFO, "Client disconnected");
 		chat->strm.close(&chat->strm);
+		chat->state |= CHAT_ZOMBIE;
 		OPPUNREF(chat);
 		return -1;
 	}
 	if(count == -1) {
 		syslog(LOG_ERR, "Error reading chat data %s", strerror(errno));
 		chat->strm.close(&chat->strm);
+		chat->state |= CHAT_ZOMBIE;
 		OPPUNREF(chat);
 		return -1;
 	}
 	if(count >= NGINZ_MAX_CHAT_MSG_SIZE) {
 		syslog(LOG_INFO, "Disconnecting client for too big data input");
 		chat->strm.close(&chat->strm);
+		chat->state |= CHAT_ZOMBIE;
 		OPPUNREF(chat);
 		return -1;
 	}
 	aroop_txt_set_length(&recv_buffer, count);
 	int ret = handle_chat_request(&chat->strm, &recv_buffer);
 	if((chat->state & CHAT_QUIT) || (chat->state & CHAT_SOFT_QUIT)) {
+		chat->strm.close(&chat->strm);
+		chat->state |= CHAT_ZOMBIE;
 		OPPUNREF(chat); // it is owned by us so we unref
 	}
 	return ret;
@@ -144,6 +156,7 @@ static int on_connection_bubble(int fd, aroop_txt_t*cmd) {
 			aroop_txt_zero_terminate(&request_sandbox);
 			syslog(LOG_ERR, "Possible BUG , cannot handle request %s", aroop_txt_to_string(&request_sandbox));
 			chat->strm.close(&chat->strm);
+			chat->state |= CHAT_ZOMBIE;
 			OPPUNREF(chat); // cleanup
 			ret = -1;
 			break;

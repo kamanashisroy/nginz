@@ -30,12 +30,18 @@ int default_streamio_send_nonblock(struct streamio*strm, aroop_txt_t*content, in
 		syslog(LOG_ERR, "There is a dead chat\n");
 		return -1;
 	}
-	int err = send(strm->fd, aroop_txt_to_string(content), aroop_txt_length(content), flag | MSG_DONTWAIT);
-	if(err == -1 && (errno == EWOULDBLOCK || errno == EAGAIN)) {
-		// TODO implement nonblocking io
-		syslog(LOG_ERR, "Could not write network data asynchronously ..");
+	int err = send(strm->fd, aroop_txt_to_string(content), aroop_txt_length(content), flag /*| MSG_DONTWAIT*/); // TODO use nonblocking io
+	if(err == -1) {
+		if((errno == EWOULDBLOCK || errno == EAGAIN)) {
+			// TODO implement nonblocking io
+			syslog(LOG_ERR, "Could not write network data asynchronously ..");
+			strm->error = errno;
+			return -1;
+		}
+		syslog(LOG_ERR, "closing socket because while streaming :%s", strerror(errno));
 		strm->error = errno;
-		return -1;
+		strm->close(strm);
+		return err;
 	}
 	return err;
 }

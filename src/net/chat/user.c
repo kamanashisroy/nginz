@@ -28,7 +28,7 @@ int async_try_login(aroop_txt_t*name, int token, aroop_txt_t*response_hook) {
 	aroop_txt_t name_key = {};
 	aroop_txt_embeded_stackbuffer(&name_key, 128);
 	build_name_key(name, &name_key);
-	syslog(LOG_NOTICE, "requesting user %s\n", aroop_txt_to_string(name));
+	//syslog(LOG_NOTICE, "requesting user %s\n", aroop_txt_to_string(name));
 	async_db_compare_and_swap(token, response_hook, &name_key, name, NULL);
 	return 0;
 }

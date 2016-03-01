@@ -37,7 +37,6 @@ int broadcast_private_message(struct chat_connection*chat, aroop_txt_t*to, aroop
 		struct chat_connection*other = (struct chat_connection*)pt->obj_data;
 		if(!aroop_txt_equals(to, &other->name))
 			continue; // do not broadcast to self
-
 		// pm
 		other->strm.send(&other->strm, msg, 0);
 		break;

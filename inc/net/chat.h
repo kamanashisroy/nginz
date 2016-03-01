@@ -29,6 +29,7 @@ struct chat_connection {
 	aroop_txt_t*request;
 	int (*on_response_callback)(struct chat_connection*chat, aroop_txt_t*msg); // it is used for broadcast/setting the name
 	const void*callback_data; // XXX do not unref/ref it ..
+	time_t quited_at;
 };
 
 struct chat_api*chat_api_get();

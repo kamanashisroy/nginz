@@ -14,6 +14,8 @@
 
 C_CAPSULE_START
 
+#define DB_LOG(...)
+
 static aroop_txt_t null_hook = {};
 static int masterpid = 0;
 int async_db_compare_and_swap(int cb_token, aroop_txt_t*cb_hook, aroop_txt_t*key, aroop_txt_t*newval, aroop_txt_t*oldval) {
@@ -47,7 +49,7 @@ int async_db_compare_and_swap(int cb_token, aroop_txt_t*cb_hook, aroop_txt_t*key
 		binary_pack_string(&bin, newval);
 	if(oldval)
 		binary_pack_string(&bin, oldval);
-	syslog(LOG_NOTICE, "[token%d]-CAS-throwing to--[master:%d]-[key:%s]", cb_token, masterpid, aroop_txt_to_string(key));
+	DB_LOG(LOG_NOTICE, "[token%d]-CAS-throwing to--[master:%d]-[key:%s]", cb_token, masterpid, aroop_txt_to_string(key));
 	pp_bubble_up(&bin);
 	return 0;
 }
@@ -88,7 +90,7 @@ int async_db_get(int cb_token, aroop_txt_t*cb_hook, aroop_txt_t*key) {
 	binary_pack_int(&bin, cb_token); // id/token
 	binary_pack_string(&bin, cb_hook); // callback hook
 	binary_pack_string(&bin, key);
-	syslog(LOG_NOTICE, "[token%d]-get-throwing to--[master:%d]-[key:%s]", cb_token, masterpid, aroop_txt_to_string(key));
+	DB_LOG(LOG_NOTICE, "[token%d]-get-throwing to--[master:%d]-[key:%s]", cb_token, masterpid, aroop_txt_to_string(key));
 	pp_bubble_up(&bin);
 	return 0;
 }
@@ -112,7 +114,7 @@ static int async_db_op_reply(int cb_token, aroop_txt_t*cb_hook, int destpid, aro
 	binary_pack_string(&bin, key);
 	if(newval != NULL)
 		binary_pack_string(&bin, newval);
-	syslog(LOG_NOTICE, "[token%d]-replying-throwing to--[dest:%d]-[key:%s]-[app:%s]", cb_token, destpid, aroop_txt_to_string(key), newval?aroop_txt_to_string(app):"null");
+	DB_LOG(LOG_NOTICE, "[token%d]-replying-throwing to--[dest:%d]-[key:%s]-[app:%s]", cb_token, destpid, aroop_txt_to_string(key), newval?aroop_txt_to_string(app):"null");
 	pp_bubble_down(&bin);
 	return 0;
 }
@@ -131,7 +133,7 @@ static int async_db_op_helper(aroop_txt_t*key, aroop_txt_t*newval, aroop_txt_t*e
 	}
 	aroop_txt_t*xnval = aroop_txt_new_copy_deep(newval, NULL);
 	aroop_txt_t*xkey = aroop_txt_new_copy_deep(key, NULL);
-	syslog(LOG_NOTICE, "--op----[key:%s]", aroop_txt_to_string(key));
+	DB_LOG(LOG_NOTICE, "--op----[key:%s]", aroop_txt_to_string(key));
 	opp_hash_table_set(&global_db, xkey, xnval);
 	OPPUNREF(xnval);
 	OPPUNREF(xkey);
@@ -158,7 +160,7 @@ static int async_db_CAS_hook(aroop_txt_t*bin, aroop_txt_t*output) {
 	binary_unpack_string(bin, 5, &key); // needs cleanup
 	binary_unpack_string(bin, 6, &newval); // needs cleanup
 	binary_unpack_string(bin, 7, &expval); // needs cleanup
-	syslog(LOG_NOTICE, "[token%d]-CAS-doing ..--[dest:%d]-[key:%s]-[app:%s]", cb_token, srcpid, aroop_txt_to_string(&key), aroop_txt_to_string(&cb_hook));
+	DB_LOG(LOG_NOTICE, "[token%d]-CAS-doing ..--[dest:%d]-[key:%s]-[app:%s]", cb_token, srcpid, aroop_txt_to_string(&key), aroop_txt_to_string(&cb_hook));
 	int success = 0;
 	success = !async_db_op_helper(&key, &newval, &expval);
 	if(destpid > 0) {
@@ -192,7 +194,7 @@ static int async_db_set_if_null_hook(aroop_txt_t*bin, aroop_txt_t*output) {
 	binary_unpack_string(bin, 4, &cb_hook); // needs cleanup
 	binary_unpack_string(bin, 5, &key); // needs cleanup
 	binary_unpack_string(bin, 6, &newval); // needs cleanup
-	syslog(LOG_NOTICE, "[token%d]-set if null-doing ..--[dest:%d]-[key:%s]-[app:%s]", cb_token, srcpid, aroop_txt_to_string(&key), aroop_txt_to_string(&cb_hook));
+	DB_LOG(LOG_NOTICE, "[token%d]-set if null-doing ..--[dest:%d]-[key:%s]-[app:%s]", cb_token, srcpid, aroop_txt_to_string(&key), aroop_txt_to_string(&cb_hook));
 	int success = 0;
 	success = !async_db_op_helper(&key, &newval, NULL);
 	if(destpid > 0) {
@@ -223,7 +225,7 @@ static int async_db_unset_hook(aroop_txt_t*bin, aroop_txt_t*output) {
 	binary_unpack_int(bin, 3, &cb_token);
 	binary_unpack_string(bin, 4, &cb_hook); // needs cleanup
 	binary_unpack_string(bin, 5, &key); // needs cleanup
-	syslog(LOG_NOTICE, "[token%d]-unset-doing ..--[dest:%d]-[key:%s]-[app:%s]", cb_token, srcpid, aroop_txt_to_string(&key), aroop_txt_to_string(&cb_hook));
+	DB_LOG(LOG_NOTICE, "[token%d]-unset-doing ..--[dest:%d]-[key:%s]-[app:%s]", cb_token, srcpid, aroop_txt_to_string(&key), aroop_txt_to_string(&cb_hook));
 	int success = 0;
 	success = !async_db_op_helper(&key, NULL, NULL);
 	if(destpid > 0) {
@@ -253,7 +255,7 @@ static int async_db_get_hook(aroop_txt_t*bin, aroop_txt_t*output) {
 	binary_unpack_int(bin, 3, &cb_token);
 	binary_unpack_string(bin, 4, &cb_hook); // needs cleanup
 	binary_unpack_string(bin, 5, &key); // needs cleanup
-	syslog(LOG_NOTICE, "[token%d]-get-doing ..--[dest:%d]-[key:%s]-[app:%s]", cb_token, srcpid, aroop_txt_to_string(&key), aroop_txt_to_string(&cb_hook));
+	DB_LOG(LOG_NOTICE, "[token%d]-get-doing ..--[dest:%d]-[key:%s]-[app:%s]", cb_token, srcpid, aroop_txt_to_string(&key), aroop_txt_to_string(&cb_hook));
 	//syslog(LOG_NOTICE, "[pid:%d]-getting:%s", getpid(), aroop_txt_to_string(&key));
 	aroop_txt_t*oldval = NULL;
 	do {

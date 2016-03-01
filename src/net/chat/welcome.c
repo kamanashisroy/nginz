@@ -23,7 +23,7 @@ static int on_asyncchat_login_hook(aroop_txt_t*bin, aroop_txt_t*output) {
 	binary_unpack_int(bin, 3, &cb_token); // id/token
 	binary_unpack_int(bin, 5, &success);
 	binary_unpack_string(bin, 7, &name); // needs cleanup
-	syslog(LOG_NOTICE, "[token%d]received:[value:%s]", cb_token, aroop_txt_to_string(&name));
+	//syslog(LOG_NOTICE, "[token%d]received:[value:%s]", cb_token, aroop_txt_to_string(&name));
 	/*if(!aroop_txt_is_empty(&name)) {
 		aroop_txt_shift(&name, sizeof(USER_PREFIX));
 	}*/
