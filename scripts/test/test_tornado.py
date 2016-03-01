@@ -20,10 +20,9 @@ class NginZChatClient:
 
 	def on_login(self, data):
 		#print data
-		if index < 500:
-			self.stream.write(b"/join ONE\n")
-		else:
-			self.stream.write(b"/join THREE\n")
+		rmindex = index%5
+		roomlist = ["ONE", "TWO", "THREE", "FOUR", "FIVE"]
+		self.stream.write(b"/join " + roomlist[rmindex] + "\n")
 		self.stream.read_until(b"end of list\n", self.talk)
 
 	def talk(self, data):
@@ -40,7 +39,7 @@ class NginZChatClient:
 
 
 if __name__ == '__main__':
-	for index in range(1, 10):
+	for index in range(1, 1000):
 		client = NginZChatClient()
 		client.connect(index);
 
