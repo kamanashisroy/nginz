@@ -141,7 +141,10 @@ static struct chat_connection*chat_alloc(int fd) {
 }
 
 static struct chat_connection*chat_get(int token) {
-	return opp_get(&chat_factory, token);
+	struct chat_connection*chat = opp_get(&chat_factory, token);
+	if(chat->state & (CHAT_QUIT | CHAT_SOFT_QUIT))
+		return NULL;
+	return chat;
 }
 
 int chat_factory_module_init() {

@@ -1,6 +1,7 @@
 
 #include <aroop/aroop_core.h>
 #include <aroop/core/xtring.h>
+#include <sys/socket.h>
 #include "nginz_config.h"
 #include "event_loop.h"
 #include "plugin.h"
@@ -20,6 +21,23 @@ int default_streamio_send(struct streamio*strm, aroop_txt_t*content, int flag) {
 		return -1;
 	}
 	return send(strm->fd, aroop_txt_to_string(content), aroop_txt_length(content), flag);
+}
+
+int default_streamio_send_nonblock(struct streamio*strm, aroop_txt_t*content, int flag) {
+	if(strm->bubble_up)
+		return strm->bubble_up->send(strm->bubble_up, content, flag);
+	if(strm->fd == INVALID_FD) {
+		syslog(LOG_ERR, "There is a dead chat\n");
+		return -1;
+	}
+	int err = send(strm->fd, aroop_txt_to_string(content), aroop_txt_length(content), flag | MSG_DONTWAIT);
+	if(err == -1 && (errno == EWOULDBLOCK || errno == EAGAIN)) {
+		// TODO implement nonblocking io
+		syslog(LOG_ERR, "Could not write network data asynchronously ..");
+		strm->error = errno;
+		return -1;
+	}
+	return err;
 }
 
 int default_streamio_close(struct streamio*strm) {
@@ -59,11 +77,14 @@ int default_transfer_parallel(struct streamio*strm, int destpid, int proto_port,
 int streamio_initialize(struct streamio*strm) {
 	strm->fd = -1;
 	strm->on_recv = NULL;
-	strm->send = default_streamio_send;
+	//strm->send = default_streamio_send;
+	strm->send = default_streamio_send_nonblock;
 	strm->close = default_streamio_close;
 	strm->transfer_parallel = default_transfer_parallel;
 	strm->bubble_up = NULL;
 	strm->bubble_down = NULL;
+	aroop_memclean_raw2(&strm->send_buffer);
+	strm->error = 0;
 	return 0;
 }
 
@@ -72,6 +93,7 @@ int streamio_finalize(struct streamio*strm) {
 	strm->fd = -1;
 	strm->bubble_up = NULL;
 	if(strm->bubble_down)OPPUNREF(strm->bubble_down);
+	aroop_txt_destroy(&strm->send_buffer);
 	return 0;
 }
 

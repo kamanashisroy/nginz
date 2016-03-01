@@ -40,9 +40,15 @@ struct streamio {
 	 * It transfers a file descriptor to another processor
 	 */
 	int (*transfer_parallel)(struct streamio*strm, int destpid, int proto_port, aroop_txt_t*cmd);
+	/**
+	 * nonblocking send buffer
+	 */
+	aroop_txt_t send_buffer;
+	int error; // last error
 };
 
 int default_streamio_send(struct streamio*strm, aroop_txt_t*content, int flag);
+int default_streamio_send_nonblock(struct streamio*strm, aroop_txt_t*content, int flag);
 int default_streamio_close(struct streamio*strm);
 int default_transfer_parallel(struct streamio*strm, int destpid, int proto_port, aroop_txt_t*cmd);
 int streamio_initialize(struct streamio*strm);

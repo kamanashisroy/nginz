@@ -58,7 +58,7 @@ static int handle_chat_request(struct streamio*strm, aroop_txt_t*request) {
 		// we cannot handle data
 		chat->strm.send(&chat->strm, &cannot_process, 0);
 	} while(0);
-	if((chat->state & CHAT_QUIT) || (chat->state & CHAT_SOFT_QUIT)) {
+	if(chat->strm.error || (chat->state & CHAT_QUIT) || (chat->state & CHAT_SOFT_QUIT)) {
 		syslog(LOG_INFO, "Client quited\n");
 		chat->strm.close(&chat->strm);
 		return -1;

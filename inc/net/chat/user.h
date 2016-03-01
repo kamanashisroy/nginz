@@ -7,6 +7,7 @@ C_CAPSULE_START
 int try_login(aroop_txt_t*name);
 int logoff_user(struct chat_connection*chat);
 
+#define USER_PREFIX "user/"
 C_CAPSULE_END
 
 #endif // NGINZ_CHAT_USER_H
