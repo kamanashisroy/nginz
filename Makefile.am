@@ -1,5 +1,6 @@
 
-TARGET_BIN=nginz_main nginz_main_debug nginz_main_partitioned
+#TARGET_BIN=nginz_main nginz_main_debug nginz_main_partitioned
+TARGET_BIN=nginz_main_debug
 TARGET_O=libnginz.o
 TARGET_LAR=libnginz.la
 TARGET_AR=libnginz.a libnginz_debug.a
