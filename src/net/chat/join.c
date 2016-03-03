@@ -61,7 +61,7 @@ static int chat_join_get_room(aroop_txt_t*request, aroop_txt_t*room) {
 
 static int on_asyncchat_room_pid(aroop_txt_t*bin, aroop_txt_t*unused) {
 	aroop_assert(!aroop_txt_is_empty_magical(bin));
-	// 0 = pid, 1 = srcpid, 2 = command, 3 = token, 4 = cb_hook, 5 = success, 6 = key, 7 = newvalue
+	// 0 = pid, 1 = srcpid, 2 = command, 3 = token, 4 = success, 5 = key, 6 = newvalue
 	//syslog(LOG_NOTICE, "------------ ..............  \n");
 	int cb_token = 0;
 	aroop_txt_t pidstr = {};
@@ -69,11 +69,11 @@ static int on_asyncchat_room_pid(aroop_txt_t*bin, aroop_txt_t*unused) {
 	aroop_txt_t room_key = {};
 	aroop_txt_t room = {};
 	binary_unpack_int(bin, 3, &cb_token); // id/token
-	binary_unpack_string(bin, 6, &room_key);
+	binary_unpack_string(bin, 5, &room_key);
 	//syslog(LOG_NOTICE, "Joining ..............  %d to %s\n", cb_token, aroop_txt_to_string(&room_key));
 	chat_room_convert_room_from_room_pid_key(&room_key, &room); // needs cleanup
 	//syslog(LOG_NOTICE, "Joining ..............  %d to %s\n", cb_token, aroop_txt_to_string(&room));
-	binary_unpack_string(bin, 7, &pidstr); // needs cleanup
+	binary_unpack_string(bin, 6, &pidstr); // needs cleanup
 	aroop_txt_t pidstrdup = {};
 	aroop_txt_embeded_stackbuffer(&pidstrdup, 32);
 	aroop_txt_concat(&pidstrdup, &pidstr);

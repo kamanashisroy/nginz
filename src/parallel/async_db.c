@@ -15,7 +15,8 @@
 
 C_CAPSULE_START
 
-#define DB_LOG(...) syslog(__VA_ARGS__)
+//#define DB_LOG(...) syslog(__VA_ARGS__)
+#define DB_LOG(...)
 
 static aroop_txt_t null_hook = {};
 int async_db_compare_and_swap(int cb_token, aroop_txt_t*cb_hook, aroop_txt_t*key, aroop_txt_t*newval, aroop_txt_t*oldval) {
@@ -73,13 +74,21 @@ int async_db_get(int cb_token, aroop_txt_t*cb_hook, aroop_txt_t*key) {
 }
 
 static opp_hash_table_t global_db; // TODO create partitioned db in future
+int noasync_db_get(aroop_txt_t*key, aroop_txt_t*val) {
+	aroop_assert(is_master());
+	aroop_txt_t*oldval = (aroop_txt_t*)opp_hash_table_get_no_ref(&global_db, key); // no cleanup needed
+	if(oldval)
+		aroop_txt_embeded_rebuild_copy_shallow(val, oldval); // needs cleanup
+	return 0;
+}
 
-static int async_db_op_reply(int destpid, int cb_token, aroop_txt_t*cb_hook, aroop_txt_t*app, int success, aroop_txt_t*key, aroop_txt_t*newval) {
+
+static int async_db_op_reply(int destpid, int cb_token, aroop_txt_t*cb_hook, int success, aroop_txt_t*key, aroop_txt_t*newval) {
 	// send response
 	// 0 = pid, 1 = src pid, 2 = command, 3 = token, 4 = cb_hook, 5 = success
 	aroop_txt_t*args[3] = {key, newval, NULL};
-	DB_LOG(LOG_NOTICE, "[token%d]-replying-throwing to--[dest:%d]-[key:%s]-[app:%s]", cb_token, destpid, aroop_txt_to_string(key), newval?aroop_txt_to_string(app):"null");
-	async_pm_reply_worker(destpid, cb_token, cb_hook, app, success, args);
+	DB_LOG(LOG_NOTICE, "[token%d]-replying-throwing to--[dest:%d]-[key:%s]-[app:%s]", cb_token, destpid, aroop_txt_to_string(key), aroop_txt_to_string(cb_hook));
+	async_pm_reply_worker(destpid, cb_token, cb_hook, success, args);
 	return 0;
 }
 
@@ -128,9 +137,7 @@ static int async_db_CAS_hook(aroop_txt_t*bin, aroop_txt_t*output) {
 	int success = 0;
 	success = !async_db_op_helper(&key, &newval, &expval);
 	if(destpid > 0) {
-		aroop_txt_t app = {};
-		aroop_txt_embeded_set_static_string(&app, "asyncdb/response"); 
-		async_db_op_reply(srcpid, cb_token, &cb_hook, &app, success, &key, &newval);
+		async_db_op_reply(srcpid, cb_token, &cb_hook, success, &key, &newval);
 	}
 	// cleanup
 	aroop_txt_destroy(&key);
@@ -162,9 +169,7 @@ static int async_db_set_if_null_hook(aroop_txt_t*bin, aroop_txt_t*output) {
 	int success = 0;
 	success = !async_db_op_helper(&key, &newval, NULL);
 	if(destpid > 0) {
-		aroop_txt_t app = {};
-		aroop_txt_embeded_set_static_string(&app, "asyncdb/response"); 
-		async_db_op_reply(srcpid, cb_token, &cb_hook, &app, success, &key, &newval);
+		async_db_op_reply(srcpid, cb_token, &cb_hook, success, &key, &newval);
 	}
 	// cleanup
 	aroop_txt_destroy(&cb_hook);
@@ -193,9 +198,7 @@ static int async_db_unset_hook(aroop_txt_t*bin, aroop_txt_t*output) {
 	int success = 0;
 	success = !async_db_op_helper(&key, NULL, NULL);
 	if(destpid > 0) {
-		aroop_txt_t app = {};
-		aroop_txt_embeded_set_static_string(&app, "asyncdb/response"); 
-		async_db_op_reply(srcpid, cb_token, &cb_hook, &app, success, &key, NULL);
+		async_db_op_reply(srcpid, cb_token, &cb_hook, success, &key, NULL);
 	}
 	// cleanup
 	aroop_txt_destroy(&cb_hook);
@@ -228,9 +231,7 @@ static int async_db_get_hook(aroop_txt_t*bin, aroop_txt_t*output) {
 			break;
 		}
 		//syslog(LOG_NOTICE, "[pid:%d]-got:%s", getpid(), aroop_txt_to_string(oldval));
-		aroop_txt_t app = {};
-		aroop_txt_embeded_set_static_string(&app, "asyncdb/response"); 
-		async_db_op_reply(srcpid, cb_token, &cb_hook, &app, 1, &key, oldval);
+		async_db_op_reply(srcpid, cb_token, &cb_hook, 1, &key, oldval);
 	} while(0);
 	
 	// cleanup
@@ -239,6 +240,7 @@ static int async_db_get_hook(aroop_txt_t*bin, aroop_txt_t*output) {
 	return 0;
 }
 
+#if 0
 static int async_db_response_hook(aroop_txt_t*bin, aroop_txt_t*output) {
 	aroop_assert(!aroop_txt_is_empty_magical(bin));
 	// 0 = pid, 1 = srcpid, 2 = command, 3 = token, 4 = cb_hook, 5 = success
@@ -252,6 +254,7 @@ static int async_db_response_hook(aroop_txt_t*bin, aroop_txt_t*output) {
 	aroop_txt_destroy(&outval);
 	return 0;
 }
+#endif
 
 static int async_db_hook_desc(aroop_txt_t*plugin_space, aroop_txt_t*output) {
 	return plugin_desc(output, "async db", "asyncdb", plugin_space, __FILE__, "It helps cas and other rpc db values in master process.\n");
@@ -295,8 +298,10 @@ int async_db_init() {
 	pm_plug_callback(&plugin_space, async_db_unset_hook, async_db_hook_desc);
 	aroop_txt_embeded_set_static_string(&plugin_space, "asyncdb/get/request");
 	pm_plug_callback(&plugin_space, async_db_get_hook, async_db_hook_desc);
+#if 0
 	aroop_txt_embeded_set_static_string(&plugin_space, "asyncdb/response");
 	pm_plug_callback(&plugin_space, async_db_response_hook , async_db_hook_desc);
+#endif
 	aroop_txt_embeded_set_static_string(&plugin_space, "shake/dbdump");
 	pm_plug_callback(&plugin_space, async_db_dump_hook, async_db_dump_desc);
 	return 0;
@@ -309,7 +314,9 @@ int async_db_deinit() {
 	pm_unplug_callback(0, async_db_set_if_null_hook);
 	pm_unplug_callback(0, async_db_unset_hook);
 	pm_unplug_callback(0, async_db_get_hook);
+#if 0
 	pm_unplug_callback(0, async_db_response_hook);
+#endif
 	pm_unplug_callback(0, async_db_dump_hook);
 }
 
