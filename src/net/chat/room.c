@@ -117,17 +117,25 @@ static int chat_room_describe(aroop_txt_t*roomstr, aroop_txt_t*room_info) {
 	return 0;
 }
 
+#define ON_ASYNC_ROOM_REPLY "on/async/room/reply"
 #define ROOM_KEY "rooms"
 static int chat_room_lookup_plug(int signature, void*given) {
 	aroop_assert(signature == CHAT_SIGNATURE);
 	struct chat_connection*chat = (struct chat_connection*)given;
 	if(!IS_VALID_CHAT(chat)) // sanity check
 		return 0;
-	aroop_txt_t room_response_hook = {};
-	aroop_txt_embeded_set_static_string(&room_response_hook, "on/asyncchat/rooms");
+	aroop_txt_t on_async_reply = {};
+	aroop_txt_embeded_set_static_string(&on_async_reply, ON_ASYNC_ROOM_REPLY);
+#if 1
 	aroop_txt_t key = {};
 	aroop_txt_embeded_set_static_string(&key, ROOM_KEY);
-	async_db_get(chat->strm._ext.token, &room_response_hook, &key);
+	async_db_get(chat->strm._ext.token, &on_async_reply, &key);
+#else
+	aroop_txt_t on_async_request = {};
+	aroop_txt_embeded_set_static_string(&on_async_request, "on/async/room/call");
+	aroop_txt_t*empty[1] = {NULL};
+	async_pm_call_master(chat->strm._ext.token, &on_async_reply, &on_async_request, empty);
+#endif
 	return 0;
 }
 
@@ -216,7 +224,7 @@ int room_module_init() {
 	aroop_txt_t plugin_space = {};
 	aroop_txt_embeded_set_static_string(&plugin_space, "chat/rooms");
 	composite_plug_bridge(chat_plugin_manager_get(), &plugin_space, chat_room_lookup_plug, chat_room_lookup_plug_desc);
-	aroop_txt_embeded_set_static_string(&plugin_space, "on/asyncchat/rooms");
+	aroop_txt_embeded_set_static_string(&plugin_space, ON_ASYNC_ROOM_REPLY);
 	pm_plug_callback(&plugin_space, on_asyncchat_rooms, on_asyncchat_rooms_desc);
 	aroop_txt_embeded_set_static_string(&plugin_space, "fork/child/after");
 	pm_plug_callback(&plugin_space, default_room_fork_child_after_callback, default_room_fork_callback_desc);

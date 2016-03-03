@@ -11,13 +11,13 @@
 #include "plugin_manager.h"
 #include "event_loop.h"
 #include "parallel/pipeline.h"
+#include "parallel/async_request.h"
 
 C_CAPSULE_START
 
-#define DB_LOG(...)
+#define DB_LOG(...) syslog(__VA_ARGS__)
 
 static aroop_txt_t null_hook = {};
-static int masterpid = 0;
 int async_db_compare_and_swap(int cb_token, aroop_txt_t*cb_hook, aroop_txt_t*key, aroop_txt_t*newval, aroop_txt_t*oldval) {
 	if(cb_hook == NULL) {
 		cb_hook = &null_hook;
@@ -34,23 +34,10 @@ int async_db_compare_and_swap(int cb_token, aroop_txt_t*cb_hook, aroop_txt_t*key
 		else
 			aroop_txt_embeded_set_static_string(&app, "asyncdb/unset/request"); 
 	}
-	aroop_txt_t bin = {}; // binary response
-	// send response
-	aroop_txt_embeded_stackbuffer(&bin, 255);
-	binary_coder_reset(&bin);
+	aroop_txt_t*args[4] = {key, newval, oldval, NULL};
 	// 0 = pid, 1 = srcpid, 2 = command, 3 = token, 4 = cb_hook, 5 = key, 6 = newval, 7 = oldval
-	binary_pack_int(&bin, masterpid); // send destination pid
-	binary_pack_int(&bin, getpid()); // send source pid
-	binary_pack_string(&bin, &app);
-	binary_pack_int(&bin, cb_token); // id/token
-	binary_pack_string(&bin, cb_hook); // callback hook
-	binary_pack_string(&bin, key);
-	if(newval)
-		binary_pack_string(&bin, newval);
-	if(oldval)
-		binary_pack_string(&bin, oldval);
-	DB_LOG(LOG_NOTICE, "[token%d]-CAS-throwing to--[master:%d]-[key:%s]", cb_token, masterpid, aroop_txt_to_string(key));
-	pp_bubble_up(&bin);
+	DB_LOG(LOG_NOTICE, "[token%d]-CAS-throwing to--[master]-[key:%s]", cb_token, aroop_txt_to_string(key));
+	async_pm_call_master(cb_token, cb_hook, &app, args);
 	return 0;
 }
 
@@ -79,43 +66,20 @@ int async_db_get(int cb_token, aroop_txt_t*cb_hook, aroop_txt_t*key) {
 	aroop_assert(!aroop_txt_is_empty_magical(key));
 	aroop_txt_t app = {};
 	aroop_txt_embeded_set_static_string(&app, "asyncdb/get/request"); 
-	aroop_txt_t bin = {}; // binary response
-	// send response
-	aroop_txt_embeded_stackbuffer(&bin, 255);
-	binary_coder_reset(&bin);
+	aroop_txt_t*args[2] = {key, NULL};
 	// 0 = pid, 1 = srcpid, 2 = command, 3 = token, 4 = cb_hook, 5 = key
-	binary_pack_int(&bin, masterpid); // send destination pid
-	binary_pack_int(&bin, getpid()); // send source pid
-	binary_pack_string(&bin, &app);
-	binary_pack_int(&bin, cb_token); // id/token
-	binary_pack_string(&bin, cb_hook); // callback hook
-	binary_pack_string(&bin, key);
-	DB_LOG(LOG_NOTICE, "[token%d]-get-throwing to--[master:%d]-[key:%s]", cb_token, masterpid, aroop_txt_to_string(key));
-	pp_bubble_up(&bin);
-	return 0;
+	DB_LOG(LOG_NOTICE, "[token%d]-get-throwing to--[master]-[key:%s]", cb_token, aroop_txt_to_string(key));
+	return async_pm_call_master(cb_token, cb_hook, &app, args);
 }
 
 static opp_hash_table_t global_db; // TODO create partitioned db in future
 
-static int async_db_op_reply(int cb_token, aroop_txt_t*cb_hook, int destpid, aroop_txt_t*app, int success, aroop_txt_t*key, aroop_txt_t*newval) {
-	aroop_assert(!aroop_txt_is_empty_magical(cb_hook));
-	aroop_assert(!aroop_txt_is_empty_magical(app));
-	aroop_txt_t bin = {}; // binary response
+static int async_db_op_reply(int destpid, int cb_token, aroop_txt_t*cb_hook, aroop_txt_t*app, int success, aroop_txt_t*key, aroop_txt_t*newval) {
 	// send response
 	// 0 = pid, 1 = src pid, 2 = command, 3 = token, 4 = cb_hook, 5 = success
-	aroop_txt_embeded_stackbuffer(&bin, 255);
-	binary_coder_reset(&bin);
-	binary_pack_int(&bin, destpid); // send destination pid
-	binary_pack_int(&bin, getpid()); // send destination pid
-	binary_pack_string(&bin, app);
-	binary_pack_int(&bin, cb_token); // id/token
-	binary_pack_string(&bin, cb_hook); // id/token
-	binary_pack_int(&bin, success); // means success
-	binary_pack_string(&bin, key);
-	if(newval != NULL)
-		binary_pack_string(&bin, newval);
+	aroop_txt_t*args[3] = {key, newval, NULL};
 	DB_LOG(LOG_NOTICE, "[token%d]-replying-throwing to--[dest:%d]-[key:%s]-[app:%s]", cb_token, destpid, aroop_txt_to_string(key), newval?aroop_txt_to_string(app):"null");
-	pp_bubble_down(&bin);
+	async_pm_reply_worker(destpid, cb_token, cb_hook, app, success, args);
 	return 0;
 }
 
@@ -166,7 +130,7 @@ static int async_db_CAS_hook(aroop_txt_t*bin, aroop_txt_t*output) {
 	if(destpid > 0) {
 		aroop_txt_t app = {};
 		aroop_txt_embeded_set_static_string(&app, "asyncdb/response"); 
-		async_db_op_reply(cb_token, &cb_hook, srcpid, &app, success, &key, &newval);
+		async_db_op_reply(srcpid, cb_token, &cb_hook, &app, success, &key, &newval);
 	}
 	// cleanup
 	aroop_txt_destroy(&key);
@@ -200,7 +164,7 @@ static int async_db_set_if_null_hook(aroop_txt_t*bin, aroop_txt_t*output) {
 	if(destpid > 0) {
 		aroop_txt_t app = {};
 		aroop_txt_embeded_set_static_string(&app, "asyncdb/response"); 
-		async_db_op_reply(cb_token, &cb_hook, srcpid, &app, success, &key, &newval);
+		async_db_op_reply(srcpid, cb_token, &cb_hook, &app, success, &key, &newval);
 	}
 	// cleanup
 	aroop_txt_destroy(&cb_hook);
@@ -231,7 +195,7 @@ static int async_db_unset_hook(aroop_txt_t*bin, aroop_txt_t*output) {
 	if(destpid > 0) {
 		aroop_txt_t app = {};
 		aroop_txt_embeded_set_static_string(&app, "asyncdb/response"); 
-		async_db_op_reply(cb_token, &cb_hook, srcpid, &app, success, &key, NULL);
+		async_db_op_reply(srcpid, cb_token, &cb_hook, &app, success, &key, NULL);
 	}
 	// cleanup
 	aroop_txt_destroy(&cb_hook);
@@ -266,7 +230,7 @@ static int async_db_get_hook(aroop_txt_t*bin, aroop_txt_t*output) {
 		//syslog(LOG_NOTICE, "[pid:%d]-got:%s", getpid(), aroop_txt_to_string(oldval));
 		aroop_txt_t app = {};
 		aroop_txt_embeded_set_static_string(&app, "asyncdb/response"); 
-		async_db_op_reply(cb_token, &cb_hook, srcpid, &app, 1, &key, oldval);
+		async_db_op_reply(srcpid, cb_token, &cb_hook, &app, 1, &key, oldval);
 	} while(0);
 	
 	// cleanup
@@ -320,7 +284,6 @@ static int async_db_dump_desc(aroop_txt_t*plugin_space, aroop_txt_t*output) {
 
 int async_db_init() {
 	aroop_txt_embeded_set_static_string(&null_hook, "null");
-	masterpid = getpid();
 	if(is_master())
 		opp_hash_table_create(&global_db, 16, 0, aroop_txt_get_hash_cb, aroop_txt_equals_cb);
 	aroop_txt_t plugin_space = {};

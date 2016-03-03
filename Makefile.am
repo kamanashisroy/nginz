@@ -19,7 +19,7 @@ src/net/tcp_listener.c src/net/protostack.c \
 src/net/chat.c	src/net/chat/chat_plugin_manager.c	src/net/chat/welcome.c	src/net/chat/room.c	src/net/chat/quit.c	src/net/chat/join.c	src/net/chat/broadcast.c	src/net/chat/leave.c	src/net/chat/user.c	src/net/chat/hiddenjoin.c	src/net/chat/uptime.c	src/net/chat/profiler.c	src/net/chat/chat_accept.c	src/net/chat/chat_factory.c	src/net/chat/chat_command.c	src/net/chat/version.c	src/net/chat/private_message.c \
 src/net/http.c	src/net/http/http_accept.c	src/net/http/http_factory.c	src/net/http/http_parser.c	src/net/http/http_plugin_manager.c	src/net/http/http_tunnel.c \
 src/apps/web_chat/web_chat.c	src/apps/web_chat/page_chat.c	src/apps/web_chat/web_session_factory.c \
-src/parallel/async_db.c
+src/parallel/async_db.c	src/parallel/async_request.c
 
 EVENT_LOOP_POLL = src/event_loop_poll.c
 EVENT_LOOP_PARTITIONED_OPENMP_POLL = src/event_loop_partitioned_openmp_poll.c

@@ -453,11 +453,13 @@ int pp_module_init() {
 	aroop_txt_embeded_set_static_string(&plugin_space, "fork/parent/after");
 	pm_plug_callback(&plugin_space, pp_fork_parent_after_callback, pp_fork_callback_desc);
 	ping_module_init();
+	async_request_init();
 	async_db_init();
 }
 
 int pp_module_deinit() {
 	async_db_deinit();
+	async_request_deinit();
 	ping_module_deinit();
 	// TODO unregister all
 	aroop_txt_destroy(&recv_buffer);
