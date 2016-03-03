@@ -21,7 +21,16 @@
 
 C_CAPSULE_START
 
-static int tcp_ports[NGINZ_MAX_PROTO] = {NGINZ_CHAT_PORT, NGINZ_HTTP_PORT, 0, 0};
+static int tcp_ports[NGINZ_MAX_PROTO] = {
+	NGINZ_CHAT_PORT
+#ifdef HAS_HTTP_MODULE
+	, NGINZ_HTTP_PORT
+#else
+	, 0
+#endif
+	, 0
+	, 0
+};
 static int tcp_sockets[NGINZ_MAX_PROTO] = { -1, -1, -1, -1};
 
 static int on_connection(int fd, int status, const void*pstack) {
