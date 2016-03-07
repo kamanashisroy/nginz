@@ -10,6 +10,7 @@
 #include "plugin.h"
 #include "plugin_manager.h"
 #include "event_loop.h"
+#include "binary_coder.h"
 #include "parallel/pipeline.h"
 #include "parallel/async_request.h"
 
@@ -38,7 +39,7 @@ int async_pm_call_master(int cb_token, aroop_txt_t*worker_hook, aroop_txt_t*mast
 		binary_pack_string(&bin, *args); // pack more ..
 		args++;
 	}
-	DB_LOG(LOG_NOTICE, "[token%d]-request-[master:%d]-[app:%s]", cb_token, masterpid, aroop_txt_to_string(master_hook));
+	DB_LOG(LOG_NOTICE, "[token%d]-request-[master:%d]-[bytes:%d][app:%s]{%X,%X}", cb_token, masterpid, aroop_txt_length(&bin), aroop_txt_to_string(master_hook), aroop_txt_char_at(&bin, 0), aroop_txt_char_at(&bin, 1));
 	pp_bubble_up(&bin);
 	return 0;
 }
@@ -61,7 +62,7 @@ int async_pm_reply_worker(int destpid, int cb_token, aroop_txt_t*worker_hook, in
 		binary_pack_string(&bin, *args); // pack more ..
 		args++;
 	}
-	DB_LOG(LOG_NOTICE, "[token%d]-response--[dest:%d][app:%s]", cb_token, destpid, aroop_txt_to_string(worker_hook));
+	DB_LOG(LOG_NOTICE, "[token%d]-response----------[dest:%d]-[bytes:%d][app:%s]{%X,%X}", cb_token, destpid, aroop_txt_length(&bin), aroop_txt_to_string(worker_hook), aroop_txt_char_at(&bin, 0), aroop_txt_char_at(&bin, 1));
 	pp_bubble_down(&bin);
 	return 0;
 }

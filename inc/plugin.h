@@ -76,6 +76,7 @@ int composite_plugin_visit_all(struct composite_plugin*container, int (*visitor)
 		, void*visitor_data
 	), void*visitor_data);
 
+int plugin_desc(aroop_txt_t*output, char*plugin_name, char*plugin_type, aroop_txt_t*space, char*source_file, char*desc);
 int composite_plugin_test(struct composite_plugin*container);
 
 C_CAPSULE_END
