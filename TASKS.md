@@ -31,7 +31,7 @@ Tasks
 	- [x] Create webchat interface
 - [ ] Write pidgin plugin
 - [ ] Add a REST-API
-- [ ] Add support for late destruction in zombee list.
+- [x] Add support for late destruction in zombie list.
 
 #### chat rooms
 - [x] Restrict users in chat room.
