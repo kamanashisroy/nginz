@@ -106,7 +106,7 @@ static int chat_room_lookup_plug_desc(aroop_txt_t*plugin_space, aroop_txt_t*outp
 int room_module_init() {
 	aroop_txt_t plugin_space = {};
 	aroop_txt_embeded_set_static_string(&plugin_space, "chat/rooms");
-	composite_plug_bridge(chat_plugin_manager_get(), &plugin_space, chat_room_lookup_plug, chat_room_lookup_plug_desc);
+	cplug_bridge(chat_plugin_manager_get(), &plugin_space, chat_room_lookup_plug, chat_room_lookup_plug_desc);
 	aroop_txt_embeded_set_static_string(&plugin_space, ON_ASYNC_ROOM_REPLY);
 	pm_plug_callback(&plugin_space, on_asyncchat_rooms, on_asyncchat_rooms_desc);
 	if(is_master())

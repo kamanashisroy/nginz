@@ -261,9 +261,9 @@ static int web_session_api_plug_desc(aroop_txt_t*plugin_space, aroop_txt_t*outpu
 int web_chat_module_init() {
 	aroop_txt_t plugin_space = {};
 	aroop_txt_embeded_set_static_string(&plugin_space, HTTP_WEBCHAT_PLUG);
-	composite_plug_bridge(http_plugin_manager_get(), &plugin_space, http_webchat_plug, http_webchat_plug_desc);
+	cplug_bridge(http_plugin_manager_get(), &plugin_space, http_webchat_plug, http_webchat_plug_desc);
 	aroop_txt_embeded_set_static_string(&plugin_space, HTTP_WEB_SESSION_TRANSFER_WRAPPER);
-	composite_plug_bridge(http_plugin_manager_get(), &plugin_space, http_web_session_transfer_plug, http_webchat_plug_desc);
+	cplug_bridge(http_plugin_manager_get(), &plugin_space, http_web_session_transfer_plug, http_webchat_plug_desc);
 	aroop_txt_embeded_set_static_string(&plugin_space, "web_session/api/hookup");
 	pm_plug_bridge(&plugin_space, web_session_api_plug, web_session_api_plug_desc);
 	page_chat_module_init();

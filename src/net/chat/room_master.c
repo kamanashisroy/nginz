@@ -33,7 +33,7 @@ static int chat_room_get_user_count(aroop_txt_t*my_room) {
 	aroop_txt_concat(&cpystr, &countstr);
 	aroop_txt_zero_terminate(&cpystr);
 	int retval = aroop_txt_to_int(&cpystr);
-	aroop_txt_destroy(&countstr);
+	aroop_txt_destroy(&countstr); // cleanup
 	return retval;
 }
 
@@ -91,7 +91,7 @@ static int on_async_room_call_master(aroop_txt_t*bin, aroop_txt_t*output) {
 	aroop_txt_embeded_set_static_string(&key, ROOM_KEY);
 	noasync_db_get(&key, &info); // needs cleanup
 	if(!aroop_txt_is_empty(&info)) {
-		const int len = aroop_txt_length(&info)*8 + 32;
+		const int len = aroop_txt_length(&info)*32 + 64;
 		aroop_txt_embeded_stackbuffer(&room_info, len); // FIXME too many chatroom will cause stack overflow ..
 		chat_room_describe(&info, &room_info);
 	}
@@ -111,7 +111,7 @@ static int on_asyncchat_rooms_desc(aroop_txt_t*plugin_space,aroop_txt_t*output) 
 /****************************************************/
 /****** Default room setup **************************/
 /****************************************************/
-static const char default_rooms[][32] = {"ONE", "TWO", "THREE", "FOUR", "FIVE"};
+static const char default_rooms[][32] = {"ONE", "TWO", "THREE", "FOUR", "FIVE", "SIX", "SEVEN", "EIGHT", "NINE", "TEN"};
 static int default_room_setup() {
 	if(!is_master()) // we only start it in the master
 		return 0;
@@ -131,29 +131,31 @@ static int default_room_setup() {
 	return 0;
 }
 
-static int chat_room_set_pid(const char*my_room, int pid) {
-	// get the number of users in that room
+static int chat_room_add_helper(int index) {
+	const char*myroom = default_rooms[index];
+	int pid = getpid();
+	//printf("we are assigning room(%s) to a process(%d)\n", myroom, pid);
+	aroop_txt_t room_name = {};
+	aroop_txt_embeded_stackbuffer(&room_name, 128);
+	aroop_txt_concat_string(&room_name, myroom); 
+
+	/** Save the pid for the room in the database */
 	aroop_txt_t db_room_key = {};
 	aroop_txt_embeded_stackbuffer(&db_room_key, 128);
 	aroop_txt_concat_string(&db_room_key, ROOM_PID_KEY);
-	aroop_txt_concat_string(&db_room_key, my_room);
+	aroop_txt_concat(&db_room_key, &room_name);
 	aroop_txt_zero_terminate(&db_room_key);
 	async_db_set_int(-1, NULL, &db_room_key, pid);
+
+	/** create the room constructs */
+	broadcast_add_room(&room_name);
 	return 0;
 }
 
 static int internal_child_count = 0;
 static int default_room_fork_child_after_callback(aroop_txt_t*input, aroop_txt_t*output) {
-	const char*myroom = default_rooms[internal_child_count];
-	int pid = getpid();
-	//printf("we are assigning room(%s) to a process(%d)\n", myroom, pid);
-	chat_room_set_pid(myroom, pid);
-	aroop_txt_t room_name = {};
-	aroop_txt_embeded_copy_string(&room_name, myroom);
-	broadcast_add_room(&room_name);
-	aroop_txt_destroy(&room_name); // cleanup
-	internal_child_count++;
-	//aroop_txt_destroy(&pidstr);
+	chat_room_add_helper(internal_child_count++); // add default indexes
+	chat_room_add_helper(internal_child_count++); // add default indexes
 	return 0;
 }
 

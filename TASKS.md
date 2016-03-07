@@ -34,7 +34,7 @@ Tasks
 - [ ] Add support for late destruction in zombee list.
 
 #### chat rooms
-- [ ] Restrict users in chat room.
+- [x] Restrict users in chat room.
 
 ### shake
 - [ ] Create memory profiler command to show memory usage.

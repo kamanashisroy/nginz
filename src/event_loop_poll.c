@@ -88,7 +88,6 @@ static int event_loop_batch_unregister() {
 	return 0;
 }
 
-
 static int event_loop_step_helper(int count) {
 	int i = 0;
 	for(i = 0; i < internal_nfds && count; i++) {
@@ -101,8 +100,6 @@ static int event_loop_step_helper(int count) {
 	event_loop_batch_unregister();
 	return 0;
 }
-
-
 
 static int event_loop_step(int status) {
 	if(internal_nfds == 0) {
@@ -130,6 +127,7 @@ static int event_loop_test_helper(int count) {
 	while(ncount--) {
 		event_loop_unregister_fd(fd+ncount);
 	}
+	event_loop_batch_unregister();
 	
 	return !(prev == event_loop_fd_count());
 }

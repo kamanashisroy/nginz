@@ -77,7 +77,7 @@ static int http_page_chat_desc(aroop_txt_t*plugin_space, aroop_txt_t*output) {
 int page_chat_module_init() {
 	aroop_txt_t plugin_space = {};
 	aroop_txt_embeded_set_static_string(&plugin_space, "http/pagechat");
-	composite_plug_bridge(http_plugin_manager_get(), &plugin_space, http_page_chat_plug, http_page_chat_desc);
+	cplug_bridge(http_plugin_manager_get(), &plugin_space, http_page_chat_plug, http_page_chat_desc);
 	return 0;
 }
 

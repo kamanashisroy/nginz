@@ -10,6 +10,7 @@
 #include <aroop/aroop_memory_profiler.h>
 #include "nginz_config.h"
 #include "log.h"
+#include "plugin.h"
 #include "plugin_manager.h"
 #include "event_loop.h"
 #include "parallel/pipeline.h"
@@ -444,7 +445,7 @@ int pp_module_init() {
 		syslog(LOG_ERR, "Failed to create pipe:%s\n", strerror(errno));
 		return -1;
 	}
-	aroop_txt_embeded_buffer(&recv_buffer, 255);
+	aroop_txt_embeded_buffer(&recv_buffer, NGINZ_MAX_BINARY_MSG_LEN);
 	aroop_txt_t plugin_space = {};
 	aroop_txt_embeded_set_static_string(&plugin_space, "fork/before");
 	pm_plug_callback(&plugin_space, pp_fork_before_callback, pp_fork_callback_desc);

@@ -151,7 +151,7 @@ static int on_asyncchat_room_pid_desc(aroop_txt_t*plugin_space, aroop_txt_t*outp
 int join_module_init() {
 	aroop_txt_t plugin_space = {};
 	aroop_txt_embeded_set_static_string(&plugin_space, "chat/join");
-	composite_plug_bridge(chat_plugin_manager_get(), &plugin_space, chat_join_plug, chat_join_plug_desc);
+	cplug_bridge(chat_plugin_manager_get(), &plugin_space, chat_join_plug, chat_join_plug_desc);
 	aroop_txt_embeded_set_static_string(&plugin_space, "on/asyncchat/room/pid");
 	pm_plug_callback(&plugin_space, on_asyncchat_room_pid, on_asyncchat_room_pid_desc);
 }

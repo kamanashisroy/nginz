@@ -26,16 +26,23 @@ static int test_command_tester(
 	aroop_txt_t input = {};
 	aroop_txt_t*output = (aroop_txt_t*)visitor_data;
 	aroop_txt_t xdesc = {};
-	aroop_txt_embeded_copy_on_demand(&prefix, plugin_space);
+	aroop_assert(category != INVALID_PLUGIN);
+	aroop_assert(!aroop_txt_is_empty_magical(plugin_space));
+	aroop_txt_embeded_copy_on_demand(&prefix, plugin_space); // needs cleanup
 	aroop_txt_set_length(&prefix, 5);
-	if(!aroop_txt_equals_static(&prefix, "test/"))
-		return 0;
-	callback(&input, &xdesc);
-	aroop_txt_concat(output, &xdesc);
-	aroop_txt_destroy(&xdesc);
+	do {
+		if(!aroop_txt_equals_static(&prefix, "test/"))
+			break;
+		callback(&input, &xdesc); // needs cleanup
+		aroop_txt_concat(output, &xdesc);
+	} while(0);
+	aroop_txt_destroy(&prefix); // cleanup
+	aroop_txt_destroy(&xdesc); // cleanup
+	return 0;
 }
 
 static int test_command(aroop_txt_t*input, aroop_txt_t*output) {
+	composite_plugin_test(pm_get());
 	aroop_txt_embeded_buffer(output, 512);
 	composite_plugin_visit_all(pm_get(), test_command_tester, output);
 	aroop_txt_concat_string(output, "\nTests Complete\n");

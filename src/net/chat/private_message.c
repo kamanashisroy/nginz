@@ -46,7 +46,7 @@ static int chat_private_message_plug_desc(aroop_txt_t*plugin_space, aroop_txt_t*
 int private_message_module_init() {
 	aroop_txt_t plugin_space = {};
 	aroop_txt_embeded_set_static_string(&plugin_space, "chat/pm");
-	composite_plug_bridge(chat_plugin_manager_get(), &plugin_space, chat_private_message_plug, chat_private_message_plug_desc);
+	cplug_bridge(chat_plugin_manager_get(), &plugin_space, chat_private_message_plug, chat_private_message_plug_desc);
 }
 
 int private_message_module_deinit() {

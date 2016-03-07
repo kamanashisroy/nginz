@@ -10,7 +10,7 @@ lib_LIBRARIES=$(TARGET_AR)
 NGINZ_SOURCE_FILES = \
 src/fiber.c     src/plugin.c	src/plugin_manager.c	src/scanner.c \
 src/db.c \
-src/binary_coder.c \
+src/binary_coder_extended.c \
 src/backtrace.c \
 src/net/streamio.c \
 src/shake.c	src/shake/help.c	src/shake/test.c	src/shake/quitall.c \

@@ -26,7 +26,7 @@ int async_pm_call_master(int cb_token, aroop_txt_t*worker_hook, aroop_txt_t*mast
 	}
 	aroop_txt_t bin = {}; // binary response
 	// send response
-	aroop_txt_embeded_stackbuffer(&bin, 255); // XXX it may overflow any time
+	aroop_txt_embeded_stackbuffer(&bin, NGINZ_MAX_BINARY_MSG_LEN); // XXX it may overflow any time
 	binary_coder_reset(&bin);
 	// 0 = pid, 1 = srcpid, 2 = command, 3 = token, 4 = worker_hook, 5 = key, 6 = newval, 7 = oldval
 	binary_pack_int(&bin, masterpid); // send destination pid
@@ -45,10 +45,12 @@ int async_pm_call_master(int cb_token, aroop_txt_t*worker_hook, aroop_txt_t*mast
 
 int async_pm_reply_worker(int destpid, int cb_token, aroop_txt_t*worker_hook, int success, aroop_txt_t*args[]) { // NULL terminated array
 	aroop_assert(!aroop_txt_is_empty_magical(worker_hook));
+	if(aroop_txt_equals(worker_hook, &null_hook)) // check if the listener is null
+		return 0;
 	aroop_txt_t bin = {}; // binary response
 	// send response
 	// 0 = pid, 1 = src pid, 2 = command, 3 = token, 4 = worker_hook, 5 = success
-	aroop_txt_embeded_stackbuffer(&bin, 255);
+	aroop_txt_embeded_stackbuffer(&bin, NGINZ_MAX_BINARY_MSG_LEN);
 	binary_coder_reset(&bin);
 	binary_pack_int(&bin, destpid); // send destination pid
 	binary_pack_int(&bin, getpid()); // send destination pid

@@ -14,11 +14,23 @@
 
 C_CAPSULE_START
 
+enum {
+	NGINZ_BINARY_CONTENT_NULL = 0,
+	NGINZ_BINARY_CONTENT_STRING,
+	NGINZ_BINARY_CONTENT_INTEGER,
+};
+
+enum {
+	BINARY_CODER_HEADER_LEN = 3,
+};
+
 typedef char mychar_t;
 int binary_coder_reset(aroop_txt_t*buffer) {
 	aroop_txt_set_length(buffer, 0);
-	// base header at 0
-	aroop_txt_concat_char(buffer, (mychar_t)1);
+	// add base header [0,2]
+	// NOTE unlike content header which is BINARY_CODER_HEADER_LEN, base header is (BINARY_CODER_HEADER_LEN-1) bytes.
+	aroop_txt_concat_char(buffer, (mychar_t)0);
+	aroop_txt_concat_char(buffer, (mychar_t)2);
 	aroop_assert(aroop_txt_capacity(buffer) >= 256);
 	return 0;
 }
@@ -27,6 +39,37 @@ int binary_coder_reset_for_pid(aroop_txt_t*buffer, int destpid) {
 	aroop_assert(destpid > -1);
 	binary_coder_reset(buffer);
 	binary_pack_int(buffer, destpid);
+	return 0;
+}
+
+static int binary_set_header(char*header, mychar_t content_type, uint16_t len) {
+	header[0] = content_type;
+	header[1] = (mychar_t)((len & 0xFF00)>>8);
+	header[2] = (mychar_t)(len & 0x00FF);
+	return 0;
+}
+
+static int binary_pack_string_helper(aroop_txt_t*buffer, aroop_txt_t*x, mychar_t content_type) {
+	mychar_t blen = (mychar_t)aroop_txt_length(buffer);
+	if((aroop_txt_length(x) + blen + BINARY_CODER_HEADER_LEN) > aroop_txt_capacity(buffer)) {
+		syslog(LOG_ERR, "Binary buffer is full");
+		return -1;
+	}
+	// add header
+	uint16_t len = aroop_txt_length(x);
+	mychar_t str[3];
+	binary_set_header(str, content_type, len);
+	aroop_txt_concat_char(buffer, str[0]);
+	aroop_txt_concat_char(buffer, str[1]);
+	aroop_txt_concat_char(buffer, str[2]);
+	// add body
+	aroop_txt_concat(buffer, x);
+	blen = (mychar_t)aroop_txt_length(buffer);
+	// update base header
+	str[0] = (mychar_t)((blen & 0xFF00)>>8);
+	str[1] = (mychar_t)(blen & 0x00FF);
+	aroop_txt_set_char_at(buffer, 0, str[0]);
+	aroop_txt_set_char_at(buffer, 1, str[1]);
 	return 0;
 }
 
@@ -47,63 +90,72 @@ int binary_pack_int(aroop_txt_t*buffer, int intval) {
 
 	//aroop_txt_embeded_stackbuffer(&str, 32);
 	//aroop_txt_printf(&str, "%d", intval);
-	return binary_pack_string(buffer, &intbuf);
+	return binary_pack_string_helper(buffer, &intbuf, NGINZ_BINARY_CONTENT_INTEGER);
 }
 
-
 int binary_pack_string(aroop_txt_t*buffer, aroop_txt_t*x) {
-	mychar_t blen = (mychar_t)aroop_txt_length(buffer);
-	if((aroop_txt_length(x) + blen + 1) > aroop_txt_capacity(buffer))
-		return -1;
-	// add header
-	aroop_txt_concat_char(buffer, (mychar_t)aroop_txt_length(x));
-	// add body
-	aroop_txt_concat(buffer, x);
-	blen = (mychar_t)aroop_txt_length(buffer);
-	// update base header
-	aroop_txt_set_char_at(buffer, 0, blen);
-	//printf("packed to %d bytes\n", blen);
+	return binary_pack_string_helper(buffer, x, NGINZ_BINARY_CONTENT_STRING);
+}
+
+static int binary_get_header(char*header, int offset, mychar_t*content_type, uint16_t*len) {
+	*content_type = header[offset++];
+	*len = (uint8_t)header[offset++];
+	*len = (*len) << 8;
+	*len |= ((uint8_t)header[offset]) & 0xFF;
 	return 0;
 }
 
-int binary_unpack_string(aroop_txt_t*buffer, int skip, aroop_txt_t*x) {
-	mychar_t pos = 1;
-	mychar_t blen = (mychar_t)aroop_txt_length(buffer);
-	if(blen == 1)
+static int binary_unpack_string_helper(aroop_txt_t*buffer, int skip, aroop_txt_t*x, mychar_t expected_content_type) {
+	mychar_t pos = 2;
+	mychar_t content_type = 0;
+	uint16_t blen = aroop_txt_length(buffer);
+	assert(blen >= (BINARY_CODER_HEADER_LEN-1));
+	aroop_txt_destroy(x); // remove the old value
+	if(blen == (BINARY_CODER_HEADER_LEN-1))
 		return 0;
 	// do not trust the blen use my blen
 	blen = (mychar_t)aroop_txt_char_at(buffer, 0);
+	blen = (blen) << 8;
+	blen |= (mychar_t)aroop_txt_char_at(buffer, 1);
 	if(blen > (aroop_txt_length(buffer))) {
 		syslog(LOG_ERR, "Error in buffer data, may be the socket is corrupted 1\n");
 		return -1;
 	}
 	do {
-		mychar_t nlen = (mychar_t)aroop_txt_char_at(buffer, pos);
-		//printf("pos %d, nlen %d, blen %d\n", pos, nlen, blen);
-		if(pos + nlen > blen) {
+		uint16_t nlen = 0;
+		binary_get_header(aroop_txt_to_string(buffer), pos, &content_type, &nlen);
+		//syslog(LOG_NOTICE, "pos %d, nlen %d, blen %d\n", pos, nlen, blen);
+		if((pos + nlen) > blen) {
 			// error
-			syslog(LOG_ERR, "Error in buffer data, may be the socket is corrupted 2\n");
+			syslog(LOG_ERR, "Error in buffer data, may be the socket is corrupted (%d+%d)>%d\n", pos, nlen, blen);
 			return -1;
 		}
 		if(skip) {
-			pos += nlen+1;
+			pos += nlen+BINARY_CODER_HEADER_LEN;
 			skip--;
 			continue;
 		}
+		if(content_type != expected_content_type) {
+			syslog(LOG_ERR, "Error mismatch in content type\n");
+			aroop_assert(!"Error mismatch in content type\n");
+			return -1;
+		}
 		aroop_txt_embeded_txt_copy_shallow(x,buffer); // needs cleanup
-		pos++;
+		pos+= BINARY_CODER_HEADER_LEN;
 		aroop_txt_shift(x, pos);
 		aroop_txt_set_length(x, nlen);
-		pos+= nlen;
 		break;
 	} while(pos < blen);
 	return 0;
 }
 
+int binary_unpack_string(aroop_txt_t*buffer, int skip, aroop_txt_t*x) {
+	return binary_unpack_string_helper(buffer, skip, x, NGINZ_BINARY_CONTENT_STRING);
+}
 
 int binary_unpack_int(aroop_txt_t*buffer, int skip, int*intval) {
 	aroop_txt_t x = {};
-	if(binary_unpack_string(buffer, skip, &x)) {
+	if(binary_unpack_string_helper(buffer, skip, &x, NGINZ_BINARY_CONTENT_INTEGER)) {
 		return -1;
 	}
 	//*intval = aroop_txt_to_int(&sandbox);
@@ -131,11 +183,12 @@ int binary_unpack_int(aroop_txt_t*buffer, int skip, int*intval) {
 }
 
 int binary_coder_fixup(aroop_txt_t*buffer) {
-	mychar_t blen = (mychar_t)aroop_txt_length(buffer);
-	if(blen == 1)
-		return 0;
-	// do not trust the blen use my blen
+	uint16_t blen = (mychar_t)aroop_txt_length(buffer);
+	assert(blen >= (BINARY_CODER_HEADER_LEN-1));
 	blen = (mychar_t)aroop_txt_char_at(buffer, 0);
+	blen = (blen) << 8;
+	blen |= (mychar_t)aroop_txt_char_at(buffer, 1);
+	// do not trust the blen use my blen
 	if(blen != aroop_txt_length(buffer)) {
 		//printf("Fixing .. given blen:%d, data available:%d\n", blen, aroop_txt_length(buffer));
 		aroop_txt_set_length(buffer, blen);
@@ -190,9 +243,9 @@ static int binary_coder_test(aroop_txt_t*input, aroop_txt_t*output) {
 	aroop_txt_embeded_buffer(output, 512);
 	if(binary_coder_test_helper(32) || binary_coder_test_helper(0)) {
 		//aroop_txt_printf(output, "FAILED [%s!=%s] and [%d!=%d]\n", aroop_txt_to_string(&strval), aroop_txt_to_string(&str), intval, expval);
-		aroop_txt_printf(output, "FAILED\n");
+		aroop_txt_printf(output, "Binary coder: FAILED\n");
 	} else {
-		aroop_txt_concat_string(output, "successful\n");
+		aroop_txt_concat_string(output, "Binary coder: successful\n");
 	}
 	return 0;
 }

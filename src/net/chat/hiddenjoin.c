@@ -68,7 +68,7 @@ static int chat_hiddenjoin_plug_desc(aroop_txt_t*plugin_space, aroop_txt_t*outpu
 int hiddenjoin_module_init() {
 	aroop_txt_t plugin_space = {};
 	aroop_txt_embeded_set_static_string(&plugin_space, "chat/_hiddenjoin");
-	composite_plug_bridge(chat_plugin_manager_get(), &plugin_space, chat_hiddenjoin_plug, chat_hiddenjoin_plug_desc);
+	cplug_bridge(chat_plugin_manager_get(), &plugin_space, chat_hiddenjoin_plug, chat_hiddenjoin_plug_desc);
 }
 
 int hiddenjoin_module_deinit() {

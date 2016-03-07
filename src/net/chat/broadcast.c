@@ -128,6 +128,13 @@ static int broadcast_room_bye(struct chat_connection*chat, struct internal_room*
 	broadcast_callback_helper(NULL/* do not ommit the user */, rm, &resp);
 }
 
+static int broadcast_room_send_join_failed(struct chat_connection*chat) {
+	aroop_txt_t resp = {};
+	aroop_txt_embeded_set_static_string(&resp, "Sorry, room is full\n");
+	chat->strm.send(&chat->strm, &resp, 0);
+	return 0;
+}
+
 int broadcast_room_join(struct chat_connection*chat, aroop_txt_t*room_name) {
 	/* sanity check */
 	if(!(chat->state & CHAT_LOGGED_IN)) {
@@ -139,6 +146,10 @@ int broadcast_room_join(struct chat_connection*chat, aroop_txt_t*room_name) {
 	opp_search(&room_factory, aroop_txt_get_hash(room_name), NULL, NULL, (void**)&rm);
 	if(rm == NULL) {
 		syslog(LOG_ERR, "Cannot find room %s\n", aroop_txt_to_string(room_name));
+		return -1;
+	}
+	if(OPP_FACTORY_USE_COUNT(&rm->user_list) >= NGINZ_MAX_CHAT_ROOM_USER) {
+		broadcast_room_send_join_failed(chat);
 		return -1;
 	}
 	do {
@@ -200,7 +211,7 @@ int broadcast_room_leave(struct chat_connection*chat) {
 int broadcast_add_room(aroop_txt_t*room_name) {
 	// XXX we have to load broadcast module before room module
 	struct internal_room*rm = OPP_ALLOC1(&room_factory);
-	aroop_txt_embeded_copy_on_demand(&rm->name, room_name);
+	aroop_txt_embeded_copy_deep(&rm->name, room_name);
 	opp_set_hash(rm, aroop_txt_get_hash(&rm->name)); // set the hash so that it can be searched easily
 	return 0;
 }

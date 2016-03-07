@@ -13,6 +13,10 @@ enum parallel_config {
 	NGINZ_NUMBER_OF_PROCESSORS = 5,
 };
 
+enum binary_coder_config {
+	NGINZ_MAX_BINARY_MSG_LEN = 1024,
+};
+
 #include <poll.h> // to define POLLIN, POLLPRI, POLLHUP
 /**
  * Event loop configuration
@@ -56,6 +60,7 @@ enum chat_config {
 	NGINZ_MAX_CHAT_MSG_SIZE = 255,
 	NGINZ_MAX_WEBCHAT_MSG_SIZE = 1024,
 	NGINZ_MAX_WEBCHAT_SID_SIZE = 32,
+	NGINZ_MAX_CHAT_ROOM_USER = 32,
 	//NGINZ_MAX_COMMANDS = 16,
 };
 
@@ -78,7 +83,7 @@ enum http_config {
 /***************************** enable modules *****************************/
 /**************************************************************************/
 // http module allows to load http
-//#define HAS_HTTP_MODULE
+#define HAS_HTTP_MODULE
 
 // chat module allows telnet chat
 #define HAS_CHAT_MODULE

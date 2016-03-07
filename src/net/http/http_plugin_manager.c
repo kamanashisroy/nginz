@@ -83,7 +83,7 @@ int http_plugin_manager_module_init() {
 	http_plug = composite_plugin_create();
 	aroop_txt_t plugin_space = {};
 	aroop_txt_embeded_set_static_string(&plugin_space, "http/help");
-	composite_plug_bridge(http_plugin_manager_get(), &plugin_space, http_help_plug, http_help_plug_desc);
+	cplug_bridge(http_plugin_manager_get(), &plugin_space, http_help_plug, http_help_plug_desc);
 	aroop_txt_embeded_set_static_string(&plugin_space, "shake/httpplugin");
 	pm_plug_callback(&plugin_space, http_plugin_command, http_plugin_command_desc);
 	http_tunnel_module_init();

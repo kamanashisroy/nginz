@@ -34,7 +34,7 @@ static int chat_version_plug_desc(aroop_txt_t*plugin_space, aroop_txt_t*output) 
 int version_module_init() {
 	aroop_txt_t plugin_space = {};
 	aroop_txt_embeded_set_static_string(&plugin_space, "chat/version");
-	composite_plug_bridge(chat_plugin_manager_get(), &plugin_space, chat_version_plug, chat_version_plug_desc);
+	cplug_bridge(chat_plugin_manager_get(), &plugin_space, chat_version_plug, chat_version_plug_desc);
 }
 
 int version_module_deinit() {

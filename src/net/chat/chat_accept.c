@@ -117,7 +117,7 @@ static int on_client_data(int fd, int status, const void*cb_data) {
 static int toggler = 0;
 static int on_tcp_connection(int fd) {
 	aroop_txt_t bin = {};
-	aroop_txt_embeded_stackbuffer(&bin, 255);
+	aroop_txt_embeded_stackbuffer(&bin, NGINZ_MAX_BINARY_MSG_LEN);
 	binary_coder_reset_for_pid(&bin, 0);
 	binary_pack_int(&bin, NGINZ_CHAT_PORT);
 	aroop_txt_t welcome_command = {};

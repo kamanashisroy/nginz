@@ -46,7 +46,7 @@ int uptime_module_init() {
 	time(&start_time);
 	aroop_txt_t plugin_space = {};
 	aroop_txt_embeded_set_static_string(&plugin_space, "chat/uptime");
-	composite_plug_bridge(chat_plugin_manager_get(), &plugin_space, chat_uptime_plug, chat_uptime_plug_desc);
+	cplug_bridge(chat_plugin_manager_get(), &plugin_space, chat_uptime_plug, chat_uptime_plug_desc);
 	real_on_create = chat_api_get()->on_create;
 	chat_api_get()->on_create = uptime_count_chat_create;
 }

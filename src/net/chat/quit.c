@@ -32,7 +32,7 @@ static int chat_quit_plug_desc(aroop_txt_t*plugin_space, aroop_txt_t*output) {
 int quit_module_init() {
 	aroop_txt_t plugin_space = {};
 	aroop_txt_embeded_set_static_string(&plugin_space, "chat/quit");
-	composite_plug_bridge(chat_plugin_manager_get(), &plugin_space, chat_quit_plug, chat_quit_plug_desc);
+	cplug_bridge(chat_plugin_manager_get(), &plugin_space, chat_quit_plug, chat_quit_plug_desc);
 	aroop_txt_embeded_set_static_string(&BYE, "BYE\n");
 }
 

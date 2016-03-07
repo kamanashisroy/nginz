@@ -26,7 +26,7 @@ static int chat_leave_plug_desc(aroop_txt_t*plugin_space, aroop_txt_t*output) {
 int leave_module_init() {
 	aroop_txt_t plugin_space = {};
 	aroop_txt_embeded_set_static_string(&plugin_space, "chat/leave");
-	composite_plug_bridge(chat_plugin_manager_get(), &plugin_space, chat_leave_plug, chat_leave_plug_desc);
+	cplug_bridge(chat_plugin_manager_get(), &plugin_space, chat_leave_plug, chat_leave_plug_desc);
 }
 int leave_module_deinit() {
 	composite_unplug_bridge(chat_plugin_manager_get(), 0, chat_leave_plug);
