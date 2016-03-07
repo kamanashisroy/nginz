@@ -36,7 +36,11 @@ int chat_room_set_user_count(aroop_txt_t*my_room, int user_count) {
 	aroop_txt_concat_string(&db_room_key, ROOM_USER_KEY);
 	aroop_txt_concat(&db_room_key, my_room);
 	aroop_txt_zero_terminate(&db_room_key);
-	async_db_set_int(-1, NULL, &db_room_key, user_count);
+	if(user_count) {
+		async_db_set_int(-1, NULL, &db_room_key, user_count);
+	} else {
+		async_db_unset(-1, NULL, &db_room_key);
+	}
 	return 0;
 }
 

@@ -44,15 +44,6 @@ int logoff_user(struct chat_connection*chat) {
 	async_db_unset(-1, NULL, &name_key);
 	chat->state &= ~CHAT_LOGGED_IN;
 	return 0;
-#if 0
-	aroop_txt_t result = {};
-	aroop_memclean_raw2(&result);
-	db_set(aroop_txt_to_string(&name_key), aroop_txt_to_string(&result));
-	aroop_txt_destroy(&result);
-	chat->state &= ~CHAT_LOGGED_IN;
-	return ret;
-#else
-#endif
 }
 
 
