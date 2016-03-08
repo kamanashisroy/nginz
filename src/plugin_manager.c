@@ -13,6 +13,7 @@ static struct composite_plugin*coreplug = NULL;
 int pm_call(aroop_txt_t*plugin_space, aroop_txt_t*input, aroop_txt_t*output) {
 	aroop_assert(coreplug != NULL);
 	composite_plugin_call(coreplug, plugin_space, input, output);
+	return 0;
 }
 
 struct composite_plugin*pm_get() {
@@ -33,6 +34,7 @@ int plugin_command_helper(
 	desc(plugin_space, &xdesc);
 	aroop_txt_concat(output, &xdesc);
 	aroop_txt_destroy(&xdesc);
+	return 0;
 }
 
 static int plugin_command(aroop_txt_t*input, aroop_txt_t*output) {
@@ -52,11 +54,13 @@ int pm_init() {
 	aroop_txt_t plugin_space = {};
 	aroop_txt_embeded_set_static_string(&plugin_space, "shake/plugin");
 	pm_plug_callback(&plugin_space, plugin_command, plugin_command_desc);
+	return 0;
 }
 
 int pm_deinit() {
 	composite_plugin_destroy(coreplug);
 	plugin_deinit();
+	return 0;
 }
 
 C_CAPSULE_END

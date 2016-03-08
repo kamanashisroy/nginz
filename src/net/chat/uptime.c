@@ -5,12 +5,27 @@
 #include "nginz_config.h"
 #include "plugin.h"
 #include "plugin_manager.h"
+#include "event_loop.h"
 #include "net/streamio.h"
 #include "net/chat.h"
 #include "net/chat/chat_plugin_manager.h"
 #include "net/chat/uptime.h"
 
 C_CAPSULE_START
+
+
+static int chat_uptime_get_fibers(aroop_txt_t*output) {
+	aroop_txt_t req = {};
+	aroop_txt_t resp = {};
+	aroop_txt_t plugin_space = {};
+	aroop_txt_embeded_set_static_string(&plugin_space, "shake/fiber");
+	pm_call(&plugin_space, &req, &resp); // needs cleanup
+	aroop_txt_concat(output, &resp);
+	aroop_txt_concat_char(output, '\n');
+	aroop_txt_destroy(&req);
+	aroop_txt_destroy(&resp); // cleanup
+	return 0;
+}
 
 static long internal_chat_connection_count = 0;
 static time_t start_time;
@@ -27,7 +42,8 @@ static int chat_uptime_plug(int signature, void*given) {
 	int hour = (int)(diff/3600);
 	int minute = (int)(diff/60 - hour*60);
 	int second = (int)(diff - hour*3600 - minute*60);
-	aroop_txt_printf(&uptime, "%2d:%2d:%2d, %d users, total %ld users served, %d\n", hour, minute, second, event_loop_fd_count(), internal_chat_connection_count, getpid());
+	aroop_txt_printf(&uptime, "%2d:%2d:%2d, %d users, total %ld users served, pid %d, ", hour, minute, second, event_loop_fd_count(), internal_chat_connection_count, getpid());
+	chat_uptime_get_fibers(&uptime);
 	chat->strm.send(&chat->strm, &uptime, 0);
 	return 0;
 }
@@ -49,10 +65,12 @@ int uptime_module_init() {
 	cplug_bridge(chat_plugin_manager_get(), &plugin_space, chat_uptime_plug, chat_uptime_plug_desc);
 	real_on_create = chat_api_get()->on_create;
 	chat_api_get()->on_create = uptime_count_chat_create;
+	return 0;
 }
 
 int uptime_module_deinit() {
 	composite_unplug_bridge(chat_plugin_manager_get(), 0, chat_uptime_plug);
+	return 0;
 }
 
 

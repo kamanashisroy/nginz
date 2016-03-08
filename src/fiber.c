@@ -8,6 +8,7 @@
 #include <aroop/opp/opp_str2.h>
 #include <aroop/aroop_memory_profiler.h>
 #include "plugin.h"
+#include <syslog.h>
 #include "plugin_manager.h"
 #include "fiber.h"
 
@@ -17,17 +18,23 @@ C_CAPSULE_START
 struct internal_fiber {
 	int status;
 	int (*fiber)(int status);
+	const char*filename;
+	int lineno;
 };
 
 static struct internal_fiber fibers[MAX_FIBERS];
 
-int register_fiber(int (*fiber)(int status)) {
+int register_fiber_full(int (*fiber)(int status), const char*filename, int lineno) {
 	int i = 0;
 	for(i = 0; i < MAX_FIBERS; i++) {
+		//syslog(LOG_NOTICE, "fiber:[%d][%d] .. registering fiber %s:%d\n", fibers[i].status, i, filename, lineno);
 		if(fibers[i].status != FIBER_STATUS_EMPTY)
 			continue;
+		//syslog(LOG_NOTICE, "registering fiber \n");
 		fibers[i].status = FIBER_STATUS_CREATED;
 		fibers[i].fiber = fiber;
+		fibers[i].filename = filename;
+		fibers[i].lineno = lineno;
 		return 0;
 	}
 	aroop_assert(!"Fiber array is full");
@@ -51,8 +58,10 @@ static int fiber_status_command(aroop_txt_t*input, aroop_txt_t*output) {
 	int count = 0;
 	int i = 0;
 	for(i = 0; i < MAX_FIBERS; i++) {
-		if(fibers[i].status == FIBER_STATUS_ACTIVATED)
+		if(fibers[i].status == FIBER_STATUS_ACTIVATED) {
 			count++;
+			//syslog(LOG_NOTICE, "filber:%s:%d", fibers[i].filename, fibers[i].lineno);
+		}
 	}
 	aroop_txt_embeded_buffer(output, 32);
 	aroop_txt_printf(output, "%d fibers\n", count);
@@ -66,17 +75,21 @@ static int fiber_status_command_desc(aroop_txt_t*plugin_space, aroop_txt_t*outpu
 static int internal_quit = 0;
 int fiber_quit() {
 	internal_quit = 1;
+	return 0;
 }
 
 int fiber_module_init() {
-	memset(fibers, 0, sizeof(fibers));
+	memset(fibers, 0, sizeof(struct internal_fiber)*MAX_FIBERS);
+	//memset(fibers, 0, sizeof(fibers));
 	aroop_txt_t plugin_space = {};
 	aroop_txt_embeded_set_static_string(&plugin_space, "shake/fiber");
 	pm_plug_callback(&plugin_space, fiber_status_command, fiber_status_command_desc);
+	return 0;
 }
 
 int fiber_module_deinit() {
 	// TODO unregister all
+	return 0;
 }
 
 int fiber_module_step() {
@@ -86,13 +99,14 @@ int fiber_module_step() {
 			continue;
 		int ret = fibers[i].fiber(fibers[i].status);
 		if(ret == -1) {
+			//syslog(LOG_NOTICE, "Destroying fiber :%s:%d\n", fibers[i].filename, fibers[i].lineno);
 			unregister_fiber(fibers[i].fiber);
 		} else if(ret == -2) {
 			fibers[i].status = FIBER_STATUS_DEACTIVATED;
 		}
 		if(fibers[i].status == FIBER_STATUS_CREATED)
 			fibers[i].status = FIBER_STATUS_ACTIVATED;
-		return 0;
+		//return 0;
 	}
 	return 0;
 }
@@ -101,6 +115,7 @@ int fiber_module_run() {
 	while(!internal_quit) {
 		fiber_module_step();
 	}
+	return 0;
 }
 
 C_CAPSULE_END

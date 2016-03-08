@@ -8,6 +8,7 @@
 #include "nginz_config.h"
 #include "event_loop.h"
 #include "log.h"
+#include "fiber.h"
 #include "plugin.h"
 #include "plugin_manager.h"
 #include "net/protostack.h"
@@ -50,12 +51,14 @@ static int chat_zombie_on_softquit_desc(aroop_txt_t*plugin_space, aroop_txt_t*ou
 
 static int gear = 0;
 static int chat_lazy_cleanup_fiber(int status) {
-	if(gear != 1000) {
+	if(gear < 1000) {
 		gear++;
 		return 0;
 	}
 	time_t now = time(NULL);
 	gear = 0;
+	if(!OPP_FACTORY_USE_COUNT(&zombie_list))
+		return 0;
 	struct opp_iterator iterator = {};
 	opp_iterator_create(&iterator, &zombie_list, OPPN_ALL, 0, 0);
 	do {

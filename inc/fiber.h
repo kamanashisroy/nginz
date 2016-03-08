@@ -15,7 +15,8 @@ enum fiber_status {
  * It registers a fiber for execution. It is a stackless non-preemptive co-operative multitasking example.
  * @param The fiber() callback function which is called in rotation 
  */
-int register_fiber(int (*fiber)(int status));
+int register_fiber_full(int (*fiber)(int status), const char*filename, int lineno);
+#define register_fiber(x) register_fiber_full(x, __FILE__, __LINE__)
 /*
  * It unregisters a fiber from execution line.
  * @param The fiber() callback function which is called in rotation 

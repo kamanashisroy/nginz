@@ -7,6 +7,7 @@
 #include <sys/socket.h>
 #include "nginz_config.h"
 #include "event_loop.h"
+#include "fiber.h"
 #include "plugin.h"
 #include "log.h"
 #include "plugin_manager.h"

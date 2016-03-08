@@ -95,7 +95,7 @@ static int on_async_room_call_master(aroop_txt_t*bin, aroop_txt_t*output) {
 		aroop_txt_embeded_stackbuffer(&room_info, len); // FIXME too many chatroom will cause stack overflow ..
 		chat_room_describe(&info, &room_info);
 	}
-	syslog(LOG_ERR, "rooms:%s\n", aroop_txt_to_string(&room_info));
+	//syslog(LOG_ERR, "rooms:%s\n", aroop_txt_to_string(&room_info));
 	aroop_txt_t*args[2] = {&room_info, NULL};
 	async_pm_reply_worker(srcpid, cb_token, &cb_hook, 1, args);
 	aroop_txt_destroy(&info);

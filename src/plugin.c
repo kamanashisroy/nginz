@@ -74,10 +74,12 @@ OPP_CB(composite_plugin) {
 
 int plugin_init() {
 	OPP_PFACTORY_CREATE(&cplugs, 4, sizeof(struct composite_plugin), OPP_CB_FUNC(composite_plugin));
+	return 0;
 }
 
 int plugin_deinit() {
 	OPP_PFACTORY_DESTROY(&cplugs);
+	return 0;
 }
 
 static int composite_plug_helper(struct composite_plugin*container
