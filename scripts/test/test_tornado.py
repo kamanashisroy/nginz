@@ -21,8 +21,8 @@ class NginZChatClient:
 
 	def on_login(self, data):
 		#print data
-		rmindex = index%5
-		roomlist = ["ONE", "TWO", "THREE", "FOUR", "FIVE"]
+		rmindex = index%10
+		roomlist = ["ONE", "TWO", "THREE", "FOUR", "FIVE", "SIX", "SEVEN", "EIGHT", "NINE", "TEN"]
 		self.stream.write(b"/join " + roomlist[rmindex] + "\n")
 		self.stream.read_until(b"end of list\n", self.talk)
 

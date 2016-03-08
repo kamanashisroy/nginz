@@ -49,9 +49,9 @@ static int chat_zombie_on_softquit_desc(aroop_txt_t*plugin_space, aroop_txt_t*ou
 	return plugin_desc(output, "softquitall", "shake", plugin_space, __FILE__, "It tries to destroy all the zombie connections.\n");
 }
 
-static int gear = 0;
+static long gear = 0;
 static int chat_lazy_cleanup_fiber(int status) {
-	if(gear < 1000) {
+	if(gear < 1000000) {
 		gear++;
 		return 0;
 	}
