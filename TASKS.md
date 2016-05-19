@@ -17,7 +17,16 @@ Tasks
 - [ ] add event_loop_poll_openmp.c implementation based on partitioned polling.
 
 ### parallel
-- [ ] Add support for data-type in binary coder.
+- [x] Add support for data-type in binary coder.
+- [ ] Add support for mailbox.
+- [ ] Try to implement STAR topology instead of ring.
+- [ ] Explain parallel architecture in state diagram.
+
+#### Asynchronous API
+- [ ] Add callback based line reader API. Use line reader in HTTP implementation.
+- [ ] Make Send() network data asynchronous.
+- [ ] Add services API
+	- [ ] Add a REST-API
 
 ### chat
 - [x] Limit the username and chatroom length.
@@ -30,7 +39,6 @@ Tasks
 - [x] Add HTTP support for chat
 	- [x] Create webchat interface
 - [ ] Write pidgin plugin
-- [ ] Add a REST-API
 - [x] Add support for late destruction in zombie list.
 
 #### chat rooms
@@ -45,4 +53,7 @@ Tasks
 
 ### DB
 - [x] Write own db. And remove dependency from memcached.
+
+### Scaling
+- [ ] Add support for auto-scaling.
 

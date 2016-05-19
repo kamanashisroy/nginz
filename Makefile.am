@@ -27,7 +27,6 @@ pkgincludedir=$(includedir)/nginz@PACKAGE_SUFFIX@
 nobase_pkginclude_HEADERS= \
 inc/event_loop.h \
 inc/fiber.h       inc/plugin.h	inc/plugin_manager.h	inc/scanner.h \
-inc/net/chat.h inc/net/chat/welcome.h
 
 GIT_COMMIT_VERSION=`git describe --dirty --always --tags`
 
