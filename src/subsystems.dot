@@ -1,0 +1,82 @@
+digraph G {
+        fontname = "Bitstream Vera Sans";
+        fontsize = 8;
+	node [ shape = "record" style = "filled" ];
+
+	subgraph cluster_core_submodule {
+		graph [style="dotted" color="black"];
+		label = "Core libraries";
+		pm [
+			label = <<table><tr><td>Plugin Manager</td></tr><tr><td>+ pm_call()<br/>used by all modules</td></tr></table>>
+			color = "red"
+		];
+
+		fiber [
+			label = <<table><tr><td>Fiber</td></tr><tr><td>+ register_fiber_full()<br/>+ unregister_fiber()</td></tr></table>>
+			color = "blue"
+		];
+		fiber -> pm;
+		binary_coder [
+			label = <<table><tr><td>Binary Coder</td></tr><tr><td>+ binary_coder_pack_..()<br/>+ binary_coder_unpack_..()</td></tr></table>>
+			color = "blue"
+		];
+		binary_coder -> pm;
+
+		event_loop [
+			label = <<table><tr><td>Event loop</td></tr><tr><td>+ event_loop_register_fd()<br/>+ event_loop_unregister_fd()</td></tr></table>>
+			color = "blue"
+		];
+		event_loop -> fiber;
+		event_loop -> pm;
+
+	}
+
+	subgraph cluster_parallel {
+		graph [style="dotted" color="black"];
+		label = "Parallel Subsystem";
+		fork [
+			label = <<table><tr><td>Fork</td></tr><tr><td>+ fork_processors()</td></tr></table>>
+			color = "blue"
+		];
+		pipeline [
+			label = <<table><tr><td>Pipeline</td></tr><tr><td>+ pp_bubble_down()<br/>+ pp_bubble_down_send_socket()<br/>+ pp_bubble_up()<br/>+ pp_bubble_up_send_socket()<br/>+ is_master()</td></tr></table>>
+			color = "blue"
+		];
+		async_request [
+			label = <<table><tr><td>Async Request</td></tr><tr><td>+ async_pm_call_master()<br/>+ async_pm_reply_worker()</td></tr></table>>
+			color = "blue"
+		]
+		async_request -> pipeline
+	}
+	
+
+
+	subgraph cluster_shake_submodule {
+		graph [style="dotted" color="black"];
+		label = "Shake/Command Subsystem";
+		shake [
+			label = <<table><tr><td>Shake</td></tr><tr><td>- calls "shake/*"</td></tr></table>>
+			color = "green"
+		];
+
+		test [
+			label = <<table><tr><td>Test</td></tr><tr><td>- calls "test/*"</td></tr></table>>
+			color = "green"
+		];
+
+		help [
+			label = Help
+			color = "green"
+		];
+	}
+
+	shake -> event_loop [constraint = "true" lhead = "cluster_shake_submodule" ltail = "cluster_core_submodule"];
+
+	subgraph cluster_net {
+		graph [style="dotted" color="black"];
+		label = "Net";
+		tcp_listener [label = "TCP Listener" color = "green"]
+		tcp_listener -> event_loop
+	}
+	
+}

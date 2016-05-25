@@ -4,12 +4,14 @@ Tasks
 
 - [x] Quit all child process.
 - [x] Do soft-quit to logoff and disconnect all the users.
-- [x] Load test and report the result.
 - [x] Write a version command.
 
 ### Aroop
 - [x] Turn off the HAS_THREAD from aroop core. We do not need threading or locking.
 - [x] Use OPP_PFACTORY_CREATE_FULL to tune all the flags.
+
+### Packaging
+- [ ] Use bii-code.
 
 ### net
 - [x] Add HTTP support.
@@ -56,4 +58,7 @@ Tasks
 
 ### Scaling
 - [ ] Add support for auto-scaling.
+
+### Testing
+- [x] Load test and report the result.
 
