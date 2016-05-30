@@ -35,10 +35,10 @@ int binary_coder_reset(aroop_txt_t*buffer) {
 	return 0;
 }
 
-int binary_coder_reset_for_pid(aroop_txt_t*buffer, int destpid) {
-	aroop_assert(destpid > -1);
+int binary_coder_reset_for_pid(aroop_txt_t*buffer, int srcpid) {
+	aroop_assert(srcpid > -1);
 	binary_coder_reset(buffer);
-	binary_pack_int(buffer, destpid);
+	binary_pack_int(buffer, srcpid);
 	return 0;
 }
 
@@ -110,6 +110,10 @@ static int binary_unpack_string_helper(aroop_txt_t*buffer, int skip, aroop_txt_t
 	mychar_t content_type = 0;
 	uint16_t blen = aroop_txt_length(buffer);
 	assert(blen >= (BINARY_CODER_HEADER_LEN-1));
+	if((blen < (BINARY_CODER_HEADER_LEN-1))) {
+		syslog(LOG_ERR, "Error in buffer data,blen %d < %d\n", blen, (BINARY_CODER_HEADER_LEN-1));
+		abort();
+	}
 	aroop_txt_destroy(x); // remove the old value
 	if(blen == (BINARY_CODER_HEADER_LEN-1))
 		return 0;

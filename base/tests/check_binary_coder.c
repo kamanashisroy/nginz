@@ -48,7 +48,7 @@ START_TEST (test_binary_coder)
 	aroop_txt_t str = {};
 	aroop_txt_embeded_set_static_string(&str, "test"); 
 	binary_pack_string(&bin, &str);
-	binary_coder_debug_dump(&bin);
+	//binary_coder_debug_dump(&bin);
 
 	int intval = 0;
 	int intval2 = 0;

@@ -33,13 +33,16 @@ struct nginz_node {
 	int raw_fd[2]; /* @brief this fd is for raw messaging(normally used to send socket fd) */
 };
 
+enum {
+	MAX_PROCESS_COUNT = NGINZ_NUMBER_OF_PROCESSORS+1,
+};
 /****************************************************/
-static struct nginz_node nodes[NGINZ_NUMBER_OF_PROCESSORS];
+static struct nginz_node nodes[MAX_PROCESS_COUNT];
 static struct nginz_node*mynode = nodes;
 
 NGINZ_INLINE static struct nginz_node*pp_find_node(int nid) {
 	int i = 0;
-	for(i = 0; i < NGINZ_NUMBER_OF_PROCESSORS; i++) {
+	for(i = 0; i < MAX_PROCESS_COUNT; i++) {
 		if(nodes[i].nid == nid)
 			return (nodes+i);
 	}
@@ -49,13 +52,13 @@ NGINZ_INLINE static struct nginz_node*pp_find_node(int nid) {
 NGINZ_INLINE int pp_next_nid() {
 	int i = 0;
 	int next_index = -1;
-	for(i = 0; i < NGINZ_NUMBER_OF_PROCESSORS; i++) {
+	for(i = 0; i < MAX_PROCESS_COUNT; i++) {
 		if((nodes+i) == mynode) {
 			next_index = i+1;
 			break;
 		}
 	}
-	if(next_index != -1 && next_index < NGINZ_NUMBER_OF_PROCESSORS)
+	if(next_index != -1 && next_index < MAX_PROCESS_COUNT)
 		return nodes[i].nid;
 	return -1; /* not found */
 }
@@ -82,12 +85,13 @@ NGINZ_INLINE int pp_send(int dnid, aroop_txt_t*pkt) {
 	int i = 0;
 	// sanity check
 	if(dnid == 0) { /* broadcast */
-		for(i = 0; i < NGINZ_NUMBER_OF_PROCESSORS; i++) {
+		for(i = 0; i < MAX_PROCESS_COUNT; i++) {
 			if((nodes+i) != mynode && pp_simple_sendmsg(nodes[i].fd[0], pkt))
 				return -1;
 		}
 	} else {
 		nd = pp_find_node(dnid);
+		aroop_assert(nd);
 		return pp_simple_sendmsg(nd->fd[0], pkt);
 	}
 	return 0;
@@ -127,18 +131,26 @@ NGINZ_INLINE static int pp_simple_recvmsg_helper(int through, aroop_txt_t*cmd) {
 
 static aroop_txt_t recv_buffer;
 static int on_bubbles(int fd, int events, const void*unused) {
+	aroop_assert(mynode && (fd == mynode->fd[1]));
+	if(NGINZ_POLL_CLOSE_FLAGS == (events & NGINZ_POLL_CLOSE_FLAGS)) {
+		// TODO check if it happens
+		syslog(LOG_ERR, "Somehow the pipe is closed\n");
+		event_loop_unregister_fd(fd);
+		close(fd);
+		return 0;
+	}
 	//printf("There is bubble_down from the parent\n");
 	aroop_txt_set_length(&recv_buffer, 1); // without it aroop_txt_to_string() will give NULL
 	//char rbuf[255];
 	//int count = recv(parent, rbuf, sizeof(rbuf), 0);
-	aroop_assert(mynode && (fd == mynode->fd[1]));
 	pp_simple_recvmsg_helper(fd, &recv_buffer);
 	if(aroop_txt_is_empty(&recv_buffer)) {
 		syslog(LOG_ERR, "Error receiving bubble_down:%s\n", strerror(errno));
+		close(fd);
 		return 0;
 	}
 
-#if 0
+#if 1
 	// TODO use the srcpid for something ..
 	//aroop_txt_embeded_rebuild_and_set_content(&recv_buffer, rbuf)
 	int srcpid = 0;
@@ -147,7 +159,7 @@ static int on_bubbles(int fd, int events, const void*unused) {
 #endif
 	//syslog(LOG_NOTICE, "[pid:%d]\treceiving from parent for %d", getpid(), destpid);
 	aroop_txt_t x = {};
-	binary_unpack_string(&recv_buffer, 2, &x); // needs cleanup
+	binary_unpack_string(&recv_buffer, 1, &x); // needs cleanup
 	do {
 		if(aroop_txt_is_empty(&x)) {
 			break;
@@ -172,7 +184,7 @@ static int pp_fork_child_after_callback(aroop_txt_t*input, aroop_txt_t*output) {
 	/********* Cleanup old parent fds *******************/
 	/****************************************************/
 	mynode = NULL;
-	for(i = 0; i < NGINZ_NUMBER_OF_PROCESSORS; i++) {
+	for(i = 0; i < MAX_PROCESS_COUNT; i++) {
 		if(!mynode && !nodes[i].nid) {
 			mynode = (nodes+i);
 			close(nodes[i].fd[0]);
@@ -192,15 +204,15 @@ static int pp_fork_child_after_callback(aroop_txt_t*input, aroop_txt_t*output) {
 
 static int pp_fork_parent_after_callback(aroop_txt_t*input, aroop_txt_t*output) {
 	int i = 0;
-	for(i = 0; i < NGINZ_NUMBER_OF_PROCESSORS; i++) {
+	for(i = 0; i < MAX_PROCESS_COUNT; i++) {
 		if(!nodes[i].nid) {
 			nodes[i].nid = 1; /* TODO set child pid */
 			break;
 		}
 	}
 	/* check if the forking is all complete */
-	if(nodes[NGINZ_NUMBER_OF_PROCESSORS-1].nid) { /* if there is no more forking cleanup */
-		for(i = 1/* skip the master */; i < NGINZ_NUMBER_OF_PROCESSORS; i++) {
+	if(nodes[MAX_PROCESS_COUNT-1].nid) { /* if there is no more forking cleanup */
+		for(i = 1/* skip the master */; i < MAX_PROCESS_COUNT; i++) {
 			/* close the read fd */
 			close(nodes[i].fd[1]);
 			close(nodes[i].raw_fd[1]);
@@ -224,12 +236,13 @@ int pp_module_init() {
 	memset(nodes, 0, sizeof(nodes));
 	int i = 0;
 	/* make all the pipes beforehand, so that all of the nodes know each other */
-	for(i = 0; i < NGINZ_NUMBER_OF_PROCESSORS; i++) {
+	for(i = 0; i < MAX_PROCESS_COUNT; i++) {
 		if(socketpair(AF_UNIX, SOCK_DGRAM, 0, nodes[i].fd) || socketpair(AF_UNIX, SOCK_DGRAM, 0, nodes[i].raw_fd)) {
 			syslog(LOG_ERR, "Failed to create pipe:%s\n", strerror(errno));
 			return -1;
 		}
 	}
+	mynode->nid = getpid();
 	aroop_txt_embeded_buffer(&recv_buffer, NGINZ_MAX_BINARY_MSG_LEN);
 	aroop_txt_t plugin_space = {};
 	aroop_txt_embeded_set_static_string(&plugin_space, "fork/child/after");

@@ -7,9 +7,7 @@ C_CAPSULE_START
  * @param buffer The buffer, NOTE it needs the buffer to be at least 256 bytes long, ie, aroop_txt_embeded_stackbuffer(&create_msg, 255);
  */
 int binary_coder_reset(aroop_txt_t*buffer);
-#if 0
-int binary_coder_reset_for_pid(aroop_txt_t*buffer, int destpid);
-#endif
+int binary_coder_reset_for_pid(aroop_txt_t*buffer, int srcpid);
 /*
  * It concats string data to the buffer, Note that the message cannot be bigger than 255 bytes.
  * @param buffer The buffer where the string is concatenated

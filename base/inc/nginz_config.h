@@ -10,7 +10,7 @@ C_CAPSULE_START
  */
 // XXX token ring parallel processing requires that there are at least 2 processes
 enum parallel_config {
-	NGINZ_NUMBER_OF_PROCESSORS = 5,
+	NGINZ_NUMBER_OF_PROCESSORS = 2,
 };
 
 enum binary_coder_config {
@@ -25,6 +25,7 @@ enum event_loop_config {
 	MAX_POLL_FD = 20000, // for some implementation this value must by devisible by some POLL_PARTITION value
 	NGINZ_POLL_LISTEN_FLAGS = POLLIN | POLLPRI | POLLHUP,
 	NGINZ_POLL_ALL_FLAGS = POLLIN | POLLPRI | POLLHUP,
+	NGINZ_POLL_CLOSE_FLAGS = POLLHUP,
 };
 
 /**
