@@ -119,6 +119,7 @@ NGINZ_INLINE static int pp_simple_recvmsg_helper(int through, aroop_txt_t*cmd) {
 	
 	int recvlen = 0;
 	if((recvlen = recvmsg(through, &msg, 0)) < 0) {
+		aroop_txt_set_length(cmd, 0);
 		syslog(LOG_ERR, "Cannot recv msg:%s\n", strerror(errno));
 		return -1;
 	}
@@ -143,8 +144,7 @@ static int on_bubbles(int fd, int events, const void*unused) {
 	aroop_txt_set_length(&recv_buffer, 1); // without it aroop_txt_to_string() will give NULL
 	//char rbuf[255];
 	//int count = recv(parent, rbuf, sizeof(rbuf), 0);
-	pp_simple_recvmsg_helper(fd, &recv_buffer);
-	if(aroop_txt_is_empty(&recv_buffer)) {
+	if(pp_simple_recvmsg_helper(fd, &recv_buffer) || aroop_txt_is_empty(&recv_buffer)) {
 		syslog(LOG_ERR, "Error receiving bubble_down:%s\n", strerror(errno));
 		close(fd);
 		return 0;
@@ -178,6 +178,7 @@ static int on_bubbles(int fd, int events, const void*unused) {
 /********** Fork event listeners ********************/
 /****************************************************/
 
+//#define NGINZ_CLOSE_UNUSED_SOCK
 static int pp_fork_child_after_callback(aroop_txt_t*input, aroop_txt_t*output) {
 	int i = 0;
 	/****************************************************/
@@ -187,12 +188,16 @@ static int pp_fork_child_after_callback(aroop_txt_t*input, aroop_txt_t*output) {
 	for(i = 0; i < MAX_PROCESS_COUNT; i++) {
 		if(!mynode && !nodes[i].nid) {
 			mynode = (nodes+i);
+#ifdef NGINZ_CLOSE_UNUSED_SOCK
 			close(nodes[i].fd[0]);
 			close(nodes[i].raw_fd[0]);
+#endif
 			mynode->nid = getpid();
 		} else {
+#ifdef NGINZ_CLOSE_UNUSED_SOCK
 			close(nodes[i].fd[1]);
 			close(nodes[i].raw_fd[1]);
+#endif
 		}
 	}
 	/****************************************************/
@@ -214,8 +219,10 @@ static int pp_fork_parent_after_callback(aroop_txt_t*input, aroop_txt_t*output) 
 	if(nodes[MAX_PROCESS_COUNT-1].nid) { /* if there is no more forking cleanup */
 		for(i = 1/* skip the master */; i < MAX_PROCESS_COUNT; i++) {
 			/* close the read fd */
+#ifdef NGINZ_CLOSE_UNUSED_SOCK
 			close(nodes[i].fd[1]);
 			close(nodes[i].raw_fd[1]);
+#endif
 		}
 		/****************************************************/
 		/********* Register readers *************************/
