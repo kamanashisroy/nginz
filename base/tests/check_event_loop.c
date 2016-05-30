@@ -81,8 +81,8 @@ Suite * opp_factory_create_suite(void) {
 	TCase *tc_core;
 	s = suite_create("event_loop*.c");
 
-	/* Core test case */
-	tc_core = tcase_create("Core");
+	/* base test case */
+	tc_core = tcase_create("base");
 
 	nginz_core_init();
 	tcase_add_loop_test(tc_core, test_event_loop, 1, 32);

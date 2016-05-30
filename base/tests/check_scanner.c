@@ -37,7 +37,20 @@
 
 C_CAPSULE_START
 
-START_TEST (test_event_loop)
+
+START_TEST (test_scanner_trim)
+{
+	aroop_txt_t x = {};
+	aroop_txt_embeded_set_static_string(&x, "NginZ \n\n\t");
+	aroop_txt_t trimmed = {};
+	scanner_trim(&x, &trimmed);
+	ck_assert_int_eq(aroop_txt_length(&trimmed), 5);
+}
+END_TEST
+
+
+
+START_TEST (test_scanner_next_token)
 {
 	aroop_txt_t x = {};
 	aroop_txt_embeded_set_static_string(&x, "NginZ is a scalable communication server framework.");
@@ -56,13 +69,14 @@ END_TEST
 Suite * opp_factory_create_suite(void) {
 	Suite *s;
 	TCase *tc_core;
-	s = suite_create("event_loop*.c");
+	s = suite_create("scanner.c");
 
-	/* Core test case */
-	tc_core = tcase_create("Core");
+	/* base test case */
+	tc_core = tcase_create("base");
 
 	nginz_core_init();
-	tcase_add_test(tc_core, test_event_loop);
+	tcase_add_test(tc_core, test_scanner_next_token);
+	tcase_add_test(tc_core, test_scanner_trim);
 	suite_add_tcase(s, tc_core);
 	nginz_core_deinit();
 
