@@ -74,15 +74,17 @@ Suite * opp_factory_create_suite(void) {
 	/* Core test case */
 	tc_core = tcase_create("Core");
 
+	nginz_core_init();
 	tcase_add_loop_test(tc_core, test_binary_coder, 1, 3);
 	tcase_add_test(tc_core, test_binary_coder);
 	suite_add_tcase(s, tc_core);
+	nginz_core_deinit();
 
 	return s;
 }
 
-
-int main() {
+static int status = EXIT_FAILURE;
+static int test_main() {
 	int number_failed;
 	Suite *s;
 	SRunner *sr;
@@ -93,7 +95,13 @@ int main() {
 	srunner_run_all(sr, CK_NORMAL);
 	number_failed = srunner_ntests_failed(sr);
 	srunner_free(sr);
-	return (number_failed == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
+	status = ((number_failed == 0) ? EXIT_SUCCESS : EXIT_FAILURE);
+	return 0;
+}
+
+int main(int argc, char**argv) {
+	aroop_main1(argc, argv, test_main);
+	return status;
 }
 
 C_CAPSULE_END
