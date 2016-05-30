@@ -66,7 +66,7 @@ START_TEST (test_scanner_next_token)
 }
 END_TEST
 
-Suite * opp_factory_create_suite(void) {
+Suite * scanner_suite(void) {
 	Suite *s;
 	TCase *tc_core;
 	s = suite_create("scanner.c");
@@ -89,7 +89,7 @@ static int test_main() {
 	Suite *s;
 	SRunner *sr;
 
-	s = opp_factory_create_suite();
+	s = scanner_suite();
 	sr = srunner_create(s);
 
 	srunner_run_all(sr, CK_NORMAL);

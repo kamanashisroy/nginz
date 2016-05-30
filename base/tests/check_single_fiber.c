@@ -31,78 +31,59 @@
 #include <aroop/opp/opp_str2.h>
 #include <aroop/aroop_memory_profiler.h>
 #include "log.h"
-#include "event_loop.h"
-#include "../src/event_loop_poll.c"
+#include "fiber.h"
+#include "fiber_internal.h"
 
 
 
 C_CAPSULE_START
 
-static void test_event_loop_delete_helper(int start_fd, int count, int even) {
-	while(count--) {
-		if(even && count%2)
-			continue;
-		if(!even && count%2 == 0)
-			continue;
-		event_loop_unregister_fd(start_fd+count);
-	}
-	event_loop_batch_unregister();
+static int test_single_fiber_is_run = 0;
+static int suite_fiber(int status) {
+	test_single_fiber_is_run = 1;
+	fiber_quit();
+	return 0;
 }
 
-START_TEST (test_event_loop)
+START_TEST (test_single_fiber)
 {
-	int i = 0;
-	int fd = 5000;
-	int ncount = _i;
-	int prev = event_loop_fd_count();
-	/* add test fds */
-	while(ncount--) {
-		event_loop_register_fd(fd+ncount, NULL, NULL, POLLIN);
-	}
-	/* remove the evens */
-	test_event_loop_delete_helper(fd, _i, 1);
-	for(i=0; i < internal_nfds; i++) {
-		ck_assert_int_ne(internal_fds[i].events, 0);
-	}
-	/* remove the odds */
-	test_event_loop_delete_helper(fd, _i, 0);
-
-	for(i=0; i < internal_nfds; i++) {
-		ck_assert_int_ne(internal_fds[i].events, 0);
-		ck_assert(internal_fds[i].fd < 5000);
-	}
-	
-	ck_assert_int_eq(prev, event_loop_fd_count());
+	ck_assert_int_eq(test_single_fiber_is_run, 1);
 }
 END_TEST
 
-Suite * event_loop_suite(void) {
-	Suite *s;
+Suite * single_fiber_suite(void) {
 	TCase *tc_core;
-	s = suite_create("event_loop*.c");
-
+	Suite *s = suite_create("parallel/single_fiber.c");
 	/* base test case */
 	tc_core = tcase_create("base");
-
-	nginz_core_init();
-	tcase_add_loop_test(tc_core, test_event_loop, 1, 32);
+	tcase_add_test(tc_core, test_single_fiber);
 	suite_add_tcase(s, tc_core);
-	nginz_core_deinit();
-
 	return s;
 }
 
 static int status = EXIT_FAILURE;
 static int test_main() {
 	int number_failed;
-	Suite *s;
-	SRunner *sr;
+	/* initiate nginz */
+	setlogmask (LOG_UPTO (LOG_NOTICE));
+	openlog ("nginz_fiber_check", LOG_CONS | LOG_PID | LOG_NDELAY, LOG_LOCAL1);
+	nginz_core_init();
+	//nginz_parallel_init();
 
-	s = event_loop_suite();
-	sr = srunner_create(s);
+	/* initiate fibers */
+	register_fiber(suite_fiber);
 
+	/* cleanup nginz */
+	fiber_module_run();
+	nginz_core_deinit();
+	closelog();
+
+	SRunner *sr = srunner_create(single_fiber_suite());
 	srunner_run_all(sr, CK_NORMAL);
 	number_failed = srunner_ntests_failed(sr);
+	if(test_single_fiber_is_run == 0) {
+		number_failed++;
+	}
 	srunner_free(sr);
 	status = ((number_failed == 0) ? EXIT_SUCCESS : EXIT_FAILURE);
 	return 0;

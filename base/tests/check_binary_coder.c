@@ -66,7 +66,7 @@ START_TEST (test_binary_coder)
 }
 END_TEST
 
-Suite * opp_factory_create_suite(void) {
+Suite * binary_coder_suite(void) {
 	Suite *s;
 	TCase *tc_core;
 	s = suite_create("binary_coder.c");
@@ -88,7 +88,7 @@ static int test_main() {
 	Suite *s;
 	SRunner *sr;
 
-	s = opp_factory_create_suite();
+	s = binary_coder_suite();
 	sr = srunner_create(s);
 
 	srunner_run_all(sr, CK_NORMAL);
