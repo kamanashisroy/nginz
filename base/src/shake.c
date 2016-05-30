@@ -122,7 +122,6 @@ int shake_module_init() {
 	shake_listen_on_unix_socket();
 	test_module_init();
 	help_module_init();
-	enumerate_module_init();
 	aroop_txt_embeded_set_static_string(&plugin_space, "fork/child/after");
 	pm_plug_callback(&plugin_space, shake_stop_on_fork, shake_stop_on_fork_desc);
 	return 0;
@@ -141,7 +140,6 @@ int shake_module_deinit() {
 	unlink(SOCK_FILE);
 	help_module_deinit();
 	test_module_deinit();
-	enumerate_module_deinit();
 	return 0;
 }
 

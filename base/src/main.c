@@ -5,13 +5,9 @@
 #include "log.h"
 #include <signal.h>
 #include "plugin_manager.h"
-#include "fiber.h"
-#include "fiber_internal.h"
-#include "fork.h"
-#include "db.h"
-#include "shake/quitall.h"
 #include "event_loop.h"
-#include "inc/core_subsystem.h"
+#include "base_subsystem.h"
+#include "fiber.h"
 
 C_CAPSULE_START
 
@@ -28,7 +24,7 @@ static int nginz_main(char**args) {
 }
 
 int main(int argc, char**argv) {
-	aroop_main1(argc, argv, nginz_main);
+	return aroop_main1(argc, argv, nginz_main);
 }
 
 C_CAPSULE_END

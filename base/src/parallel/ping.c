@@ -8,16 +8,23 @@
 #include "binary_coder.h"
 #include "parallel/pipeline.h"
 #include "parallel/ping.h"
+#include "scanner.h"
 
 C_CAPSULE_START
 
 aroop_txt_t ping_buffer = {};
 static int ping_command(aroop_txt_t*input, aroop_txt_t*output) {
-	binary_coder_reset(&ping_buffer);
-	binary_pack_string(&ping_buffer, input);
-	pp_send(0, &ping_buffer);
-	aroop_txt_embeded_buffer(output, 32);
-	aroop_txt_printf(output, "ping[%s]\n", aroop_txt_to_string(input)); // XXX the sandbox may not be zero terminated, but sandbox is readonly ..
+
+	aroop_txt_t cmd = {};
+	scanner_trim(input, &cmd);
+
+	binary_coder_reset_for_pid(&ping_buffer, getpid());
+	binary_pack_string(&ping_buffer, &cmd);
+	aroop_txt_embeded_buffer(output, 64);
+	if(pp_send(0, &ping_buffer)) {
+		aroop_txt_printf(output, "ping[%s] failed\n", aroop_txt_to_string(&cmd)); // XXX the sandbox may not be zero terminated, but sandbox is readonly ..
+	}
+	aroop_txt_printf(output, "ping[%s]\n", aroop_txt_to_string(&cmd)); // XXX the sandbox may not be zero terminated, but sandbox is readonly ..
 	return 0;
 }
 

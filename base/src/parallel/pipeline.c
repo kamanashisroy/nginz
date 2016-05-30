@@ -150,14 +150,14 @@ static int on_bubbles(int fd, int events, const void*unused) {
 		return 0;
 	}
 
-#if 1
+#if 0
 	// TODO use the srcpid for something ..
 	//aroop_txt_embeded_rebuild_and_set_content(&recv_buffer, rbuf)
 	int srcpid = 0;
 	//printf("There is bubble_down from the parent, %d, (count=%d)\n", (int)aroop_txt_char_at(&recv_buffer, 0), count);
 	binary_unpack_int(&recv_buffer, 0, &srcpid);
+	syslog(LOG_NOTICE, "[pid:%d]\treceiving from parent for %d", getpid(), srcpid);
 #endif
-	//syslog(LOG_NOTICE, "[pid:%d]\treceiving from parent for %d", getpid(), destpid);
 	aroop_txt_t x = {};
 	binary_unpack_string(&recv_buffer, 1, &x); // needs cleanup
 	do {
@@ -165,7 +165,13 @@ static int on_bubbles(int fd, int events, const void*unused) {
 			break;
 		}
 		aroop_txt_t output = {};
+#if 1
+		if(pm_call(&x, &recv_buffer, &output)) {
+			syslog(LOG_NOTICE, "[pid:%d]\tplugin returns error\n", getpid());
+		}
+#else
 		pm_call(&x, &recv_buffer, &output);
+#endif
 		aroop_txt_destroy(&output);
 	} while(0);
 	//syslog(LOG_NOTICE, "[pid:%d]\texecuting command:%s", getpid(), aroop_txt_to_string(&x));

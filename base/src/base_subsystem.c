@@ -15,6 +15,8 @@
 #include "parallel/pipeline.h"
 #include "shake.h"
 #include "shake/quitall.h"
+#include "shake/shake_internal.h"
+#include "base_subsystem.h"
 
 C_CAPSULE_START
 
@@ -68,11 +70,13 @@ int nginz_core_init() {
 	binary_coder_module_init();
 	fiber_module_init();
 	event_loop_module_init();
+	enumerate_module_init();
 	initiated = 1;
 	return 0;
 }
 
 int nginz_core_deinit() {
+	enumerate_module_deinit();
 	event_loop_module_deinit();
 	shake_module_deinit();
 	fiber_module_deinit();

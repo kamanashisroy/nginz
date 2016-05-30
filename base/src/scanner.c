@@ -9,6 +9,21 @@
 #include "aroop/opp/opp_str2.h"
 #include "aroop/aroop_memory_profiler.h"
 #include "scanner.h"
+#include <ctype.h>
+
+int scanner_trim (aroop_txt_t* src, aroop_txt_t* trimmed) {
+	aroop_txt_embeded_txt_copy_shallow(trimmed, src);
+	int len = aroop_txt_length(trimmed);
+	while(len--) {
+		char ch = aroop_txt_char_at(trimmed, len);
+		if(!isspace(ch)) {
+			aroop_txt_set_length(trimmed, (len+1));
+			return (len+1);
+		}
+	}
+	aroop_txt_set_length(trimmed, 0);
+	return 0;
+}
 
 int shotodol_scanner_next_token (aroop_txt_t* src, aroop_txt_t* next) {
 	unsigned int i = 0U;

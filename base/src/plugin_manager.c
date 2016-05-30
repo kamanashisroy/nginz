@@ -12,8 +12,7 @@ C_CAPSULE_START
 static struct composite_plugin*coreplug = NULL;
 int pm_call(aroop_txt_t*plugin_space, aroop_txt_t*input, aroop_txt_t*output) {
 	aroop_assert(coreplug != NULL);
-	composite_plugin_call(coreplug, plugin_space, input, output);
-	return 0;
+	return composite_plugin_call(coreplug, plugin_space, input, output);
 }
 
 struct composite_plugin*pm_get() {
