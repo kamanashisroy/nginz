@@ -38,19 +38,39 @@
 
 C_CAPSULE_START
 
+static void test_event_loop_delete_helper(int start_fd, int count, int even) {
+	while(count--) {
+		if(even && count%2)
+			continue;
+		if(!even && count%2 == 0)
+			continue;
+		event_loop_unregister_fd(start_fd+count);
+	}
+	event_loop_batch_unregister();
+}
+
 START_TEST (test_event_loop)
 {
+	int i = 0;
 	int fd = 5000;
 	int ncount = _i;
 	int prev = event_loop_fd_count();
+	/* add test fds */
 	while(ncount--) {
 		event_loop_register_fd(fd+ncount, NULL, NULL, POLLIN);
 	}
-	ncount = _i;
-	while(ncount--) {
-		event_loop_unregister_fd(fd+ncount);
+	/* remove the evens */
+	test_event_loop_delete_helper(fd, _i, 1);
+	for(i=0; i < internal_nfds; i++) {
+		ck_assert_int_ne(internal_fds[i].events, 0);
 	}
-	event_loop_batch_unregister();
+	/* remove the odds */
+	test_event_loop_delete_helper(fd, _i, 0);
+
+	for(i=0; i < internal_nfds; i++) {
+		ck_assert_int_ne(internal_fds[i].events, 0);
+		ck_assert(internal_fds[i].fd < 5000);
+	}
 	
 	ck_assert_int_eq(prev, event_loop_fd_count());
 }
