@@ -25,7 +25,7 @@ int scanner_trim (aroop_txt_t* src, aroop_txt_t* trimmed) {
 	return 0;
 }
 
-int shotodol_scanner_next_token (aroop_txt_t* src, aroop_txt_t* next) {
+int scanner_next_token (aroop_txt_t* src, aroop_txt_t* next) {
 	unsigned int i = 0U;
 	int token_start = 0;
 	int trim_at = 0;

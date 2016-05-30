@@ -1,5 +1,5 @@
-TESTS = check_binary_coder check_event_loop
-check_PROGRAMS = check_binary_coder check_event_loop
+TESTS = check_binary_coder check_event_loop check_scanner
+check_PROGRAMS = check_binary_coder check_event_loop check_scanner
 
 
 AROOP_CORE_INCLUDES=-I$(top_builddir)/base/inc
@@ -14,3 +14,10 @@ check_binary_coder_LDADD = $(OPP_FACTORY_LIBS) @CHECK_LIBS@ @AROOP_LIBS@
 check_event_loop_SOURCES = check_event_loop.c
 check_event_loop_CFLAGS = @CHECK_CFLAGS@ $(AROOP_CORE_INCLUDES) @AROOP_CFLAGS@
 check_event_loop_LDADD = $(OPP_FACTORY_LIBS) @CHECK_LIBS@ @AROOP_LIBS@
+
+# check scanner
+check_scanner_SOURCES = check_scanner.c
+check_scanner_CFLAGS = @CHECK_CFLAGS@ $(AROOP_CORE_INCLUDES) @AROOP_CFLAGS@
+check_scanner_LDADD = $(OPP_FACTORY_LIBS) @CHECK_LIBS@ @AROOP_LIBS@
+
+

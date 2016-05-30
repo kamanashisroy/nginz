@@ -31,51 +31,38 @@
 #include <aroop/opp/opp_str2.h>
 #include <aroop/aroop_memory_profiler.h>
 #include "log.h"
-#include "binary_coder.h"
+#include "scanner.h"
 
 
 
 C_CAPSULE_START
 
-START_TEST (test_binary_coder)
+START_TEST (test_event_loop)
 {
-	unsigned int expval = _i;
-	aroop_txt_t bin = {};
-	aroop_txt_embeded_stackbuffer(&bin, 255);
-	binary_coder_reset(&bin);
-	binary_pack_int(&bin, expval);
-	binary_pack_int(&bin, expval);
-	aroop_txt_t str = {};
-	aroop_txt_embeded_set_static_string(&str, "test"); 
-	binary_pack_string(&bin, &str);
-	//binary_coder_debug_dump(&bin);
-
-	int intval = 0;
-	int intval2 = 0;
-	aroop_txt_t strval = {};
-	binary_unpack_int(&bin, 0, &intval);
-	ck_assert_int_eq(intval, expval);
-	binary_unpack_int(&bin, 1, &intval2);
-	ck_assert_int_eq(intval2, expval);
-	binary_unpack_string(&bin, 2, &strval);
-	
-	aroop_txt_zero_terminate(&strval);
-	aroop_txt_zero_terminate(&str);
-	ck_assert(aroop_txt_equals(&strval, &str));
-	//printf(" [%s!=%s] and [%d!=%d]\n", aroop_txt_to_string(&strval), aroop_txt_to_string(&str), intval, expval);
+	aroop_txt_t x = {};
+	aroop_txt_embeded_set_static_string(&x, "NginZ is a scalable communication server framework.");
+	aroop_txt_t token = {};
+	int token_count = 0;
+	do {
+		scanner_next_token(&x, &token);
+		if(aroop_txt_is_empty(&token))
+			break;
+		token_count++;
+	} while(1);
+	ck_assert_int_eq(token_count, 7);
 }
 END_TEST
 
 Suite * opp_factory_create_suite(void) {
 	Suite *s;
 	TCase *tc_core;
-	s = suite_create("binary_coder.c");
+	s = suite_create("event_loop*.c");
 
 	/* Core test case */
 	tc_core = tcase_create("Core");
 
 	nginz_core_init();
-	tcase_add_loop_test(tc_core, test_binary_coder, 1, 100);
+	tcase_add_test(tc_core, test_event_loop);
 	suite_add_tcase(s, tc_core);
 	nginz_core_deinit();
 

@@ -37,7 +37,7 @@ static int on_shake_connection_helper(int fd) {
 	aroop_txt_t target = {};
 	aroop_txt_t input = {};
 	aroop_txt_t output = {};
-	shotodol_scanner_next_token(&xcmd, &target);
+	scanner_next_token(&xcmd, &target);
 	do {
 		if(aroop_txt_length(&target) == 0)
 			break;

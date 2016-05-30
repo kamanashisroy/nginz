@@ -7,7 +7,7 @@ NginZ is a scalable application server. It is useful for instant messaging and a
 Note
 ====
 
-Plase update the port in inc/nginz\_config.h
+Please update the port in `inc/nginz_config.h` to the appropriate value.
 
 Requirements
 ============
