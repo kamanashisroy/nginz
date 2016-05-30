@@ -16,6 +16,7 @@ AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE([dist-bzip2 subdir-objects])
 AM_MAINTAINER_MODE
+AM_PATH_CHECK()
 
 NGINZ_MAJOR_VERSION=nginz_major
 NGINZ_MINOR_VERSION=nginz_minor
@@ -47,7 +48,7 @@ AC_PROG_RANLIB
 
 AROOP_REQUIRED=0.2
 PKG_CHECK_MODULES(AROOP, aroop_core-0.2.0 >= $AROOP_REQUIRED,
-	[AROOP_DEBUG_LIBS=`$PKG_CONFIG --define-variable=variant=nginz --static --libs aroop_core-0.2.0`],
+	[AROOP_DEBUG_LIBS=`$PKG_CONFIG --define-variable=variant=profiled --static --libs aroop_core-0.2.0`],
 	[AROOP_DEBUG_LIBS=;])
 AC_SUBST(AROOP_CFLAGS)
 AC_SUBST(AROOP_LIBS)
@@ -58,8 +59,16 @@ AC_SUBST(MEMCACHED_CFLAGS)
 AC_SUBST(MEMCACHED_LIBS)
 AC_SUBST(MEMCACHED_DEBUG_LIBS)
 
-AC_CONFIG_FILES([Makefile
-           libnginz.pc
-           ])
+#	net/Makefile	
+#	db/Makefile
+#	apps/http/Makefile
+#	apps/chat/Makefile
+#	apps/web_chat/Makefile
+AC_CONFIG_FILES([
+	base/Makefile
+	base/tests/Makefile
+	base/libnginz_base.pc
+	Makefile
+])
 
 AC_OUTPUT
