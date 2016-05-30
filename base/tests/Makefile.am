@@ -1,5 +1,5 @@
-TESTS = check_binary_coder check_event_loop check_scanner check_single_fiber
-check_PROGRAMS = check_binary_coder check_event_loop check_scanner check_single_fiber
+TESTS = check_binary_coder check_event_loop check_scanner check_single_fiber check_pipeline
+check_PROGRAMS = check_binary_coder check_event_loop check_scanner check_single_fiber check_pipeline
 
 
 AROOP_CORE_INCLUDES=-I$(top_builddir)/base/inc
@@ -25,4 +25,8 @@ check_single_fiber_SOURCES = check_single_fiber.c
 check_single_fiber_CFLAGS = @CHECK_CFLAGS@ $(AROOP_CORE_INCLUDES) @AROOP_CFLAGS@
 check_single_fiber_LDADD = $(OPP_FACTORY_LIBS) @CHECK_LIBS@ @AROOP_LIBS@
 
+# check pipeline
+check_pipeline_SOURCES = check_pipeline.c
+check_pipeline_CFLAGS = @CHECK_CFLAGS@ $(AROOP_CORE_INCLUDES) @AROOP_CFLAGS@
+check_pipeline_LDADD = $(OPP_FACTORY_LIBS) @CHECK_LIBS@ @AROOP_LIBS@
 

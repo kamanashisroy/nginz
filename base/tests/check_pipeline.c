@@ -30,33 +30,36 @@
 #include <aroop/opp/opp_any_obj.h>
 #include <aroop/opp/opp_str2.h>
 #include <aroop/aroop_memory_profiler.h>
+#include "nginz_config.h"
 #include "log.h"
 #include "fiber.h"
 #include "fiber_internal.h"
+#include "parallel/pipeline.h"
 
 
 
 C_CAPSULE_START
 
-static int test_single_fiber_is_run = 0;
-static int suite_fiber(int status) {
-	test_single_fiber_is_run = 1;
-	fiber_quit();
+static int remaining = 101;
+static int step_100_before_quit(int status) {
+	remaining--;
+	if(!remaining)
+		fiber_quit();
 	return 0;
 }
 
-START_TEST (test_single_fiber)
+START_TEST (test_pipeline)
 {
-	ck_assert_int_eq(test_single_fiber_is_run, 1);
+	ck_assert_int_eq(1, 1);
 }
 END_TEST
 
-Suite * single_fiber_suite(void) {
+Suite * pipeline_suite(void) {
 	TCase *tc_core;
-	Suite *s = suite_create("parallel/single_fiber.c");
+	Suite *s = suite_create("parallel/pipeline.c");
 	/* base test case */
 	tc_core = tcase_create("base");
-	tcase_add_test(tc_core, test_single_fiber);
+	tcase_add_test(tc_core, test_pipeline);
 	suite_add_tcase(s, tc_core);
 	return s;
 }
@@ -66,19 +69,18 @@ static int test_main() {
 	int number_failed;
 	/* initiate nginz */
 	setlogmask (LOG_UPTO (LOG_NOTICE));
-	openlog ("nginz_fiber_check", LOG_CONS | LOG_PID | LOG_NDELAY, LOG_LOCAL1);
+	openlog ("nginz_parallel_check", LOG_CONS | LOG_PID | LOG_NDELAY, LOG_LOCAL1);
 	nginz_core_init();
-	//nginz_parallel_init();
-
 	/* initiate fibers */
-	register_fiber(suite_fiber);
+	register_fiber(step_100_before_quit);
+	nginz_parallel_init();
 
 	/* cleanup nginz */
 	fiber_module_run();
 	nginz_core_deinit();
 	closelog();
 
-	SRunner *sr = srunner_create(single_fiber_suite());
+	SRunner *sr = srunner_create(pipeline_suite());
 	srunner_run_all(sr, CK_NORMAL);
 	number_failed = srunner_ntests_failed(sr);
 	srunner_free(sr);
