@@ -60,8 +60,8 @@ static int send_parallel_request() {
 	return 0;
 }
 
-static int remaining = 20;
 static int step_before_quit(int status) {
+	static int remaining = 20;
 	assert(getpid() == mynode->nid);
 	remaining--;
 	if(remaining == 10 && !is_master())
