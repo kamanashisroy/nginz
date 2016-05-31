@@ -9,12 +9,13 @@
 
 C_CAPSULE_START
 
+static long long accumulator = 0;
+
 static int enumerate_command(aroop_txt_t*input, aroop_txt_t*output) {
-	static long long count = 0;
-	count++;
+	accumulator++;
 	aroop_txt_embeded_buffer(output, 32);
-	aroop_txt_printf(output, "-> [%lld]\n", count);
-	syslog(LOG_NOTICE, "[%d]Increased to %lld\n", getpid(), count);
+	aroop_txt_printf(output, "-> [%lld]\n", accumulator);
+	syslog(LOG_NOTICE, "[%d]Increased to %lld\n", getpid(), accumulator);
 	return 0;
 }
 

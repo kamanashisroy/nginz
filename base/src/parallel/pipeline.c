@@ -174,7 +174,7 @@ static int on_bubbles(int fd, int events, const void*unused) {
 #endif
 		aroop_txt_destroy(&output);
 	} while(0);
-	//syslog(LOG_NOTICE, "[pid:%d]\texecuting command:%s", getpid(), aroop_txt_to_string(&x));
+	syslog(LOG_NOTICE, "[pid:%d]\texecuting command:%s", getpid(), aroop_txt_to_string(&x));
 	aroop_txt_destroy(&x);
 	return 0;
 }
@@ -221,6 +221,7 @@ static int pp_fork_parent_after_callback(aroop_txt_t*input, aroop_txt_t*output) 
 			break;
 		}
 	}
+	assert(getpid() == mynode->nid);
 	/* check if the forking is all complete */
 	if(nodes[MAX_PROCESS_COUNT-1].nid) { /* if there is no more forking cleanup */
 		for(i = 1/* skip the master */; i < MAX_PROCESS_COUNT; i++) {

@@ -31,11 +31,11 @@ int fork_processors(int nclients) {
 		aroop_txt_embeded_set_static_string(&plugin_space, "fork/parent/after");
 		pm_call(&plugin_space, &input, &output);
 		aroop_txt_destroy(&output);
+		fork_processors(nclients); // fork more
 	} else if(pid == 0) { // child
 		aroop_txt_embeded_set_static_string(&plugin_space, "fork/child/after");
 		pm_call(&plugin_space, &input, &output);
 		aroop_txt_destroy(&output);
-		fork_processors(nclients); // fork more
 	} else {
 		syslog(LOG_ERR, "Failed to fork:%s\n", strerror(errno));
 		return -1;

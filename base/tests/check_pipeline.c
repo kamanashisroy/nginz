@@ -35,22 +35,47 @@
 #include "fiber.h"
 #include "fiber_internal.h"
 #include "parallel/pipeline.h"
+#include "plugin.h"
+#include "plugin_manager.h"
 
 
 
 C_CAPSULE_START
 
-static int remaining = 101;
-static int step_100_before_quit(int status) {
+
+#include "../src/parallel/pipeline.c"
+static int send_parallel_request() {
+	aroop_txt_t plugin_space = {};
+	aroop_txt_embeded_set_static_string(&plugin_space, "shake/ping");
+
+	aroop_txt_t input = {};
+	aroop_txt_embeded_set_static_string(&input, "shake/enumerate");
+	
+	aroop_txt_t output = {};
+	pm_call(&plugin_space, &input, &output);
+	aroop_txt_destroy(&output);
+	aroop_txt_destroy(&input);
+	aroop_txt_destroy(&plugin_space);
+	syslog(LOG_NOTICE, "[%d]sent ping\n", getpid());
+	return 0;
+}
+
+static int remaining = 20;
+static int step_before_quit(int status) {
+	assert(getpid() == mynode->nid);
 	remaining--;
+	if(remaining == 10 && !is_master())
+		send_parallel_request();
 	if(!remaining)
 		fiber_quit();
 	return 0;
 }
 
+#include "../src/shake/enumerate.c"
 START_TEST (test_pipeline)
 {
-	ck_assert_int_eq(1, 1);
+	int accumulator_val = (int)accumulator;
+	ck_assert_int_eq(accumulator_val, NGINZ_NUMBER_OF_PROCESSORS);
 }
 END_TEST
 
@@ -72,7 +97,7 @@ static int test_main() {
 	openlog ("nginz_parallel_check", LOG_CONS | LOG_PID | LOG_NDELAY, LOG_LOCAL1);
 	nginz_core_init();
 	/* initiate fibers */
-	register_fiber(step_100_before_quit);
+	register_fiber(step_before_quit);
 	nginz_parallel_init();
 
 	/* cleanup nginz */
@@ -80,6 +105,9 @@ static int test_main() {
 	nginz_core_deinit();
 	closelog();
 
+	if(!is_master())
+		return 0;
+	syslog(LOG_NOTICE, "[%d]is master\n", getpid());
 	SRunner *sr = srunner_create(pipeline_suite());
 	srunner_run_all(sr, CK_NORMAL);
 	number_failed = srunner_ntests_failed(sr);
