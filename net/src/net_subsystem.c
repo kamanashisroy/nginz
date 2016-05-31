@@ -9,92 +9,29 @@
 #include "fork.h"
 #include "db.h"
 #include "shake/quitall.h"
-#include "net/streamio.h"
-#include "net/chat.h"
+#include "streamio.h"
 #include "event_loop.h"
-#include "apps/web_chat/web_chat.h"
+#include "net_subsystem.h"
 
 C_CAPSULE_START
 
-static int nginz_master_init() {
-	/**
-	 * Setup for master
-	 */
-	shake_module_init(); // we start the control fd after fork 
+int nginz_net_init_after_parallel_init() {
+	if(!is_master())
+		return 0;
 	tcp_listener_init();
 	return 0;
 }
 
-static int initiated = 0;
 int nginz_net_init() {
-	if(initiated) /* already initiated */
-		return 0;
-	nginz_core_init();
 	protostack_init();
-	initiated = 1;
 	return 0;
 }
 
-static int nginz_init() {
-#ifdef HAS_MEMCACHED_MODULE
-	db_module_init();
-#endif
-	nginz_core_init();
-	protostack_init();
-#ifdef HAS_CHAT_MODULE
-	chat_module_init();
-#endif
-#ifdef HAS_HTTP_MODULE
-	http_module_init();
-#endif
-#ifdef HAS_WEB_CHAT_MODULE
-	web_chat_module_init();
-#endif
-	rehash();
-	signal(SIGPIPE, SIG_IGN); // avoid crash on sigpipe
-	signal(SIGINT, signal_callback);
-	fork_processors(NGINZ_NUMBER_OF_PROCESSORS);
-	nginz_master_init();
-	return 0;
-}
-
-static int nginz_deinit() {
+int nginz_net_deinit() {
 	tcp_listener_deinit();
-#ifdef HAS_WEB_CHAT_MODULE
-	web_chat_module_deinit();
-#endif
-#ifdef HAS_HTTP_MODULE
-	http_module_deinit();
-#endif
-#ifdef HAS_CHAT_MODULE
-	chat_module_deinit();
-#endif
 	protostack_deinit();
-	event_loop_module_deinit();
-	shake_module_deinit();
-	fiber_module_deinit();
-	binary_coder_module_deinit();
-	shake_quitall_module_deinit();
-	pp_module_deinit();
-	pm_deinit();
-#ifdef HAS_MEMCACHED_MODULE
-	db_module_deinit();
-#endif
-}
-
-static int nginz_main(char**args) {
-	daemon(0,0);
-	setlogmask (LOG_UPTO (LOG_NOTICE));
-	openlog ("nginz", LOG_CONS | LOG_PID | LOG_NDELAY, LOG_LOCAL1);
-	nginz_init();
-	fiber_module_run();
-	nginz_deinit();
-	closelog();
 	return 0;
 }
 
-int main(int argc, char**argv) {
-	aroop_main1(argc, argv, nginz_main);
-}
 
 C_CAPSULE_END

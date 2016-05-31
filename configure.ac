@@ -68,6 +68,8 @@ AC_CONFIG_FILES([
 	base/Makefile
 	base/tests/Makefile
 	base/libnginz_base.pc
+	net/Makefile
+	net/libnginz_net.pc
 	Makefile
 ])
 

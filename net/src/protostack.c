@@ -5,7 +5,7 @@
 #include <aroop/core/xtring.h>
 #include "nginz_config.h"
 #include "log.h"
-#include "net/protostack.h"
+#include "protostack.h"
 
 C_CAPSULE_START
 

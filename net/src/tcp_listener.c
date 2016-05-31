@@ -16,8 +16,8 @@
 #include "plugin_manager.h"
 #include "event_loop.h"
 #include "nginz_config.h"
-#include "net/protostack.h"
-#include "net/tcp_listener.h"
+#include "protostack.h"
+#include "tcp_listener.h"
 
 C_CAPSULE_START
 

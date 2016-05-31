@@ -7,8 +7,8 @@
 #include "plugin.h"
 #include "log.h"
 #include "plugin_manager.h"
-#include "net/protostack.h"
-#include "net/streamio.h"
+#include "protostack.h"
+#include "streamio.h"
 
 C_CAPSULE_START
 

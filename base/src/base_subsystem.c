@@ -35,7 +35,6 @@ static int master_init() {
 	aroop_txt_t input = {};
 	aroop_txt_t output = {};
 	aroop_txt_t plugin_space = {};
-	//TODO tcp_listener_init();
 	aroop_txt_embeded_set_static_string(&plugin_space, "master/init");
 	pm_call(&plugin_space, &input, &output);
 	aroop_txt_destroy(&input);
