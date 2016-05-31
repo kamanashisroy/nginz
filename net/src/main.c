@@ -7,6 +7,7 @@
 #include "plugin_manager.h"
 #include "event_loop.h"
 #include "base_subsystem.h"
+#include "net_subsystem.h"
 #include "fiber.h"
 
 C_CAPSULE_START

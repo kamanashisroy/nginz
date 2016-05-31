@@ -30,6 +30,7 @@ NGINZ_CFLAGS=$(AROOP_CFLAGS) $(MEMCACHED_CFLAGS) -DGIT_COMMIT_VERSION=\"$(GIT_CO
 
 libnginz_base_la_SOURCES = $(NGINZ_SOURCE_FILES) $(EVENT_LOOP_POLL)
 libnginz_base_la_CPPFLAGS = $(NGINZ_CFLAGS) $(NGINZ_INCLUDES)
+#libnginz_base_la_LIBADD = @AROOP_DEBUG_LIBS@ 
 
 # binary executables
 nginz_base_main_SOURCES= $(NGINZ_SOURCE_FILES) src/main.c $(EVENT_LOOP_POLL)

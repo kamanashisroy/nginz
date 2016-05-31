@@ -7,6 +7,8 @@ C_CAPSULE_START
 struct composite_plugin*composite_plugin_create();
 #define composite_plugin_destroy OPPUNREF
 int pm_call(aroop_txt_t*plugin_space, aroop_txt_t*input, aroop_txt_t*output);
+int pm_bridge_call(aroop_txt_t*plugin_space, int signature, void*data);
+
 struct composite_plugin*pm_get();
 int plugin_command_helper(
 	int category

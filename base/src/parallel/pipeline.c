@@ -40,6 +40,15 @@ enum {
 static struct nginz_node nodes[MAX_PROCESS_COUNT];
 static struct nginz_node*mynode = nodes;
 
+NGINZ_INLINE int pp_get_raw_fd(int nid) {
+	int i = 0;
+	for(i = 0; i < MAX_PROCESS_COUNT; i++) {
+		if(nodes[i].nid == nid)
+			return (nodes+i)->raw_fd;
+	}
+	return -1; /* not found */
+}
+
 NGINZ_INLINE static struct nginz_node*pp_find_node(int nid) {
 	int i = 0;
 	for(i = 0; i < MAX_PROCESS_COUNT; i++) {
@@ -179,7 +188,6 @@ static int on_bubbles(int fd, int events, const void*unused) {
 	return 0;
 }
 
-
 /****************************************************/
 /********** Fork event listeners ********************/
 /****************************************************/
@@ -210,6 +218,9 @@ static int pp_fork_child_after_callback(aroop_txt_t*input, aroop_txt_t*output) {
 	/********* Register readers *************************/
 	/****************************************************/
 	event_loop_register_fd(mynode->fd[1], on_bubbles, NULL, NGINZ_POLL_ALL_FLAGS);
+	aroop_txt_t plugin_space = {};
+	aroop_txt_embeded_set_static_string(&plugin_space, "parallel/pipeline/raw/setup");
+	pm_bridge_call(&plugin_space, NGINZ_PIPELINE_SIGNATURE, &(mynode->raw_fd[1]));
 	return 0;
 }
 
@@ -235,6 +246,9 @@ static int pp_fork_parent_after_callback(aroop_txt_t*input, aroop_txt_t*output) 
 		/********* Register readers *************************/
 		/****************************************************/
 		event_loop_register_fd(mynode->fd[1], on_bubbles, NULL, NGINZ_POLL_ALL_FLAGS);
+		aroop_txt_t plugin_space = {};
+		aroop_txt_embeded_set_static_string(&plugin_space, "parallel/pipeline/raw/setup");
+		pm_bridge_call(&plugin_space, NGINZ_PIPELINE_SIGNATURE, &(mynode->raw_fd[1]));
 	}
 	return 0;
 }

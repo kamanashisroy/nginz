@@ -66,6 +66,8 @@ int composite_unplug_inner_composite(struct composite_plugin*container, int plug
 
 int composite_plugin_call(struct composite_plugin*container, aroop_txt_t*plugin_space, aroop_txt_t*input, aroop_txt_t*output);
 
+int composite_plugin_bridge_call(struct composite_plugin*container, aroop_txt_t*plugin_space, int signature, void*data);
+
 int composite_plugin_visit_all(struct composite_plugin*container, int (*visitor)(
 		int category
 		, aroop_txt_t*plugin_space

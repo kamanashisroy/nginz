@@ -15,6 +15,11 @@ int pm_call(aroop_txt_t*plugin_space, aroop_txt_t*input, aroop_txt_t*output) {
 	return composite_plugin_call(coreplug, plugin_space, input, output);
 }
 
+int pm_bridge_call(aroop_txt_t*plugin_space, int signature, void*data) {
+	aroop_assert(coreplug != NULL);
+	return composite_plugin_bridge_call(coreplug, plugin_space, signature, data);
+}
+
 struct composite_plugin*pm_get() {
 	return coreplug;
 }

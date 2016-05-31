@@ -9,6 +9,8 @@
 #include "plugin_manager.h"
 #include "protostack.h"
 #include "streamio.h"
+#include "binary_coder.h"
+#include "raw_pipeline.h"
 
 C_CAPSULE_START
 
@@ -65,7 +67,6 @@ int default_transfer_parallel(struct streamio*strm, int destpid, int proto_port,
 		//syslog(LOG_NOTICE, "default_transfer_parallel: bubble up ");
 		return strm->bubble_up->transfer_parallel(strm->bubble_up, destpid, proto_port, cmd);
 	}
-	int mypid = getpid(); // we may do little optimiztion here by saving getpid() value ..
 	aroop_txt_t bin = {};
 	aroop_txt_embeded_stackbuffer(&bin, 255);
 	binary_coder_reset_for_pid(&bin, destpid);
@@ -73,11 +74,7 @@ int default_transfer_parallel(struct streamio*strm, int destpid, int proto_port,
 	binary_pack_string(&bin, cmd);
 
 	event_loop_unregister_fd(strm->fd);
-	if(destpid > mypid) {
-		return pp_bubble_down_send_socket(strm->fd, &bin);
-	} else {
-		return pp_bubble_up_send_socket(strm->fd, &bin);
-	}
+	return pp_raw_send_socket(destpid, strm->fd, &bin);
 }
 
 int streamio_initialize(struct streamio*strm) {
@@ -113,6 +110,7 @@ int streamio_chain(struct streamio*up, struct streamio*down) {
 		OPPUNREF(up->bubble_down);
 	}
 	up->bubble_down = OPPREF(down);
+	return 0;
 }
 
 int streamio_unchain(struct streamio*up, struct streamio*down) {
