@@ -13,16 +13,32 @@ Tasks
 ### Packaging
 - [ ] Use bii-code.
 
-### net
-- [x] Add HTTP support.
-- [ ] add event_loop_epoll.c implementation based on epoll .
-- [ ] add event_loop_poll_openmp.c implementation based on partitioned polling.
+### base
+- [ ] Move memory profiler from chat module and let chat module use this profiler.
 
 ### parallel
 - [x] Add support for data-type in binary coder.
 - [ ] Add support for mailbox.
 - [ ] Try to implement STAR topology instead of ring.
 - [ ] Explain parallel architecture in state diagram.
+
+### shake
+- [ ] Create memory profiler command to show memory usage.
+- [ ] Make it non-blocking ..
+
+### logging
+- [x] Use syslog.
+
+### Testing
+- [x] Load test and report the result.
+- [ ] Add unit test for net.
+- [ ] Add unit test for http.
+- [ ] Add unit test for chat.
+
+### net
+- [x] Add HTTP support.
+- [ ] add event_loop_epoll.c implementation based on epoll .
+- [ ] add event_loop_poll_openmp.c implementation based on partitioned polling.
 
 #### Asynchronous API
 - [ ] Add callback based line reader API. Use line reader in HTTP implementation.
@@ -46,19 +62,9 @@ Tasks
 #### chat rooms
 - [x] Restrict users in chat room.
 
-### shake
-- [ ] Create memory profiler command to show memory usage.
-- [ ] Make it non-blocking ..
-
-### logging
-- [x] Use syslog.
-
 ### DB
 - [x] Write own db. And remove dependency from memcached.
 
 ### Scaling
 - [ ] Add support for auto-scaling.
-
-### Testing
-- [x] Load test and report the result.
 
