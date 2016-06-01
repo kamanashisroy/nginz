@@ -4,15 +4,17 @@
 #include "aroop/opp/opp_factory.h"
 #include "aroop/opp/opp_iterator.h"
 #include "aroop/opp/opp_factory_profiler.h"
+#include "aroop/opp/opp_str2.h"
 #include "nginz_config.h"
 #include "event_loop.h"
 #include "plugin.h"
 #include "log.h"
 #include "plugin_manager.h"
-#include "net/protostack.h"
-#include "net/streamio.h"
-#include "net/http.h"
-#include "net/http/http_parser.h"
+#include "protostack.h"
+#include "streamio.h"
+#include "http.h"
+#include "http/http_parser.h"
+#include "http/http_plugin_manager.h"
 
 C_CAPSULE_START
 
@@ -163,11 +165,13 @@ int http_parser_module_init() {
 	aroop_txt_t plugin_space = {};
 	aroop_txt_embeded_set_static_string(&plugin_space, "httpproto/hookup");
 	pm_plug_bridge(&plugin_space, http_parser_hookup, http_parser_hookup_desc);
+	return 0;
 }
 
 int http_parser_module_deinit() {
 	pm_unplug_bridge(0, http_parser_hookup);
 	aroop_txt_destroy(&recv_buffer);
+	return 0;
 }
 
 

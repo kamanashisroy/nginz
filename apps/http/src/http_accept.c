@@ -8,18 +8,21 @@
 #include "event_loop.h"
 #include "plugin.h"
 #include "log.h"
+#include "scanner.h"
 #include "plugin_manager.h"
-#include "net/protostack.h"
-#include "net/streamio.h"
-#include "net/http.h"
-#include "net/http/http_accept.h"
+#include "protostack.h"
+#include "streamio.h"
+#include "binary_coder.h"
+#include "parallel/pipeline.h"
+#include "http.h"
+#include "http/http_plugin_manager.h"
+#include "http/http_accept.h"
 
 C_CAPSULE_START
 
 static struct http_hooks*hooks = NULL;
 static int http_accept_module_is_quiting = 0;
 #define HTTP_WELCOME "http/welcome"
-static int toggler = 0;
 static int http_on_tcp_connection(int fd) {
 	aroop_txt_t bin = {};
 	aroop_txt_embeded_stackbuffer(&bin, 255);
@@ -28,13 +31,6 @@ static int http_on_tcp_connection(int fd) {
 	aroop_txt_t welcome_command = {};
 	aroop_txt_embeded_set_static_string(&welcome_command, HTTP_WELCOME); 
 	binary_pack_string(&bin, &welcome_command);
-	if(toggler) {
-		toggler = 0;
-		pp_bubble_down_send_socket(fd, &bin);
-	} else {
-		toggler = 1;
-		pp_bubble_up_send_socket(fd, &bin);
-	}
 	return 0;
 }
 
@@ -46,7 +42,6 @@ static int on_http_debug(int fd, const void*cb_data) {
 }
 #endif
 
-static struct opp_factory http_factory;
 static int http_on_connection_bubble(int fd, aroop_txt_t*cmd) {
 	aroop_assert(hooks != NULL);
 	if(http_accept_module_is_quiting)
@@ -72,7 +67,7 @@ static int http_on_connection_bubble(int fd, aroop_txt_t*cmd) {
 	aroop_txt_t request_sandbox = {};
 	aroop_txt_embeded_stackbuffer(&request_sandbox, reqlen);
 	aroop_txt_concat(&request_sandbox, &request);
-	shotodol_scanner_next_token(&request_sandbox, &plugin_space); // needs cleanup
+	scanner_next_token(&request_sandbox, &plugin_space); // needs cleanup
 
 	do {
 		if(aroop_txt_is_empty(&plugin_space)) {
@@ -124,11 +119,13 @@ int http_accept_module_init() {
 	aroop_txt_t plugin_space = {};
 	aroop_txt_embeded_set_static_string(&plugin_space, "httpproto/hookup");
 	pm_plug_bridge(&plugin_space, http_accept_hookup, http_accept_hookup_desc);
+	return 0;
 }
 
 int http_accept_module_deinit() {
 	protostack_set(NGINZ_HTTP_PORT, NULL);
 	pm_unplug_bridge(0, http_accept_hookup);
+	return 0;
 }
 
 

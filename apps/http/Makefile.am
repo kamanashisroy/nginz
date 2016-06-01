@@ -1,21 +1,30 @@
 
-TARGET_LAR=libnginz_chat.la
-TARGET_AR=libnginz_chat.a libnginz_chat_debug.a
-lib_LIBRARIES=$(TARGET_AR)
-NGINZ_NET_SOURCE_FILES = \
-src/net/http.c	src/net/http/http_accept.c	src/net/http/http_factory.c	src/net/http/http_parser.c	src/net/http/http_plugin_manager.c	src/net/http/http_tunnel.c
+TARGET_BIN=nginz_http_main
+TARGET_LAR=libnginz_http.la
+bin_PROGRAMS=$(TARGET_BIN)
+lib_LTLIBRARIES=$(TARGET_LAR)
 
-NGINZ_NET_INCLUDES=-Iinc -I../core/inc
-NGINZ_CFLAGS=$(AROOP_CFLAGS) $(MEMCACHED_CFLAGS) -DGIT_COMMIT_VERSION=\"$(GIT_COMMIT_VERSION)\" -Wall
-libnginz_chat_debug_a_SOURCES = $(NGINZ_NET_SOURCE_FILES)
-libnginz_chat_debug_a_CPPFLAGS = $(NGINZ_CFLAGS) -ggdb3 -DAROOP_BASIC -DAROOP_OPP_PROFILE $(NGINZ_NET_INCLUDES) 
-libnginz_chat_a_SOURCES = $(NGINZ_NET_SOURCE_FILES)
-libnginz_chat_a_CPPFLAGS = $(NGINZ_CFLAGS) -ggdb3 -DAROOP_BASIC -DAROOP_OPP_PROFILE $(NGINZ_NET_INCLUDES) 
+NGINZ_HTTP_SOURCE_FILES = \
+src/http_subsystem.c	src/http_accept.c	src/http_factory.c	src/http_parser.c	src/http_plugin_manager.c	src/http_tunnel.c
+
+NGINZ_BASE_LDFLAGS=$(top_builddir)/base/libnginz_base.la
+NGINZ_NET_LDFLAGS=$(top_builddir)/net/libnginz_net.la
+NGINZ_HTTP_INCLUDES=-Iinc -I$(top_builddir)/base/inc -I$(top_builddir)/net/inc
+
+
+NGINZ_CFLAGS=$(AROOP_CFLAGS) -DGIT_COMMIT_VERSION=\"$(GIT_COMMIT_VERSION)\" -Wall
+libnginz_http_la_SOURCES = $(NGINZ_HTTP_SOURCE_FILES)
+libnginz_http_la_CPPFLAGS = $(NGINZ_CFLAGS) $(NGINZ_HTTP_INCLUDES)
+libnginz_http_la_LDFLAGS = $(NGINZ_BASE_LDFLAGS) $(NGINZ_NET_LDFLAGS)
+
+nginz_http_main_SOURCES = $(NGINZ_HTTP_SOURCE_FILES) src/main.c
+nginz_http_main_CPPFLAGS = $(NGINZ_CFLAGS) -ggdb3 -DAROOP_BASIC -DAROOP_OPP_PROFILE $(NGINZ_HTTP_INCLUDES) 
+nginz_http_main_LDFLAGS= -static $(NGINZ_BASE_LDFLAGS) $(NGINZ_NET_LDFLAGS) @AROOP_DEBUG_LIBS@ 
 
 pkgconfigdir = $(libdir)/pkgconfig
-pkgconfig_DATA = libnginz_chat@PACKAGE_SUFFIX@.pc
+pkgconfig_DATA = libnginz_http@PACKAGE_SUFFIX@.pc
 
-libnginz_chat@PACKAGE_SUFFIX@.pc: libnginz_chat.pc
+libnginz_http@PACKAGE_SUFFIX@.pc: libnginz_http.pc
 	cp $< $@
 
 #MAINTAINERCLEANFILES = nginz.pc

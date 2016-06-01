@@ -60,6 +60,6 @@ Plugin-table
 Sources
 ========
 
-[plugin.c](src/plugin.c)
-[plugin_manager.c](src/plugin_manager.c)
+- [plugin.c](src/plugin.c)
+- [plugin_manager.c](src/plugin_manager.c)
 

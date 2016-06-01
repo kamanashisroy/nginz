@@ -9,11 +9,11 @@
 #include "plugin.h"
 #include "log.h"
 #include "plugin_manager.h"
-#include "net/protostack.h"
-#include "net/streamio.h"
-#include "net/http.h"
-#include "net/http/http_tunnel.h"
-#include "net/http/http_factory.h"
+#include "protostack.h"
+#include "streamio.h"
+#include "http.h"
+#include "http/http_tunnel.h"
+#include "http/http_factory.h"
 
 C_CAPSULE_START
 
@@ -37,7 +37,7 @@ static int http_factory_on_softquit(aroop_txt_t*plugin_space, aroop_txt_t*output
 	struct opp_iterator iterator = {};
 	opp_iterator_create(&iterator, &http_factory, OPPN_ALL, 0, 0);
 	struct http_connection*http = NULL;
-	while(http = opp_iterator_next(&iterator)) {
+	while((http = opp_iterator_next(&iterator))) {
 		http->strm.close(&http->strm);
 	}
 	opp_iterator_destroy(&iterator);
@@ -92,6 +92,7 @@ int http_factory_module_init() {
 	pm_plug_callback(&plugin_space, http_factory_on_softquit, http_factory_on_softquit_desc);
 	aroop_txt_embeded_set_static_string(&plugin_space, "httpproto/hookup");
 	pm_plug_bridge(&plugin_space, http_factory_hookup, http_factory_hookup_desc);
+	return 0;
 }
 
 int http_factory_module_deinit() {

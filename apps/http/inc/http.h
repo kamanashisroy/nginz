@@ -23,8 +23,8 @@ struct http_connection {
 	aroop_txt_t content;
 };
 
-int http_module_init();
-int http_module_deinit();
+int nginz_http_module_init();
+int nginz_http_module_deinit();
 
 #define IS_VALID_HTTP(x) (NULL != (x) && IS_VALID_STREAM(&x->strm))
 

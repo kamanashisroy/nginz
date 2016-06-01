@@ -4,16 +4,17 @@
 #include "aroop/opp/opp_factory.h"
 #include "aroop/opp/opp_iterator.h"
 #include "aroop/opp/opp_factory_profiler.h"
+#include "aroop/opp/opp_str2.h"
 #include "nginz_config.h"
 #include "event_loop.h"
 #include "log.h"
 #include "plugin.h"
 #include "plugin_manager.h"
-#include "net/protostack.h"
-#include "net/streamio.h"
-#include "net/http.h"
-#include "net/http/http_tunnel.h"
-#include "net/http/http_plugin_manager.h"
+#include "protostack.h"
+#include "streamio.h"
+#include "http.h"
+#include "http/http_tunnel.h"
+#include "http/http_plugin_manager.h"
 
 C_CAPSULE_START
 
@@ -57,6 +58,7 @@ static int http_help_plug_helper(
 	} while(0);
 	aroop_txt_destroy(&xdesc); // cleanup
 	aroop_txt_destroy(&prefix); // cleanup
+	return 0;
 }
 
 static int http_help_plug(int signature, void*given) {
@@ -87,12 +89,14 @@ int http_plugin_manager_module_init() {
 	aroop_txt_embeded_set_static_string(&plugin_space, "shake/httpplugin");
 	pm_plug_callback(&plugin_space, http_plugin_command, http_plugin_command_desc);
 	http_tunnel_module_init();
+	return 0;
 }
 
 int http_plugin_manager_module_deinit() {
 	http_tunnel_module_deinit();
 	composite_unplug_bridge(http_plugin_manager_get(), 0, http_help_plug);
 	composite_plugin_destroy(http_plug);
+	return 0;
 }
 
 

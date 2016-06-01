@@ -72,6 +72,9 @@ AC_CONFIG_FILES([
 	net/libnginz_net.pc
 	db/Makefile
 	db/libnginz_db.pc
+	apps/Makefile
+	apps/http/Makefile
+	apps/http/libnginz_http.pc
 	Makefile
 ])
 

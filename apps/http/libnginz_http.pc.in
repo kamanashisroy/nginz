@@ -1,0 +1,18 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+bindir=@bindir@
+includedir=@includedir@/nginz@PACKAGE_SUFFIX@
+datarootdir=@datarootdir@
+datadir=@datadir@
+variant=static
+nginz_main=${bindir}/nginz_main@PACKAGE_SUFFIX@
+
+@vapigen_decl@
+
+Name: NginZ library
+Description: This is NginZ library for scalable software
+Version: @VERSION@
+Libs: -L${libdir} -laroop_core -lnginz
+Libs.private: ${libdir}/libnginz_${variant}.a
+Cflags: -I${includedir}
