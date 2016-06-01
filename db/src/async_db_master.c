@@ -5,6 +5,7 @@
 #include <aroop/opp/opp_factory.h>
 #include <aroop/opp/opp_factory_profiler.h>
 #include <aroop/opp/opp_hash_table.h>
+#include <aroop/opp/opp_str2.h>
 #include "nginz_config.h"
 #include "log.h"
 #include "plugin.h"
@@ -12,6 +13,10 @@
 #include "event_loop.h"
 #include "parallel/pipeline.h"
 #include "parallel/async_request.h"
+#include "binary_coder.h"
+#include "async_db.h"
+#include "async_db_master.h"
+#include "async_db_internal.h"
 
 C_CAPSULE_START
 
@@ -238,6 +243,7 @@ int async_db_master_deinit() {
 	pm_unplug_callback(0, async_db_unset_hook);
 	pm_unplug_callback(0, async_db_get_hook);
 	pm_unplug_callback(0, async_db_dump_hook);
+	return 0;
 }
 
 C_CAPSULE_END

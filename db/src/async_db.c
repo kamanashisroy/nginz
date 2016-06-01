@@ -12,6 +12,9 @@
 #include "event_loop.h"
 #include "parallel/pipeline.h"
 #include "parallel/async_request.h"
+#include "async_db.h"
+#include "async_db_master.h"
+#include "async_db_internal.h"
 
 C_CAPSULE_START
 
@@ -58,6 +61,7 @@ int async_db_set_int(int cb_token, aroop_txt_t*cb_hook, aroop_txt_t*key, int int
 	aroop_txt_printf(&intstr, "%d", intval);
 	async_db_compare_and_swap(cb_token, cb_hook, key, &intstr, NULL);
 	aroop_txt_destroy(&intstr);
+	return 0;
 }
 
 int async_db_get(int cb_token, aroop_txt_t*cb_hook, aroop_txt_t*key) {
@@ -84,6 +88,7 @@ int async_db_init() {
 int async_db_deinit() {
 	if(is_master())
 		async_db_master_deinit();
+	return 0;
 }
 
 C_CAPSULE_END

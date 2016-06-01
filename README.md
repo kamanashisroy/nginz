@@ -34,7 +34,7 @@ Features
 
 NginZ is equiped to serve as communication applications. It has,
 
-- [Plugin](src/plugin.md) and dependency injection.
+- [Plugin](base/src/plugin.md) and dependency injection.
 - Parallel processing support based on [line-topology, token-passing and pipeline pattern](src/parallel/pipeline.c). [This is elaborated in great details by the networking scenarios here.](src/parallel/README.md).
 - It has scalability features. The requests are load-balanced in the worker processes.
 - It has [memory profiler](src/net/chat/profiler.c).

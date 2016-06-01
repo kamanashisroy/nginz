@@ -1,5 +1,5 @@
 
 # SUBDIRS = core net db apps
 
-SUBDIRS = base net
+SUBDIRS = base net db
 
