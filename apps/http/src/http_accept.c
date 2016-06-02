@@ -14,12 +14,15 @@
 #include "streamio.h"
 #include "binary_coder.h"
 #include "parallel/pipeline.h"
+#include "raw_pipeline.h"
+#include "load_balancer.h"
 #include "http.h"
 #include "http/http_plugin_manager.h"
 #include "http/http_accept.h"
 
 C_CAPSULE_START
 
+static struct load_balancer http_lb;
 static struct http_hooks*hooks = NULL;
 static int http_accept_module_is_quiting = 0;
 #define HTTP_WELCOME "http/welcome"
@@ -31,7 +34,7 @@ static int http_on_tcp_connection(int fd) {
 	aroop_txt_t welcome_command = {};
 	aroop_txt_embeded_set_static_string(&welcome_command, HTTP_WELCOME); 
 	binary_pack_string(&bin, &welcome_command);
-	pp_raw_send_socket(pp_next_nid(), fd, &bin);
+	pp_raw_send_socket(load_balancer_next(&http_lb), fd, &bin);
 	return 0;
 }
 
@@ -115,6 +118,9 @@ static int http_accept_hookup_desc(aroop_txt_t*plugin_space, aroop_txt_t*output)
 
 int http_accept_module_init() {
 	protostack_set(NGINZ_HTTP_PORT, &http_protostack);
+
+	// initiate load balancer
+	load_balancer_setup(&http_lb);
 	
 	// setup the hooks
 	aroop_txt_t plugin_space = {};
@@ -125,6 +131,9 @@ int http_accept_module_init() {
 
 int http_accept_module_deinit() {
 	protostack_set(NGINZ_HTTP_PORT, NULL);
+
+	// deinit load balancer
+	load_balancer_destroy(&http_lb);
 	pm_unplug_bridge(0, http_accept_hookup);
 	return 0;
 }

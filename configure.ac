@@ -73,6 +73,8 @@ AC_CONFIG_FILES([
 	db/Makefile
 	db/libnginz_db.pc
 	apps/Makefile
+	apps/load_balancer/Makefile
+	apps/load_balancer/libnginz_lb.pc
 	apps/http/Makefile
 	apps/http/libnginz_http.pc
 	Makefile

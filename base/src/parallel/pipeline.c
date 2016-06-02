@@ -68,10 +68,24 @@ NGINZ_INLINE int pp_next_nid() {
 		}
 	}
 	if(next_index != -1 && next_index < MAX_PROCESS_COUNT)
-		return nodes[i].nid;
+		return nodes[next_index].nid;
 	return -1; /* not found */
 }
 
+NGINZ_INLINE int pp_next_worker_nid(int nid) {
+	int i = 0;
+	int next_index = -1;
+	for(i = 0; i < MAX_PROCESS_COUNT; i++) {
+		if(nodes[i].nid == nid) {
+			next_index = i+1;
+			break;
+		}
+	}
+	next_index = next_index%MAX_PROCESS_COUNT;
+	if(next_index == 0) /* if it is master */
+		next_index++; /* take the first childid */
+	return nodes[next_index].nid;
+}
 
 NGINZ_INLINE static int pp_simple_sendmsg(int through, aroop_txt_t*pkt) {
 	struct msghdr msg;

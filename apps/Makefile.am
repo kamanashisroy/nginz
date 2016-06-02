@@ -1,3 +1,3 @@
 
-SUBDIRS = http
+SUBDIRS = load_balancer http
 

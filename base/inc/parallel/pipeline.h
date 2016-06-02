@@ -17,6 +17,8 @@ NGINZ_INLINE int pp_send(int dnid, aroop_txt_t*pkt);
 
 NGINZ_INLINE int pp_next_nid();
 
+NGINZ_INLINE int pp_next_worker_nid(int nid);
+
 /**
  * It checks if the process is master process.
  * @returns 1 if master
