@@ -18,7 +18,7 @@
 #include "nginz_config.h"
 #include "protostack.h"
 #include "parallel/pipeline.h"
-#include "tcp_listener.h"
+#include "tcp_listener_internal.h"
 
 C_CAPSULE_START
 

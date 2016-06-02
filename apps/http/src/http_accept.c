@@ -31,6 +31,7 @@ static int http_on_tcp_connection(int fd) {
 	aroop_txt_t welcome_command = {};
 	aroop_txt_embeded_set_static_string(&welcome_command, HTTP_WELCOME); 
 	binary_pack_string(&bin, &welcome_command);
+	pp_raw_send_socket(pp_next_nid(), fd, &bin);
 	return 0;
 }
 

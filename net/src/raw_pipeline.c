@@ -18,6 +18,7 @@
 #include "protostack.h"
 #include "binary_coder.h"
 #include "raw_pipeline.h"
+#include "raw_pipeline_internal.h"
 
 C_CAPSULE_START
 

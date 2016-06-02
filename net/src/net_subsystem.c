@@ -10,8 +10,11 @@
 #include "db.h"
 #include "shake/quitall.h"
 #include "streamio.h"
-#include "event_loop.h"
+#include "parallel/pipeline.h"
 #include "net_subsystem.h"
+#include "raw_pipeline_internal.h"
+#include "tcp_listener_internal.h"
+#include "protostack.h"
 
 C_CAPSULE_START
 
@@ -24,11 +27,13 @@ int nginz_net_init_after_parallel_init() {
 
 int nginz_net_init() {
 	protostack_init();
+	pp_raw_module_init();
 	return 0;
 }
 
 int nginz_net_deinit() {
 	tcp_listener_deinit();
+	pp_raw_module_deinit();
 	protostack_deinit();
 	return 0;
 }

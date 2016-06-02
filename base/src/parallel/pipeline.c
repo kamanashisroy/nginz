@@ -44,7 +44,7 @@ NGINZ_INLINE int pp_get_raw_fd(int nid) {
 	int i = 0;
 	for(i = 0; i < MAX_PROCESS_COUNT; i++) {
 		if(nodes[i].nid == nid)
-			return (nodes+i)->raw_fd;
+			return (nodes+i)->raw_fd[0];
 	}
 	return -1; /* not found */
 }
