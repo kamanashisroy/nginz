@@ -6,13 +6,14 @@
 #include "aroop/opp/opp_factory_profiler.h"
 #include "nginz_config.h"
 #include "event_loop.h"
+#include "scanner.h"
 #include "plugin.h"
 #include "log.h"
 #include "plugin_manager.h"
-#include "net/protostack.h"
-#include "net/streamio.h"
-#include "net/chat.h"
-#include "net/chat/chat_command.h"
+#include "protostack.h"
+#include "streamio.h"
+#include "chat.h"
+#include "chat/chat_command.h"
 
 C_CAPSULE_START
 
@@ -32,7 +33,7 @@ static int command_hook(struct chat_connection*chat, aroop_txt_t*given_request) 
 	aroop_assert(chat->request == NULL);
 	// get the command token
 	aroop_txt_t ctoken = {};
-	shotodol_scanner_next_token(&request, &ctoken);
+	scanner_next_token(&request, &ctoken);
 	do {
 		if(aroop_txt_is_empty_magical(&ctoken)) {
 			// we cannot handle the data
@@ -57,8 +58,10 @@ static int command_hook(struct chat_connection*chat, aroop_txt_t*given_request) 
 
 int chat_command_module_init() {
 	chat_api_get()->on_command = command_hook;
+	return 0;
 }
 
 int chat_command_module_deinit() {
+	return 0;
 }
 

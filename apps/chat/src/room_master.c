@@ -6,11 +6,14 @@
 #include "db.h"
 #include "plugin.h"
 #include "plugin_manager.h"
-#include "net/streamio.h"
-#include "net/chat.h"
-#include "net/chat/chat_plugin_manager.h"
-#include "net/chat/room.h"
-#include "net/chat/room_master.h"
+#include "streamio.h"
+#include "scanner.h"
+#include "binary_coder.h"
+#include "chat.h"
+#include "chat/chat_plugin_manager.h"
+#include "chat/room.h"
+#include "chat/broadcast.h"
+#include "chat/room_master.h"
 
 C_CAPSULE_START
 
@@ -60,7 +63,7 @@ static int chat_room_describe(aroop_txt_t*roomstr, aroop_txt_t*room_info) {
 	aroop_txt_t next = {};
 	aroop_txt_concat_string(room_info, "Active rooms are:\n");
 	while(1) {
-		shotodol_scanner_next_token(roomstr, &next); // needs cleanup
+		scanner_next_token(roomstr, &next); // needs cleanup
 		if(aroop_txt_is_empty(&next)) {
 			break;
 		}
@@ -76,15 +79,13 @@ static int chat_room_describe(aroop_txt_t*roomstr, aroop_txt_t*room_info) {
 
 static int on_async_room_call_master(aroop_txt_t*bin, aroop_txt_t*output) {
 	aroop_assert(!aroop_txt_is_empty_magical(bin));
-	int destpid = 0;
 	int srcpid = 0;
 	int cb_token = 0;
 	aroop_txt_t cb_hook = {};
-	// 0 = pid, 1 = srcpid, 2 = command, 3 = token, 4 = cb_hook, 5 = key, 6 = newval, 7 = oldval
-	binary_unpack_int(bin, 0, &destpid);
-	binary_unpack_int(bin, 1, &srcpid);
-	binary_unpack_int(bin, 3, &cb_token);
-	binary_unpack_string(bin, 4, &cb_hook); // needs cleanup
+	// 0 = srcpid, 1 = command, 2 = token, 3 = cb_hook, 4 = key, 5 = newval, 6 = oldval
+	binary_unpack_int(bin, 0, &srcpid);
+	binary_unpack_int(bin, 2, &cb_token);
+	binary_unpack_string(bin, 3, &cb_hook); // needs cleanup
 	aroop_txt_t info = {};
 	aroop_txt_t room_info = {};
 	aroop_txt_t key = {};
@@ -171,12 +172,14 @@ int room_master_module_init() {
 	pm_plug_callback(&plugin_space, on_async_room_call_master, on_asyncchat_rooms_desc);
 	aroop_txt_embeded_set_static_string(&plugin_space, "fork/child/after");
 	pm_plug_callback(&plugin_space, default_room_fork_child_after_callback, default_room_fork_callback_desc);
+	return 0;
 }
 
 int room_master_module_deinit() {
 	aroop_assert(is_master());
 	pm_unplug_callback(0, default_room_fork_child_after_callback);
 	pm_unplug_callback(0, on_async_room_call_master);
+	return 0;
 }
 
 

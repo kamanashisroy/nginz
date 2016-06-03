@@ -3,11 +3,11 @@
 #include <aroop/core/xtring.h>
 #include "nginz_config.h"
 #include "plugin.h"
-#include "net/streamio.h"
-#include "net/chat.h"
-#include "net/chat/chat_plugin_manager.h"
-#include "net/chat/user.h"
-#include "net/chat/quit.h"
+#include "streamio.h"
+#include "chat.h"
+#include "chat/chat_plugin_manager.h"
+#include "chat/user.h"
+#include "chat/quit.h"
 
 C_CAPSULE_START
 

@@ -15,12 +15,12 @@
 
 C_CAPSULE_START
 
-int nginz_db_init() {
+int nginz_db_module_init_after_parallel_init() {
 	async_db_init();
 	return 0;
 }
 
-int nginz_db_deinit() {
+int nginz_db_module_deinit() {
 	async_db_deinit();
 	return 0;
 }

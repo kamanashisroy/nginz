@@ -1,3 +1,3 @@
 
-SUBDIRS = load_balancer http
+SUBDIRS = load_balancer http chat
 

@@ -70,24 +70,26 @@ static int async_db_CAS_hook(aroop_txt_t*bin, aroop_txt_t*output) {
 	aroop_txt_t key = {}; // the key to set
 	aroop_txt_t expval = {}; // the val to compare with the oldval
 	aroop_txt_t newval = {}; // the val to set
-	int destpid = 0;
 	int srcpid = 0;
 	int cb_token = 0;
 	aroop_txt_t cb_hook = {};
-	// 0 = pid, 1 = srcpid, 2 = command, 3 = token, 4 = cb_hook, 5 = key, 6 = newval, 7 = oldval
-	binary_unpack_int(bin, 0, &destpid);
-	binary_unpack_int(bin, 1, &srcpid);
-	binary_unpack_int(bin, 3, &cb_token);
-	binary_unpack_string(bin, 4, &cb_hook); // needs cleanup
-	binary_unpack_string(bin, 5, &key); // needs cleanup
-	binary_unpack_string(bin, 6, &newval); // needs cleanup
-	binary_unpack_string(bin, 7, &expval); // needs cleanup
+	// 0 = srcpid, 1 = command, 2 = token, 3 = cb_hook, 4 = key, 5 = newval, 6 = oldval
+	binary_unpack_int(bin, 0, &srcpid);
+	binary_unpack_int(bin, 2, &cb_token);
+	binary_unpack_string(bin, 3, &cb_hook); // needs cleanup
+	binary_unpack_string(bin, 4, &key); // needs cleanup
+	binary_unpack_string(bin, 5, &newval); // needs cleanup
+	binary_unpack_string(bin, 6, &expval); // needs cleanup
 	DB_LOG(LOG_NOTICE, "[token%d]-CAS-doing ..--[dest:%d]-[key:%s]-[app:%s]", cb_token, srcpid, aroop_txt_to_string(&key), aroop_txt_to_string(&cb_hook));
 	int success = 0;
 	success = !async_db_op_helper(&key, &newval, &expval);
+#if 0
 	if(destpid > 0) {
+#endif
 		async_db_op_reply(srcpid, cb_token, &cb_hook, success, &key, &newval);
+#if 0
 	}
+#endif
 	// cleanup
 	aroop_txt_destroy(&key);
 	aroop_txt_destroy(&newval);
@@ -103,23 +105,25 @@ static int async_db_set_if_null_hook(aroop_txt_t*bin, aroop_txt_t*output) {
 	aroop_assert(is_master());
 	aroop_txt_t key = {}; // the key to set
 	aroop_txt_t newval = {}; // the val to set
-	int destpid = 0;
 	int srcpid = 0;
 	int cb_token = 0;
 	aroop_txt_t cb_hook = {};
-	// 0 = pid, 1 = srcpid, 2 = command, 3 = token, 4 = cb_hook, 5 = key, 6 = newval, 7 = oldval
-	binary_unpack_int(bin, 0, &destpid);
-	binary_unpack_int(bin, 1, &srcpid);
-	binary_unpack_int(bin, 3, &cb_token);
-	binary_unpack_string(bin, 4, &cb_hook); // needs cleanup
-	binary_unpack_string(bin, 5, &key); // needs cleanup
-	binary_unpack_string(bin, 6, &newval); // needs cleanup
+	// 0 = srcpid, 1 = command, 2 = token, 3 = cb_hook, 4 = key, 5 = newval, 6 = oldval
+	binary_unpack_int(bin, 0, &srcpid);
+	binary_unpack_int(bin, 2, &cb_token);
+	binary_unpack_string(bin, 3, &cb_hook); // needs cleanup
+	binary_unpack_string(bin, 4, &key); // needs cleanup
+	binary_unpack_string(bin, 5, &newval); // needs cleanup
 	DB_LOG(LOG_NOTICE, "[token%d]-set if null-doing ..--[dest:%d]-[key:%s]-[app:%s]", cb_token, srcpid, aroop_txt_to_string(&key), aroop_txt_to_string(&cb_hook));
 	int success = 0;
 	success = !async_db_op_helper(&key, &newval, NULL);
+#if 0
 	if(destpid > 0) {
+#endif
 		async_db_op_reply(srcpid, cb_token, &cb_hook, success, &key, &newval);
+#if 0
 	}
+#endif
 	// cleanup
 	aroop_txt_destroy(&cb_hook);
 	aroop_txt_destroy(&key);
@@ -133,22 +137,24 @@ static int async_db_unset_hook(aroop_txt_t*bin, aroop_txt_t*output) {
 	 */
 	aroop_assert(is_master());
 	aroop_txt_t key = {}; // the key to set
-	int destpid = 0;
 	int srcpid = 0;
 	int cb_token = 0;
 	aroop_txt_t cb_hook = {};
-	// 0 = pid, 1 = srcpid, 2 = command, 3 = token, 4 = cb_hook, 5 = key, 6 = newval, 7 = oldval
-	binary_unpack_int(bin, 0, &destpid);
-	binary_unpack_int(bin, 1, &srcpid);
-	binary_unpack_int(bin, 3, &cb_token);
-	binary_unpack_string(bin, 4, &cb_hook); // needs cleanup
-	binary_unpack_string(bin, 5, &key); // needs cleanup
+	// 0 = srcpid, 1 = command, 2 = token, 3 = cb_hook, 4 = key, 5 = newval, 6 = oldval
+	binary_unpack_int(bin, 0, &srcpid);
+	binary_unpack_int(bin, 2, &cb_token);
+	binary_unpack_string(bin, 3, &cb_hook); // needs cleanup
+	binary_unpack_string(bin, 4, &key); // needs cleanup
 	DB_LOG(LOG_NOTICE, "[token%d]-unset-doing ..--[dest:%d]-[key:%s]-[app:%s]", cb_token, srcpid, aroop_txt_to_string(&key), aroop_txt_to_string(&cb_hook));
 	int success = 0;
 	success = !async_db_op_helper(&key, NULL, NULL);
+#if 0
 	if(destpid > 0) {
+#endif
 		async_db_op_reply(srcpid, cb_token, &cb_hook, success, &key, NULL);
+#if 0
 	}
+#endif
 	// cleanup
 	aroop_txt_destroy(&cb_hook);
 	aroop_txt_destroy(&key);
@@ -161,24 +167,24 @@ static int async_db_get_hook(aroop_txt_t*bin, aroop_txt_t*output) {
 	 */
 	aroop_assert(is_master());
 	aroop_txt_t key = {}; // the key to set
-	int destpid = 0;
 	int srcpid = 0;
 	int cb_token = 0;
 	aroop_txt_t cb_hook = {};
-	// 0 = pid, 1 = srcpid, 2 = command, 3 = token, 4 = cb_hook, 5 = key, 6 = val
-	binary_unpack_int(bin, 0, &destpid);
-	binary_unpack_int(bin, 1, &srcpid);
-	binary_unpack_int(bin, 3, &cb_token);
-	binary_unpack_string(bin, 4, &cb_hook); // needs cleanup
-	binary_unpack_string(bin, 5, &key); // needs cleanup
+	// 0 = srcpid, 1 = command, 2 = token, 3 = cb_hook, 4 = key, 5 = val
+	binary_unpack_int(bin, 0, &srcpid);
+	binary_unpack_int(bin, 2, &cb_token);
+	binary_unpack_string(bin, 3, &cb_hook); // needs cleanup
+	binary_unpack_string(bin, 4, &key); // needs cleanup
 	DB_LOG(LOG_NOTICE, "[token%d]-get-doing ..--[dest:%d]-[key:%s]-[app:%s]", cb_token, srcpid, aroop_txt_to_string(&key), aroop_txt_to_string(&cb_hook));
 	//syslog(LOG_NOTICE, "[pid:%d]-getting:%s", getpid(), aroop_txt_to_string(&key));
 	aroop_txt_t*oldval = NULL;
 	do {
 		oldval = (aroop_txt_t*)opp_hash_table_get_no_ref(&global_db, &key); // no cleanup needed
+#if 0
 		if(destpid <= 0) {
 			break;
 		}
+#endif
 		//syslog(LOG_NOTICE, "[pid:%d]-got:%s", getpid(), aroop_txt_to_string(oldval));
 		async_db_op_reply(srcpid, cb_token, &cb_hook, 1, &key, oldval);
 	} while(0);

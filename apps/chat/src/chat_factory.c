@@ -9,11 +9,11 @@
 #include "log.h"
 #include "plugin.h"
 #include "plugin_manager.h"
-#include "net/protostack.h"
-#include "net/streamio.h"
-#include "net/chat.h"
-#include "net/chat/chat_plugin_manager.h"
-#include "net/chat/chat_factory.h"
+#include "protostack.h"
+#include "streamio.h"
+#include "chat.h"
+#include "chat/chat_plugin_manager.h"
+#include "chat/chat_factory.h"
 
 C_CAPSULE_START
 

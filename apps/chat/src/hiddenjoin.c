@@ -1,13 +1,15 @@
 
 #include <aroop/aroop_core.h>
 #include <aroop/core/xtring.h>
+#include <aroop/opp/opp_str2.h>
 #include "nginz_config.h"
 #include "plugin.h"
 #include "log.h"
-#include "net/streamio.h"
-#include "net/chat.h"
-#include "net/chat/chat_plugin_manager.h"
-#include "net/chat/hiddenjoin.h"
+#include "streamio.h"
+#include "scanner.h"
+#include "chat.h"
+#include "chat/chat_plugin_manager.h"
+#include "chat/hiddenjoin.h"
 
 C_CAPSULE_START
 
@@ -18,17 +20,17 @@ static int chat_hiddenjoin_get_room_and_name(aroop_txt_t*request, aroop_txt_t*ro
 	//aroop_txt_embeded_stackbuffer(&request_sandbox, reqlen);
 	//aroop_txt_concat(&request_sandbox, request);
 	aroop_txt_embeded_stackbuffer_from_txt(&request_sandbox, request);
-	shotodol_scanner_next_token(&request_sandbox, &token); // chat/_hiddenjoin
+	scanner_next_token(&request_sandbox, &token); // chat/_hiddenjoin
 	if(aroop_txt_is_empty(&token)) {
 		return -1;
 	}
-	shotodol_scanner_next_token(&request_sandbox, &token); // room
+	scanner_next_token(&request_sandbox, &token); // room
 	if(aroop_txt_is_empty(&token)) {
 		return -1;
 	}
 	aroop_txt_embeded_rebuild_copy_on_demand(room, &token); // needs cleanup
 	aroop_txt_zero_terminate(room);
-	shotodol_scanner_next_token(&request_sandbox, &token); // name
+	scanner_next_token(&request_sandbox, &token); // name
 	if(aroop_txt_is_empty(&token))
 		return -1;
 	aroop_txt_embeded_rebuild_copy_on_demand(name, &token); // needs cleanup
@@ -43,7 +45,6 @@ static int chat_hiddenjoin_plug(int signature, void*given) {
 		return 0;
 	aroop_txt_t room = {};
 	aroop_txt_t name = {};
-	int pid = -1;
 	chat->state |= CHAT_LOGGED_IN;
 	do {
 		if(aroop_txt_is_empty_magical(chat->request) || chat_hiddenjoin_get_room_and_name(chat->request, &room, &name)) {
@@ -69,10 +70,12 @@ int hiddenjoin_module_init() {
 	aroop_txt_t plugin_space = {};
 	aroop_txt_embeded_set_static_string(&plugin_space, "chat/_hiddenjoin");
 	cplug_bridge(chat_plugin_manager_get(), &plugin_space, chat_hiddenjoin_plug, chat_hiddenjoin_plug_desc);
+	return 0;
 }
 
 int hiddenjoin_module_deinit() {
 	composite_unplug_bridge(chat_plugin_manager_get(), 0, chat_hiddenjoin_plug);
+	return 0;
 }
 
 

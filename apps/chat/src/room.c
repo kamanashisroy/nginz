@@ -6,11 +6,11 @@
 #include "db.h"
 #include "plugin.h"
 #include "plugin_manager.h"
-#include "net/streamio.h"
-#include "net/chat.h"
-#include "net/chat/chat_plugin_manager.h"
-#include "net/chat/room.h"
-#include "net/chat/room_master.h"
+#include "streamio.h"
+#include "chat.h"
+#include "chat/chat_plugin_manager.h"
+#include "chat/room.h"
+#include "chat/room_master.h"
 
 C_CAPSULE_START
 
@@ -74,11 +74,11 @@ static int chat_room_lookup_plug(int signature, void*given) {
 
 static int on_asyncchat_rooms(aroop_txt_t*bin, aroop_txt_t*output) {
 	aroop_assert(!aroop_txt_is_empty_magical(bin));
-	// 0 = pid, 1 = srcpid, 2 = command, 3 = token, 4 = success, 5 = info
+	// 0 = srcpid, 1 = command, 2 = token, 3 = success, 4 = info
 	int cb_token = 0;
 	aroop_txt_t info = {};
-	binary_unpack_int(bin, 3, &cb_token); // id/token
-	binary_unpack_string(bin, 5, &info); // needs cleanup
+	binary_unpack_int(bin, 2, &cb_token); // id/token
+	binary_unpack_string(bin, 4, &info); // needs cleanup
 	struct chat_connection*chat = chat_api_get()->get(cb_token); // needs cleanup
 	do {
 		if(!chat) {

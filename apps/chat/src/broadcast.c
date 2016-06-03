@@ -9,10 +9,10 @@
 #include "sys/socket.h"
 #include "plugin.h"
 #include "log.h"
-#include "net/streamio.h"
-#include "net/chat.h"
-#include "net/chat/chat_plugin_manager.h"
-#include "net/chat/broadcast.h"
+#include "streamio.h"
+#include "chat.h"
+#include "chat/chat_plugin_manager.h"
+#include "chat/broadcast.h"
 
 C_CAPSULE_START
 

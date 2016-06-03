@@ -77,6 +77,7 @@ AC_CONFIG_FILES([
 	apps/load_balancer/libnginz_lb.pc
 	apps/http/Makefile
 	apps/http/libnginz_http.pc
+	apps/chat/Makefile
 	Makefile
 ])
 

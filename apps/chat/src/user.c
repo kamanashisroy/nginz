@@ -7,10 +7,10 @@
 #include "plugin.h"
 #include "plugin_manager.h"
 #include "log.h"
-#include "net/streamio.h"
-#include "net/chat.h"
-#include "net/chat/user.h"
-#include "parallel/async_db.h"
+#include "streamio.h"
+#include "chat.h"
+#include "chat/user.h"
+#include "async_db.h"
 
 C_CAPSULE_START
 
@@ -22,7 +22,6 @@ static int build_name_key(aroop_txt_t*name, aroop_txt_t*output) {
 }
 
 int async_try_login(aroop_txt_t*name, int token, aroop_txt_t*response_hook) {
-	int ret = 0;
 	if(aroop_txt_is_empty_magical(name)) // sanity check
 		return -1;
 	aroop_txt_t name_key = {};
@@ -35,7 +34,6 @@ int async_try_login(aroop_txt_t*name, int token, aroop_txt_t*response_hook) {
 
 
 int logoff_user(struct chat_connection*chat) {
-	int ret = 0;
 	if(aroop_txt_is_empty_magical(&chat->name)) // sanity check
 		return -1;
 	aroop_txt_t name_key = {};
@@ -48,9 +46,11 @@ int logoff_user(struct chat_connection*chat) {
 
 
 int user_module_init() {
+	return 0;
 }
 
 int user_module_deinit() {
+	return 0;
 }
 
 C_CAPSULE_END

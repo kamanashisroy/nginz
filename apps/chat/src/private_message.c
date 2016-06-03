@@ -4,12 +4,13 @@
 #include "nginz_config.h"
 #include "plugin.h"
 #include "log.h"
-#include "net/streamio.h"
-#include "net/chat.h"
-#include "net/chat/chat_plugin_manager.h"
-#include "net/chat/user.h"
-#include "net/chat/broadcast.h"
-#include "net/chat/private_message.h"
+#include "streamio.h"
+#include "scanner.h"
+#include "chat.h"
+#include "chat/chat_plugin_manager.h"
+#include "chat/user.h"
+#include "chat/broadcast.h"
+#include "chat/private_message.h"
 
 C_CAPSULE_START
 
@@ -26,7 +27,7 @@ static int chat_private_message_plug(int signature, void*given) {
 	aroop_txt_t other = {};
 	aroop_txt_t sandbox = {};
 	aroop_txt_embeded_stackbuffer_from_txt(&sandbox, chat->request);
-	shotodol_scanner_next_token(&sandbox, &other); // destined user
+	scanner_next_token(&sandbox, &other); // destined user
 	if(aroop_txt_is_empty(&other) || aroop_txt_is_empty(&sandbox)) { // /pm cannot do anything without parameter
 		return 0;
 	}

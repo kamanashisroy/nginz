@@ -4,16 +4,22 @@
 #include "aroop/opp/opp_factory.h"
 #include "aroop/opp/opp_iterator.h"
 #include "aroop/opp/opp_factory_profiler.h"
+#include <aroop/opp/opp_str2.h>
 #include "nginz_config.h"
 #include "event_loop.h"
 #include "plugin.h"
 #include "log.h"
 #include "plugin_manager.h"
-#include "net/protostack.h"
-#include "net/streamio.h"
-#include "net/chat.h"
-#include "net/chat/chat_accept.h"
-#include "net/chat/chat_zombie.h"
+#include "protostack.h"
+#include "streamio.h"
+#include "scanner.h"
+#include "binary_coder.h"
+#include "raw_pipeline.h"
+#include "load_balancer.h"
+#include "chat.h"
+#include "chat/chat_accept.h"
+#include "chat/chat_zombie.h"
+#include "chat/chat_plugin_manager.h"
 
 C_CAPSULE_START
 
@@ -114,7 +120,7 @@ static int on_client_data(int fd, int status, const void*cb_data) {
 	return ret;
 }
 
-static int toggler = 0;
+static struct load_balancer chat_lb;
 static int on_tcp_connection(int fd) {
 	aroop_txt_t bin = {};
 	aroop_txt_embeded_stackbuffer(&bin, NGINZ_MAX_BINARY_MSG_LEN);
@@ -123,13 +129,7 @@ static int on_tcp_connection(int fd) {
 	aroop_txt_t welcome_command = {};
 	aroop_txt_embeded_set_static_string(&welcome_command, "chat/_welcome"); 
 	binary_pack_string(&bin, &welcome_command);
-	if(toggler) {
-		toggler = 0;
-		pp_bubble_down_send_socket(fd, &bin);
-	} else {
-		toggler = 1;
-		pp_bubble_up_send_socket(fd, &bin);
-	}
+	pp_raw_send_socket(load_balancer_next(&chat_lb), fd, &bin);
 	return 0;
 }
 
@@ -151,7 +151,7 @@ static int on_connection_bubble(int fd, aroop_txt_t*cmd) {
 		aroop_txt_t request_sandbox = {};
 		aroop_txt_embeded_stackbuffer(&request_sandbox, reqlen);
 		aroop_txt_concat(&request_sandbox, chat->request);
-		shotodol_scanner_next_token(&request_sandbox, &plugin_space);
+		scanner_next_token(&request_sandbox, &plugin_space);
 		if(aroop_txt_is_empty(&plugin_space)) {
 			aroop_txt_zero_terminate(&request_sandbox);
 			syslog(LOG_ERR, "Possible BUG , cannot handle request %s", aroop_txt_to_string(&request_sandbox));
@@ -179,6 +179,8 @@ static struct protostack chat_protostack = {
 };
 
 int chat_accept_module_init() {
+	// initiate load balancer
+	load_balancer_setup(&chat_lb);
 	aroop_txt_embeded_set_static_string(&cannot_process, "Cannot process the request\n");
 	aroop_txt_embeded_buffer(&recv_buffer, NGINZ_MAX_CHAT_MSG_SIZE);
 	protostack_set(NGINZ_CHAT_PORT, &chat_protostack);
@@ -186,12 +188,15 @@ int chat_accept_module_init() {
 	aroop_txt_embeded_set_static_string(&plugin_space, "shake/softquitall");
 	pm_plug_callback(&plugin_space, chat_accept_on_softquit, chat_accept_on_softquit_desc);
 	chat_api_get()->handle_chat_request = handle_chat_request;
+	return 0;
 }
 
 int chat_accept_module_deinit() {
 	protostack_set(NGINZ_HTTP_PORT, NULL);
 	pm_unplug_callback(0, chat_accept_on_softquit);
 	aroop_txt_destroy(&recv_buffer);
+	load_balancer_destroy(&chat_lb);
+	return 0;
 }
 
 C_CAPSULE_END

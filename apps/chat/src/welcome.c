@@ -5,24 +5,25 @@
 #include "plugin.h"
 #include "plugin_manager.h"
 #include "log.h"
-#include "net/streamio.h"
-#include "net/chat.h"
-#include "net/chat/chat_plugin_manager.h"
-#include "net/chat/user.h"
-#include "net/chat/welcome.h"
+#include "streamio.h"
+#include "scanner.h"
+#include "chat.h"
+#include "chat/chat_plugin_manager.h"
+#include "chat/user.h"
+#include "chat/welcome.h"
 
 C_CAPSULE_START
 
 aroop_txt_t greet_on_login = {};
 static int on_asyncchat_login_hook(aroop_txt_t*bin, aroop_txt_t*output) {
 	aroop_assert(!aroop_txt_is_empty_magical(bin));
-	// 0 = pid, 1 = srcpid, 2 = command, 3 = token, 4 = success, 5 = key, 6 = newvalue
+	// 0 = srcpid, 1 = command, 2 = token, 3 = success, 4 = key, 5 = newvalue
 	int cb_token = 0;
 	int success = 0;
 	aroop_txt_t name = {};
-	binary_unpack_int(bin, 3, &cb_token); // id/token
-	binary_unpack_int(bin, 4, &success);
-	binary_unpack_string(bin, 6, &name); // needs cleanup
+	binary_unpack_int(bin, 2, &cb_token); // id/token
+	binary_unpack_int(bin, 3, &success);
+	binary_unpack_string(bin, 5, &name); // needs cleanup
 	//syslog(LOG_NOTICE, "[token%d]received:[value:%s]", cb_token, aroop_txt_to_string(&name));
 	/*if(!aroop_txt_is_empty(&name)) {
 		aroop_txt_shift(&name, sizeof(USER_PREFIX));
@@ -73,7 +74,7 @@ static int on_asyncchat_login(struct chat_connection*chat, aroop_txt_t*answer) {
 	aroop_txt_t input = {};
 	aroop_txt_embeded_txt_copy_shallow(&input, answer);
 	aroop_txt_t name = {};
-	shotodol_scanner_next_token(&input, &name); // needs cleanup
+	scanner_next_token(&input, &name); // needs cleanup
 	do {
 		// check validity
 		if(aroop_txt_is_empty_magical(&name)) {

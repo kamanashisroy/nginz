@@ -9,10 +9,11 @@
 #include "plugin.h"
 #include "log.h"
 #include "plugin_manager.h"
-#include "net/protostack.h"
-#include "net/streamio.h"
-#include "net/chat.h"
-#include "net/chat/chat_plugin_manager.h"
+#include "protostack.h"
+#include "streamio.h"
+#include "chat.h"
+#include "chat_subsystem.h"
+#include "chat/chat_plugin_manager.h"
 
 C_CAPSULE_START
 
@@ -22,13 +23,15 @@ struct chat_api*chat_api_get() {
 	return &hooks;
 }
 
-int chat_module_init() {
+int nginz_chat_module_init() {
 	memset(&hooks, 0, sizeof(hooks));
 	chat_plugin_manager_module_init();
+	return 0;
 }
 
-int chat_module_deinit() {
+int nginz_chat_module_deinit() {
 	chat_plugin_manager_module_deinit();
+	return 0;
 }
 
 C_CAPSULE_END

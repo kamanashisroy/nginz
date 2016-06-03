@@ -33,8 +33,6 @@ struct chat_connection {
 };
 
 struct chat_api*chat_api_get();
-int chat_module_init();
-int chat_module_deinit();
 
 #define IS_VALID_CHAT(x) (NULL != (x) && IS_VALID_STREAM(&x->strm))
 

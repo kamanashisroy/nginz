@@ -6,10 +6,10 @@
 #include "plugin.h"
 #include "plugin_manager.h"
 #include "event_loop.h"
-#include "net/streamio.h"
-#include "net/chat.h"
-#include "net/chat/chat_plugin_manager.h"
-#include "net/chat/uptime.h"
+#include "streamio.h"
+#include "chat.h"
+#include "chat/chat_plugin_manager.h"
+#include "chat/uptime.h"
 
 C_CAPSULE_START
 

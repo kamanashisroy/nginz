@@ -115,6 +115,7 @@ NGINZ_INLINE int pp_send(int dnid, aroop_txt_t*pkt) {
 	} else {
 		nd = pp_find_node(dnid);
 		aroop_assert(nd);
+		aroop_assert(nd->nid == dnid);
 		return pp_simple_sendmsg(nd->fd[0], pkt);
 	}
 	return 0;
@@ -207,7 +208,8 @@ static int on_bubbles(int fd, int events, const void*unused) {
 /****************************************************/
 
 //#define NGINZ_CLOSE_UNUSED_SOCK
-static int pp_fork_child_after_callback(aroop_txt_t*input, aroop_txt_t*output) {
+static int pp_fork_child_after_callback(int signature, void*unused) {
+	aroop_assert(NGINZ_PIPELINE_SIGNATURE == signature);
 	int i = 0;
 	/****************************************************/
 	/********* Cleanup old parent fds *******************/
@@ -238,11 +240,13 @@ static int pp_fork_child_after_callback(aroop_txt_t*input, aroop_txt_t*output) {
 	return 0;
 }
 
-static int pp_fork_parent_after_callback(aroop_txt_t*input, aroop_txt_t*output) {
+static int pp_fork_parent_after_callback(int signature, void*data) {
+	aroop_assert(NGINZ_PIPELINE_SIGNATURE == signature);
+	pid_t child_pid = *((pid_t*)data);
 	int i = 0;
 	for(i = 0; i < MAX_PROCESS_COUNT; i++) {
 		if(!nodes[i].nid) {
-			nodes[i].nid = 1; /* TODO set child pid */
+			nodes[i].nid = child_pid; /* TODO set child pid */
 			break;
 		}
 	}
@@ -288,9 +292,9 @@ int pp_module_init() {
 	aroop_txt_embeded_buffer(&recv_buffer, NGINZ_MAX_BINARY_MSG_LEN);
 	aroop_txt_t plugin_space = {};
 	aroop_txt_embeded_set_static_string(&plugin_space, "fork/child/after");
-	pm_plug_callback(&plugin_space, pp_fork_child_after_callback, pp_fork_callback_desc);
+	pm_plug_bridge(&plugin_space, pp_fork_child_after_callback, pp_fork_callback_desc);
 	aroop_txt_embeded_set_static_string(&plugin_space, "fork/parent/after");
-	pm_plug_callback(&plugin_space, pp_fork_parent_after_callback, pp_fork_callback_desc);
+	pm_plug_bridge(&plugin_space, pp_fork_parent_after_callback, pp_fork_callback_desc);
 	ping_module_init();
 	async_request_init();
 	return 0;

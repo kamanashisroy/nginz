@@ -1,41 +1,23 @@
 
-TARGET_BIN=nginz_main_debug
+TARGET_BIN=nginz_chat_main
 TARGET_LAR=libnginz_chat.la
-TARGET_AR=libnginz_chat.a libnginz_chat_debug.a
-lib_LIBRARIES=$(TARGET_AR)
-NGINZ_NET_SOURCE_FILES = \
-src/net/chat.c	src/net/chat/chat_plugin_manager.c	src/net/chat/welcome.c	src/net/chat/room.c	src/net/chat/quit.c	src/net/chat/join.c	src/net/chat/broadcast.c	src/net/chat/leave.c	src/net/chat/user.c	src/net/chat/hiddenjoin.c	src/net/chat/uptime.c	src/net/chat/profiler.c	src/net/chat/chat_accept.c	src/net/chat/chat_factory.c	src/net/chat/chat_zombie.c	src/net/chat/chat_command.c	src/net/chat/version.c	src/net/chat/private_message.c	src/net/chat/room_master.c
+bin_PROGRAMS=$(TARGET_BIN)
+lib_LTLIBRARIES=$(TARGET_LAR)
 
-NGINZ_NET_INCLUDES=-Iinc -I../core/inc
-NGINZ_CFLAGS=$(AROOP_CFLAGS) $(MEMCACHED_CFLAGS) -DGIT_COMMIT_VERSION=\"$(GIT_COMMIT_VERSION)\" -Wall
-libnginz_chat_debug_a_SOURCES = $(NGINZ_NET_SOURCE_FILES)
-libnginz_chat_debug_a_CPPFLAGS = $(NGINZ_CFLAGS) -ggdb3 -DAROOP_BASIC -DAROOP_OPP_PROFILE $(NGINZ_NET_INCLUDES) 
-libnginz_chat_a_SOURCES = $(NGINZ_NET_SOURCE_FILES)
-libnginz_chat_a_CPPFLAGS = $(NGINZ_CFLAGS) -ggdb3 -DAROOP_BASIC -DAROOP_OPP_PROFILE $(NGINZ_NET_INCLUDES) 
+NGINZ_CHAT_SOURCE_FILES = \
+src/chat.c	src/chat_plugin_manager.c	src/welcome.c	src/room.c	src/quit.c	src/join.c	src/broadcast.c	src/leave.c	src/user.c	src/hiddenjoin.c	src/uptime.c	src/profiler.c	src/chat_accept.c	src/chat_factory.c	src/chat_zombie.c	src/chat_command.c	src/version.c	src/private_message.c	src/room_master.c
 
-# binary executables
-nginz_core_main_SOURCES= $(NGINZ_SOURCE_FILES) src/main.c $(EVENT_LOOP_POLL)
-nginz_core_main_CPPFLAGS= $(NGINZ_CFLAGS) -O2 $(NGINZ_INCLUDES)
-nginz_core_main_LDFLAGS= $(AROOP_LIBS) $(MEMCACHED_LIBS)
+NGINZ_CHAT_LDFLAGS=$(top_builddir)/base/libnginz_base.la $(top_builddir)/net/libnginz_net.la $(top_builddir)/apps/load_balancer/libnginz_lb.la $(top_builddir)/db/libnginz_db.la
+NGINZ_CHAT_INCLUDES=-Iinc -I$(top_builddir)/base/inc -I$(top_builddir)/net/inc -I$(top_builddir)/apps/load_balancer/inc  -I$(top_builddir)/db/inc 
 
 
-# NOTE for debugging enable the following
-nginz_main_debug_SOURCES= $(NGINZ_SOURCE_FILES) src/main.c $(EVENT_LOOP_POLL)
-#nginz_main_debug_CPPFLAGS= $(NGINZ_CFLAGS) --coverage -ggdb3 -DAROOP_BASIC -DAROOP_OPP_PROFILE $(NGINZ_INCLUDES)
-nginz_main_debug_CPPFLAGS= $(NGINZ_CFLAGS) -ggdb3 -DAROOP_BASIC -DAROOP_OPP_PROFILE $(NGINZ_INCLUDES)
-#nginz_main_debug_LDFLAGS= $(AROOP_DEBUG_LIBS) --coverage $(MEMCACHED_LIBS)
-nginz_main_debug_LDFLAGS= $(AROOP_DEBUG_LIBS) $(MEMCACHED_LIBS)
-nginz_main_partitioned_SOURCES= $(NGINZ_SOURCE_FILES) src/main.c $(EVENT_LOOP_PARTITIONED_OPENMP_POLL)
-nginz_main_partitioned_CPPFLAGS= $(NGINZ_CFLAGS) -fopenmp -DAROOP_BASIC -DAROOP_OPP_PROFILE $(NGINZ_INCLUDES)
-nginz_main_partitioned_LDFLAGS= $(AROOP_DEBUG_LIBS) -lgomp $(MEMCACHED_LIBS)
+NGINZ_CFLAGS=$(AROOP_CFLAGS) -DGIT_COMMIT_VERSION=\"$(GIT_COMMIT_VERSION)\" -Wall
+libnginz_chat_la_SOURCES = $(NGINZ_CHAT_SOURCE_FILES)
+libnginz_chat_la_CPPFLAGS = $(NGINZ_CFLAGS) $(NGINZ_CHAT_INCLUDES)
+libnginz_chat_la_LDFLAGS = $(NGINZ_CHAT_LDFLAGS)
 
-
-
-
-pkgconfigdir = $(libdir)/pkgconfig
-pkgconfig_DATA = libnginz_chat@PACKAGE_SUFFIX@.pc
-
-libnginz_chat@PACKAGE_SUFFIX@.pc: libnginz_chat.pc
-	cp $< $@
+nginz_chat_main_SOURCES = $(NGINZ_CHAT_SOURCE_FILES) src/main.c
+nginz_chat_main_CPPFLAGS = $(NGINZ_CFLAGS) -O2 -DAROOP_BASIC -DAROOP_OPP_PROFILE $(NGINZ_CHAT_INCLUDES) 
+nginz_chat_main_LDFLAGS= -static $(NGINZ_CHAT_LDFLAGS) @AROOP_DEBUG_LIBS@ 
 
 #MAINTAINERCLEANFILES = nginz.pc
