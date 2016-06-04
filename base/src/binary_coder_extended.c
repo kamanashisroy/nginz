@@ -7,6 +7,7 @@
 #include <aroop/opp/opp_any_obj.h>
 #include <aroop/opp/opp_str2.h>
 #include <aroop/aroop_memory_profiler.h>
+#include "nginz_config.h"
 #include "log.h"
 #include "plugin.h"
 #include "plugin_manager.h"
@@ -25,7 +26,7 @@ enum {
 };
 
 typedef uint8_t mychar_t;
-int binary_coder_reset(aroop_txt_t*buffer) {
+NGINZ_INLINE int binary_coder_reset(aroop_txt_t*buffer) {
 	aroop_txt_set_length(buffer, 0);
 	// add base header [0,2]
 	// NOTE unlike content header which is BINARY_CODER_HEADER_LEN, base header is (BINARY_CODER_HEADER_LEN-1) bytes.
@@ -35,21 +36,21 @@ int binary_coder_reset(aroop_txt_t*buffer) {
 	return 0;
 }
 
-int binary_coder_reset_for_pid(aroop_txt_t*buffer, int srcpid) {
+NGINZ_INLINE int binary_coder_reset_for_pid(aroop_txt_t*buffer, int srcpid) {
 	aroop_assert(srcpid > -1);
 	binary_coder_reset(buffer);
 	binary_pack_int(buffer, srcpid);
 	return 0;
 }
 
-static int binary_set_header(mychar_t*header, mychar_t content_type, uint16_t len) {
+NGINZ_INLINE static int binary_set_header(mychar_t*header, mychar_t content_type, uint16_t len) {
 	header[0] = content_type;
 	header[1] = (mychar_t)((len & 0xFF00)>>8);
 	header[2] = (mychar_t)(len & 0x00FF);
 	return 0;
 }
 
-static int binary_pack_string_helper(aroop_txt_t*buffer, aroop_txt_t*x, mychar_t content_type) {
+NGINZ_INLINE static int binary_pack_string_helper(aroop_txt_t*buffer, aroop_txt_t*x, mychar_t content_type) {
 	uint16_t blen = aroop_txt_length(buffer);
 	if((aroop_txt_length(x) + blen + BINARY_CODER_HEADER_LEN) > aroop_txt_capacity(buffer)) {
 		syslog(LOG_ERR, "Binary buffer is full");
@@ -74,7 +75,7 @@ static int binary_pack_string_helper(aroop_txt_t*buffer, aroop_txt_t*x, mychar_t
 }
 
 static aroop_txt_t intbuf = {};
-int binary_pack_int(aroop_txt_t*buffer, int intval) {
+NGINZ_INLINE int binary_pack_int(aroop_txt_t*buffer, int intval) {
 	aroop_txt_set_length(&intbuf, 1);
 	char*str = aroop_txt_to_string(&intbuf);
 	aroop_txt_set_length(&intbuf, 0);
@@ -93,11 +94,11 @@ int binary_pack_int(aroop_txt_t*buffer, int intval) {
 	return binary_pack_string_helper(buffer, &intbuf, NGINZ_BINARY_CONTENT_INTEGER);
 }
 
-int binary_pack_string(aroop_txt_t*buffer, aroop_txt_t*x) {
+NGINZ_INLINE int binary_pack_string(aroop_txt_t*buffer, aroop_txt_t*x) {
 	return binary_pack_string_helper(buffer, x, NGINZ_BINARY_CONTENT_STRING);
 }
 
-static int binary_get_header(mychar_t*header, int offset, mychar_t*content_type, uint16_t*len) {
+NGINZ_INLINE static int binary_get_header(mychar_t*header, int offset, mychar_t*content_type, uint16_t*len) {
 	*content_type = header[offset++];
 	*len = (uint8_t)header[offset++];
 	*len = (*len) << 8;
@@ -105,7 +106,7 @@ static int binary_get_header(mychar_t*header, int offset, mychar_t*content_type,
 	return 0;
 }
 
-static int binary_unpack_string_helper(aroop_txt_t*buffer, int skip, aroop_txt_t*x, mychar_t expected_content_type) {
+NGINZ_INLINE static int binary_unpack_string_helper(aroop_txt_t*buffer, int skip, aroop_txt_t*x, mychar_t expected_content_type) {
 	mychar_t pos = 2;
 	mychar_t content_type = 0;
 	uint16_t blen = aroop_txt_length(buffer);
@@ -154,11 +155,11 @@ static int binary_unpack_string_helper(aroop_txt_t*buffer, int skip, aroop_txt_t
 	return 0;
 }
 
-int binary_unpack_string(aroop_txt_t*buffer, int skip, aroop_txt_t*x) {
+NGINZ_INLINE int binary_unpack_string(aroop_txt_t*buffer, int skip, aroop_txt_t*x) {
 	return binary_unpack_string_helper(buffer, skip, x, NGINZ_BINARY_CONTENT_STRING);
 }
 
-int binary_unpack_int(aroop_txt_t*buffer, int skip, int*intval) {
+NGINZ_INLINE int binary_unpack_int(aroop_txt_t*buffer, int skip, int*intval) {
 	aroop_txt_t x = {};
 	if(binary_unpack_string_helper(buffer, skip, &x, NGINZ_BINARY_CONTENT_INTEGER)) {
 		return -1;
@@ -187,7 +188,7 @@ int binary_unpack_int(aroop_txt_t*buffer, int skip, int*intval) {
 	return 0;
 }
 
-int binary_coder_fixup(aroop_txt_t*buffer) {
+NGINZ_INLINE int binary_coder_fixup(aroop_txt_t*buffer) {
 	uint16_t blen = (mychar_t)aroop_txt_length(buffer);
 	assert(blen >= (BINARY_CODER_HEADER_LEN-1));
 	blen = (mychar_t)aroop_txt_char_at(buffer, 0);

@@ -37,6 +37,8 @@ m4_ifdef([AM_SILENT_RULES],[AM_SILENT_RULES([yes])])
 # Checks for header files.
 AC_CHECK_HEADERS([stdlib.h string.h])
 
+AC_ARG_ENABLE([production],
+    AS_HELP_STRING([--enable-production], [CXXFLAGS='-O2']))
 
 # Checks for programs.
 AC_PROG_CC
