@@ -22,16 +22,7 @@
 
 C_CAPSULE_START
 
-static int tcp_ports[NGINZ_MAX_PROTO] = {
-	NGINZ_CHAT_PORT
-#ifdef HAS_HTTP_MODULE
-	, NGINZ_HTTP_PORT
-#else
-	, 0
-#endif
-	, 0
-	, 0
-};
+static int tcp_ports[NGINZ_MAX_PROTO];
 static int tcp_sockets[NGINZ_MAX_PROTO] = { -1, -1, -1, -1};
 
 static int on_connection(int fd, int status, const void*pstack) {
@@ -69,6 +60,7 @@ static int tcp_listener_stop_desc(aroop_txt_t*plugin_space,aroop_txt_t*output) {
 static int tcp_listener_start() {
 	int i = 0;
 	int count = sizeof(tcp_sockets)/sizeof(*tcp_sockets);
+	aroop_assert(tcp_ports[0]);
 	for(i = 0; i < count && tcp_ports[i] != 0; i++) {
 		aroop_assert(tcp_sockets[i] == -1);
 		if((tcp_sockets[i] = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0) {
@@ -104,6 +96,8 @@ static int tcp_listener_start() {
 int tcp_listener_init() {
 	if(!is_master()) // we only start it in the master
 		return 0;
+	memset(tcp_ports, 0, sizeof(tcp_ports));
+	protostack_get_ports_internal(tcp_ports);
 	tcp_listener_start();
 	aroop_txt_t plugin_space = {};
 	aroop_txt_embeded_set_static_string(&plugin_space, "fork/child/after");

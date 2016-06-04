@@ -27,6 +27,13 @@ enum event_loop_config {
 	NGINZ_POLL_ALL_FLAGS = POLLIN | POLLPRI | POLLHUP,
 	NGINZ_POLL_CLOSE_FLAGS = POLLHUP,
 };
+/**
+ * Lazy call API
+ */
+enum {
+	NGINZ_LAZY_STACK_SIZE = 24,
+	NGINZ_LAZY_OBJECT_QUEUE_SIZE = 1024,
+};
 
 /**
  * Protocol implemenation

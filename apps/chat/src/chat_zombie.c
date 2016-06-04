@@ -13,6 +13,7 @@
 #include "plugin_manager.h"
 #include "protostack.h"
 #include "streamio.h"
+#include "lazy_call.h"
 #include "chat.h"
 #include "chat/chat_plugin_manager.h"
 #include "chat/chat_zombie.h"
@@ -28,7 +29,7 @@ int chat_zombie_add(struct chat_connection*chat) {
 	aroop_assert(chat->quited_at);
 	chat->state |= CHAT_ZOMBIE;
 	opp_list_add_noref(&zombie_list, chat);
-	OPPREF(chat);
+	//OPPREF(chat);
 	return 0;
 }
 
@@ -51,7 +52,7 @@ static int chat_zombie_on_softquit_desc(aroop_txt_t*plugin_space, aroop_txt_t*ou
 
 static long gear = 0;
 static int chat_lazy_cleanup_fiber(int status) {
-	if(gear < 1000000) {
+	if(gear < 10) {
 		gear++;
 		return 0;
 	}
@@ -59,6 +60,7 @@ static int chat_lazy_cleanup_fiber(int status) {
 	gear = 0;
 	if(!OPP_FACTORY_USE_COUNT(&zombie_list))
 		return 0;
+	syslog(LOG_ERR, "Lets check zombee");
 	struct opp_iterator iterator = {};
 	opp_iterator_create(&iterator, &zombie_list, OPPN_ALL, 0, 0);
 	do {
@@ -67,10 +69,10 @@ static int chat_lazy_cleanup_fiber(int status) {
 		if(!pt)
 			break;
 		struct chat_connection*chat = (struct chat_connection*)pt->obj_data;
-		if(chat->quited_at == 0 || ((now - chat->quited_at) < 120)) {
+		if(chat->quited_at == 0 || ((now - chat->quited_at) > 120)) {
 			continue;
 		}
-		OPPUNREF(pt); // cleanup
+		lazy_cleanup(pt); // cleanup
 	}while(1);
 	opp_iterator_destroy(&iterator);
 	return 0;

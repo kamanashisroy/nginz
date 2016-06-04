@@ -32,13 +32,16 @@ int noasync_db_get(aroop_txt_t*key, aroop_txt_t*val) {
 	return 0;
 }
 
+static aroop_txt_t null_hook = {};
 static int async_db_op_reply(int destpid, int cb_token, aroop_txt_t*cb_hook, int success, aroop_txt_t*key, aroop_txt_t*newval) {
 	// send response
 	// 0 = pid, 1 = src pid, 2 = command, 3 = token, 4 = cb_hook, 5 = success
 	aroop_txt_t*args[3] = {key, newval, NULL};
 	DB_LOG(LOG_NOTICE, "[token%d]-replying-throwing to--[dest:%d]-[key:%s]-[app:%s]", cb_token, destpid, aroop_txt_to_string(key), aroop_txt_to_string(cb_hook));
-	async_pm_reply_worker(destpid, cb_token, cb_hook, success, args);
-	return 0;
+	if(aroop_txt_is_empty(cb_hook)) {
+		return async_pm_reply_worker(destpid, cb_token, &null_hook, success, args);
+	}
+	return async_pm_reply_worker(destpid, cb_token, cb_hook, success, args);
 }
 
 static int async_db_op_helper(aroop_txt_t*key, aroop_txt_t*newval, aroop_txt_t*expval) {
@@ -225,6 +228,7 @@ static int async_db_dump_desc(aroop_txt_t*plugin_space, aroop_txt_t*output) {
 }
 
 int async_db_master_init() {
+	aroop_txt_embeded_set_static_string(&null_hook, "null");
 	aroop_assert(is_master());
 	opp_hash_table_create(&global_db, 16, 0, aroop_txt_get_hash_cb, aroop_txt_equals_cb);
 	aroop_txt_t plugin_space = {};

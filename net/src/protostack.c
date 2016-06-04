@@ -38,14 +38,27 @@ int protostack_set(int port, struct protostack*x) {
 	return 0;
 }
 
+int protostack_get_ports_internal(int*tcp_ports) {
+	int i = 0;
+	//memset(tcp_ports, 0, sizeof(int)*NGINZ_MAX_PROTO);
+	for(i = 0; i < NGINZ_MAX_PROTO; i++) {
+		if(internal_stacks[i])
+			tcp_ports[i] = internal_port_for_stacks[i];
+		else
+			break;
+	}
+	return 0;
+}
 
 int protostack_init() {
 	memset(internal_port_for_stacks, 0, sizeof(internal_port_for_stacks));
 	memset(internal_stacks, 0, sizeof(internal_stacks));
+	return 0;
 }
 
 int protostack_deinit() {
 	// nothing to do
+	return 0;
 }
 
 C_CAPSULE_END

@@ -8,4 +8,4 @@ int nginz_chat_module_deinit();
 
 C_CAPSULE_END
 
-#endif NGINZ_CHAT_SUBSYSTEM_H
+#endif // NGINZ_CHAT_SUBSYSTEM_H

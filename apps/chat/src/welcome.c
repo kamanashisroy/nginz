@@ -125,12 +125,14 @@ int welcome_module_init() {
 	cplug_bridge(chat_plugin_manager_get(), &plugin_space, chat_welcome_plug, chat_welcome_plug_desc);
 	aroop_txt_embeded_set_static_string(&plugin_space, "on/asyncchat/login");
 	pm_plug_callback(&plugin_space, on_asyncchat_login_hook , on_asyncchat_login_hook_desc);
+	return 0;
 }
 
 int welcome_module_deinit() {
 	composite_unplug_bridge(chat_plugin_manager_get(), 0, chat_welcome_plug);
 	pm_unplug_callback(0, on_asyncchat_login_hook);
 	aroop_txt_destroy(&greet_on_login);
+	return 0;
 }
 
 

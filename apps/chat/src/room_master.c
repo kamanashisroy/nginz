@@ -9,6 +9,10 @@
 #include "streamio.h"
 #include "scanner.h"
 #include "binary_coder.h"
+#include "parallel/pipeline.h"
+#include "parallel/async_request.h"
+#include "async_db.h"
+#include "async_db_master.h"
 #include "chat.h"
 #include "chat/chat_plugin_manager.h"
 #include "chat/room.h"
@@ -153,10 +157,16 @@ static int chat_room_add_helper(int index) {
 	return 0;
 }
 
-static int internal_child_count = 0;
-static int default_room_fork_child_after_callback(aroop_txt_t*input, aroop_txt_t*output) {
-	chat_room_add_helper(internal_child_count++); // add default indexes
-	chat_room_add_helper(internal_child_count++); // add default indexes
+static int internal_child_count = -1;
+static int default_room_fork_before_callback(int signature, void*unused) {
+	aroop_assert(NGINZ_PIPELINE_SIGNATURE == signature);
+	internal_child_count++; // add default indexes
+	return 0;
+}
+static int default_room_fork_child_after_callback(int signature, void*unused) {
+	aroop_assert(NGINZ_PIPELINE_SIGNATURE == signature);
+	chat_room_add_helper(internal_child_count); // add default indexes
+	//chat_room_add_helper(internal_child_count++); // add default indexes
 	return 0;
 }
 
@@ -170,14 +180,17 @@ int room_master_module_init() {
 	aroop_txt_t plugin_space = {};
 	aroop_txt_embeded_set_static_string(&plugin_space, ON_ASYNC_ROOM_CALL);
 	pm_plug_callback(&plugin_space, on_async_room_call_master, on_asyncchat_rooms_desc);
+	aroop_txt_embeded_set_static_string(&plugin_space, "fork/before");
+	pm_plug_bridge(&plugin_space, default_room_fork_before_callback, default_room_fork_callback_desc);
 	aroop_txt_embeded_set_static_string(&plugin_space, "fork/child/after");
-	pm_plug_callback(&plugin_space, default_room_fork_child_after_callback, default_room_fork_callback_desc);
+	pm_plug_bridge(&plugin_space, default_room_fork_child_after_callback, default_room_fork_callback_desc);
 	return 0;
 }
 
 int room_master_module_deinit() {
 	aroop_assert(is_master());
-	pm_unplug_callback(0, default_room_fork_child_after_callback);
+	pm_unplug_bridge(0, default_room_fork_child_after_callback);
+	pm_unplug_bridge(0, default_room_fork_before_callback);
 	pm_unplug_callback(0, on_async_room_call_master);
 	return 0;
 }

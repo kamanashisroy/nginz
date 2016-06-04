@@ -10,6 +10,7 @@ NGINZ_SOURCE_FILES = \
 src/fiber.c     src/plugin.c	src/plugin_manager.c	src/scanner.c \
 src/binary_coder_extended.c \
 src/backtrace.c \
+src/lazy_call.c \
 src/shake.c	src/shake/help.c	src/shake/test.c	src/shake/quitall.c	src/shake/enumerate.c \
 src/parallel/pipeline.c	src/parallel/fork.c	src/parallel/ping.c \
 src/parallel/async_request.c \

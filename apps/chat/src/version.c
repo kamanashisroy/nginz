@@ -35,10 +35,12 @@ int version_module_init() {
 	aroop_txt_t plugin_space = {};
 	aroop_txt_embeded_set_static_string(&plugin_space, "chat/version");
 	cplug_bridge(chat_plugin_manager_get(), &plugin_space, chat_version_plug, chat_version_plug_desc);
+	return 0;
 }
 
 int version_module_deinit() {
 	composite_unplug_bridge(chat_plugin_manager_get(), 0, chat_version_plug);
+	return 0;
 }
 
 

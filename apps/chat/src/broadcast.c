@@ -5,14 +5,17 @@
 #include <aroop/opp/opp_factory_profiler.h>
 #include <aroop/opp/opp_iterator.h>
 #include <aroop/opp/opp_list.h>
+#include <aroop/opp/opp_str2.h>
 #include "nginz_config.h"
 #include "sys/socket.h"
 #include "plugin.h"
 #include "log.h"
 #include "streamio.h"
+#include "lazy_call.h"
 #include "chat.h"
 #include "chat/chat_plugin_manager.h"
 #include "chat/broadcast.h"
+#include "chat/room.h"
 
 C_CAPSULE_START
 
@@ -33,7 +36,7 @@ int broadcast_private_message(struct chat_connection*chat, aroop_txt_t*to, aroop
 	struct opp_iterator iterator = {};
 	opp_iterator_create(&iterator, &rm->user_list, OPPN_ALL, 0, 0);
 	opp_pointer_ext_t*pt;
-	while(pt = opp_iterator_next(&iterator)) {
+	while((pt = opp_iterator_next(&iterator))) {
 		struct chat_connection*other = (struct chat_connection*)pt->obj_data;
 		if(!aroop_txt_equals(to, &other->name))
 			continue; // do not broadcast to self
@@ -51,7 +54,7 @@ static int broadcast_callback_helper(struct chat_connection*chat, struct interna
 	aroop_assert(rm);
 	opp_iterator_create(&iterator, &rm->user_list, OPPN_ALL, 0, 0);
 	opp_pointer_ext_t*pt;
-	while(pt = opp_iterator_next(&iterator)) {
+	while((pt = opp_iterator_next(&iterator))) {
 		struct chat_connection*other = (struct chat_connection*)pt->obj_data;
 		if(chat == other)
 			continue; // do not broadcast to self
@@ -90,7 +93,7 @@ static int broadcast_room_greet(struct chat_connection*chat, struct internal_roo
 	struct opp_iterator iterator = {};
 	opp_iterator_create(&iterator, &rm->user_list, OPPN_ALL, 0, 0);
 	opp_pointer_ext_t*pt;
-	while(pt = opp_iterator_next(&iterator)) {
+	while((pt = opp_iterator_next(&iterator))) {
 		struct chat_connection*other = (struct chat_connection*)pt->obj_data;
 		aroop_txt_set_length(&resp, 0);
 		aroop_txt_concat_char(&resp, '\t');
@@ -117,6 +120,7 @@ static int broadcast_room_greet(struct chat_connection*chat, struct internal_roo
 	aroop_txt_concat(&resp, &chat->name);
 	aroop_txt_concat_char(&resp, '\n');
 	broadcast_callback_helper(chat, rm, &resp);
+	return 0;
 }
 
 static int broadcast_room_bye(struct chat_connection*chat, struct internal_room*rm) {
@@ -126,6 +130,7 @@ static int broadcast_room_bye(struct chat_connection*chat, struct internal_room*
 	aroop_txt_concat(&resp, &chat->name);
 	aroop_txt_concat_char(&resp, '\n');
 	broadcast_callback_helper(NULL/* do not ommit the user */, rm, &resp);
+	return 0;
 }
 
 static int broadcast_room_send_join_failed(struct chat_connection*chat) {
@@ -183,8 +188,10 @@ int broadcast_room_join(struct chat_connection*chat, aroop_txt_t*room_name) {
 int broadcast_room_leave(struct chat_connection*chat) {
 	// find the chatroom
 	struct internal_room*rm = (struct internal_room*)chat->callback_data;
-	if(!rm)
+	if(!rm) {
+		syslog(LOG_ERR, "We do not know how he can leave room\n");
 		return 0;
+	}
 	aroop_assert(chat->state & CHAT_IN_ROOM);
 	broadcast_room_bye(chat, rm);
 
@@ -192,10 +199,11 @@ int broadcast_room_leave(struct chat_connection*chat) {
 	struct opp_iterator iterator = {};
 	opp_iterator_create(&iterator, &rm->user_list, OPPN_ALL, 0, 0);
 	opp_pointer_ext_t*pt = NULL;
-	while(pt = opp_iterator_next(&iterator)) {
+	while((pt = opp_iterator_next(&iterator))) {
 		struct chat_connection*other = (struct chat_connection*)pt->obj_data;
 		if(chat == other) {
-			OPPUNREF(pt);
+			syslog(LOG_NOTICE, "Scheduled destruction of user %s from list\n", aroop_txt_to_string(&other->name));
+			lazy_cleanup(pt);
 			break;
 		}
 	}
@@ -209,8 +217,28 @@ int broadcast_room_leave(struct chat_connection*chat) {
 }
 
 int broadcast_add_room(aroop_txt_t*room_name) {
+	int added = 0;
+	// CHECK if the room already exists
+	struct opp_iterator iterator = {};
+	opp_iterator_create(&iterator, &room_factory, OPPN_ALL, 0, 0);
+	struct internal_room*rm = NULL;
+	while((rm = opp_iterator_next(&iterator))) {
+		aroop_assert(rm);
+		if(aroop_txt_equals(room_name, &rm->name)) {
+			added = 1;
+			break;
+		}
+	}
+	rm = NULL;
+	opp_iterator_destroy(&iterator);
+	if(added) {
+		syslog(LOG_ERR, "room already added");
+		return 0;
+	}
+	syslog(LOG_NOTICE, "[%d]Adding room %s\n", getpid(), aroop_txt_to_string(room_name));
+
 	// XXX we have to load broadcast module before room module
-	struct internal_room*rm = OPP_ALLOC1(&room_factory);
+	rm = OPP_ALLOC1(&room_factory);
 	aroop_txt_embeded_copy_deep(&rm->name, room_name);
 	opp_set_hash(rm, aroop_txt_get_hash(&rm->name)); // set the hash so that it can be searched easily
 	return 0;
@@ -234,9 +262,11 @@ OPP_CB(internal_room) {
 
 int broadcast_module_init() {
 	NGINZ_SEARCHABLE_FACTORY_CREATE(&room_factory, 2, sizeof(struct internal_room), OPP_CB_FUNC(internal_room));
+	return 0;
 }
 int broadcast_module_deinit() {
 	OPP_PFACTORY_DESTROY(&room_factory);
+	return 0;
 }
 
 C_CAPSULE_END

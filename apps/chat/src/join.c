@@ -11,10 +11,12 @@
 #include "event_loop.h"
 #include "binary_coder.h"
 #include "scanner.h"
+#include "lazy_call.h"
 #include "chat.h"
 #include "chat/chat_plugin_manager.h"
 #include "chat/broadcast.h"
 #include "chat/join.h"
+#include "chat/room.h"
 
 C_CAPSULE_START
 
@@ -33,6 +35,8 @@ static int chat_join_transfer(struct chat_connection*chat, aroop_txt_t*room, int
 	aroop_txt_zero_terminate(&cmd);
 	chat->strm.transfer_parallel(&chat->strm, pid, NGINZ_CHAT_PORT, &cmd);
 	chat->state |= CHAT_SOFT_QUIT; // quit the user from this process
+	chat->strm.close(&chat->strm);
+	lazy_cleanup(chat);
 	return 0;
 }
 

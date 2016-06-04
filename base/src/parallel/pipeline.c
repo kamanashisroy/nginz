@@ -198,7 +198,7 @@ static int on_bubbles(int fd, int events, const void*unused) {
 #endif
 		aroop_txt_destroy(&output);
 	} while(0);
-	syslog(LOG_NOTICE, "[pid:%d]\texecuting command:%s", getpid(), aroop_txt_to_string(&x));
+	//syslog(LOG_NOTICE, "[pid:%d]\texecuting command:%s", getpid(), aroop_txt_to_string(&x));
 	aroop_txt_destroy(&x);
 	return 0;
 }
