@@ -18,7 +18,7 @@ NginZ depends on the following packages,
 - libtool
 - pkg-config
 - [Aroop Core](https://github.com/kamanashisroy/aroop_core)
-- libmemcached
+- libmemcached(not needed anymore)
 
 It it tested in Linux platform.
 
@@ -134,41 +134,64 @@ Benchmarking
 
 I did benchmarking with [10K concurrency and 1 Million requests](BENCHMARKING.md). 
 
-I did benchmarking in the localhost with 1K concurency.
+I did benchmarking in the localhost with 10K concurency.
 
 ```
-ab -r -n 100000 -c 1000 http://localhost:80/
-...
-...
-Concurrency Level:      1000
-Time taken for tests:   5.975 seconds
+ab -r -n 100000 -c 10000 http://localhost:80/
+This is ApacheBench, Version 2.3 <$Revision: 655654 $>
+Copyright 1996 Adam Twiss, Zeus Technology Ltd, http://www.zeustech.net/
+Licensed to The Apache Software Foundation, http://www.apache.org/
+
+Benchmarking localhost (be patient)
+Completed 10000 requests
+Completed 20000 requests
+Completed 30000 requests
+Completed 40000 requests
+Completed 50000 requests
+Completed 60000 requests
+Completed 70000 requests
+Completed 80000 requests
+Completed 90000 requests
+Completed 100000 requests
+Finished 100000 requests
+
+
+Server Software:        
+Server Hostname:        localhost
+Server Port:            80
+
+Document Path:          /
+Document Length:        11 bytes
+
+Concurrency Level:      10000
+Time taken for tests:   10.617 seconds
 Complete requests:      100000
 Failed requests:        0
 Write errors:           0
 Total transferred:      4900000 bytes
 HTML transferred:       1100000 bytes
-Requests per second:    16736.06 [#/sec] (mean)
-Time per request:       59.751 [ms] (mean)
-Time per request:       0.060 [ms] (mean, across all concurrent requests)
-Transfer rate:          800.85 [Kbytes/sec] received
+Requests per second:    9418.73 [#/sec] (mean)
+Time per request:       1061.714 [ms] (mean)
+Time per request:       0.106 [ms] (mean, across all concurrent requests)
+Transfer rate:          450.70 [Kbytes/sec] received
 
 Connection Times (ms)
               min  mean[+/-sd] median   max
-Connect:       11   36 123.0     21    1031
-Processing:     7   23   4.6     22      50
-Waiting:        2   17   4.7     16      40
-Total:         28   59 123.4     43    1061
+Connect:      117  579 683.4    416    7497
+Processing:   118  392 137.4    399    7036
+Waiting:       16  236 156.3    214    7003
+Total:        345  971 715.9    813   10371
 
 Percentage of the requests served within a certain time (ms)
-  50%     43
-  66%     45
-  75%     46
-  80%     47
-  90%     51
-  95%     54
-  98%     62
-  99%   1040
- 100%   1061 (longest request)
+  50%    813
+  66%    907
+  75%    969
+  80%    987
+  90%   1649
+  95%   1723
+  98%   2136
+  99%   3797
+ 100%  10371 (longest request)
 ```
 The result shows it can handle concurrent request. And the processor usage is uniform.
 
