@@ -29,7 +29,7 @@ int chat_zombie_add(struct chat_connection*chat) {
 	aroop_assert(chat->quited_at);
 	chat->state |= CHAT_ZOMBIE;
 	opp_list_add_noref(&zombie_list, chat);
-	//OPPREF(chat);
+	OPPREF(chat);
 	return 0;
 }
 

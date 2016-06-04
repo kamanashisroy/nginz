@@ -240,6 +240,7 @@ static int pp_fork_child_after_callback(int signature, void*unused) {
 	return 0;
 }
 
+static aroop_txt_t mailbox_child_pid = {};
 static int pp_fork_parent_after_callback(int signature, void*data) {
 	aroop_assert(NGINZ_PIPELINE_SIGNATURE == signature);
 	pid_t child_pid = *((pid_t*)data);
@@ -251,6 +252,7 @@ static int pp_fork_parent_after_callback(int signature, void*data) {
 		}
 	}
 	assert(getpid() == mynode->nid);
+	aroop_txt_t*noargs[1] = {NULL};
 	/* check if the forking is all complete */
 	if(nodes[MAX_PROCESS_COUNT-1].nid) { /* if there is no more forking cleanup */
 		for(i = 1/* skip the master */; i < MAX_PROCESS_COUNT; i++) {
@@ -259,6 +261,8 @@ static int pp_fork_parent_after_callback(int signature, void*data) {
 			close(nodes[i].fd[1]);
 			close(nodes[i].raw_fd[1]);
 #endif
+			/* broadcast the pid of the child */
+			async_pm_reply_worker(0, nodes[i].nid, &mailbox_child_pid, i, noargs);
 		}
 		/****************************************************/
 		/********* Register readers *************************/
@@ -275,6 +279,21 @@ static int pp_fork_callback_desc(aroop_txt_t*plugin_space,aroop_txt_t*output) {
 	return plugin_desc(output, "pipeline", "fork", plugin_space, __FILE__, "It allows the processes to pipeline messages to and forth.\n");
 }
 
+static int pp_update_siblings_pid(aroop_txt_t*input, aroop_txt_t*output) {
+	aroop_assert(!aroop_txt_is_empty_magical(input));
+	int nid = 0;
+	int index = 0;
+	binary_unpack_int(input, 2, &nid); // id/token
+	binary_unpack_int(input, 3, &index); // target index
+	if((nodes+index) != mynode) {
+		nodes[index].nid = nid;
+	}
+	return 0;
+}
+
+static int pp_update_siblings_pid_desc(aroop_txt_t*plugin_space,aroop_txt_t*output) {
+	return plugin_desc(output, "pipeline", "pipeline", plugin_space, __FILE__, "It shares the pid of the siblings to each other.\n");
+}
 /****************************************************/
 /****** Module constructors and destructors *********/
 /****************************************************/
@@ -295,6 +314,8 @@ int pp_module_init() {
 	pm_plug_bridge(&plugin_space, pp_fork_child_after_callback, pp_fork_callback_desc);
 	aroop_txt_embeded_set_static_string(&plugin_space, "fork/parent/after");
 	pm_plug_bridge(&plugin_space, pp_fork_parent_after_callback, pp_fork_callback_desc);
+	aroop_txt_embeded_set_static_string(&mailbox_child_pid, "mailbox/child/pid");
+	pm_plug_callback(&mailbox_child_pid, pp_update_siblings_pid, pp_update_siblings_pid_desc);
 	ping_module_init();
 	async_request_init();
 	return 0;

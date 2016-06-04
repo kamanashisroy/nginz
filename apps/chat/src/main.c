@@ -16,7 +16,7 @@
 C_CAPSULE_START
 
 static int nginz_main(char**args) {
-	//daemon(0,0);
+	daemon(0,0);
 	setlogmask (LOG_UPTO (LOG_NOTICE));
 	openlog ("nginz_chat", LOG_CONS | LOG_PID | LOG_NDELAY, LOG_LOCAL1);
 	nginz_core_init();

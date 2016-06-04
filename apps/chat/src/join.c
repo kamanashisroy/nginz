@@ -35,7 +35,7 @@ static int chat_join_transfer(struct chat_connection*chat, aroop_txt_t*room, int
 	aroop_txt_zero_terminate(&cmd);
 	chat->strm.transfer_parallel(&chat->strm, pid, NGINZ_CHAT_PORT, &cmd);
 	chat->state |= CHAT_SOFT_QUIT; // quit the user from this process
-	chat->strm.close(&chat->strm);
+	//chat->strm.close(&chat->strm);
 	lazy_cleanup(chat);
 	return 0;
 }
