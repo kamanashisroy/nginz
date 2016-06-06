@@ -8,14 +8,20 @@
 #include "aroop/opp/opp_factory_profiler.h"
 #include "aroop/opp/opp_any_obj.h"
 #include "aroop/opp/opp_str2.h"
+#include "aroop/opp/opp_hash_otable.h"
 #include "aroop/aroop_memory_profiler.h"
 #include "syslog.h"
 #include "plugin.h"
 
 C_CAPSULE_START
+enum {
+	MAX_EXTENSIONS = 23,
+};
+
 struct composite_plugin { 
 	struct opp_factory factory;
-	opp_hash_table_t table;
+	opp_map_pointer_t ptrs[MAX_EXTENSIONS];
+	opp_hash_otable_t table;
 };
 
 
@@ -62,11 +68,11 @@ OPP_CB(composite_plugin) {
 		case OPPN_ACTION_INITIALIZE:
 			memset(&cplug->factory, 0, sizeof(cplug->factory)); // MUST
 			NGINZ_FACTORY_CREATE(&cplug->factory, 32, sizeof(struct internal_plugin), OPP_CB_FUNC(internal_plugin));
-			opp_hash_table_create(&cplug->table, 16, 0, aroop_txt_get_hash_cb, aroop_txt_equals_cb);
+			opp_hash_otable_create(&cplug->table, cplug->ptrs, MAX_EXTENSIONS, 16, 0, aroop_txt_get_hash_cb, aroop_txt_equals_cb);
 		break;
 		case OPPN_ACTION_FINALIZE:
 			OPP_PFACTORY_DESTROY(&cplug->factory);
-			opp_hash_table_destroy(&cplug->table);
+			opp_hash_otable_destroy(&cplug->table);
 			
 		break;
 	}
@@ -112,14 +118,14 @@ static int composite_plug_helper(struct composite_plugin*container
 	plugin->lineno = lineno;
 	aroop_assert(plugin->plugin_space != NULL);
 	aroop_txt_zero_terminate(plugin->plugin_space);
-	struct internal_plugin*root = opp_hash_table_get_no_ref(&(container->table), plugin->plugin_space);
+	struct internal_plugin*root = opp_hash_otable_get_no_ref(&(container->table), plugin->plugin_space);
 	if(root) {
 		while(root->next != NULL)
 			root = root->next;
 		OPPREF(plugin);
 		root->next = plugin;
 	} else {
-		opp_hash_table_set(&(container->table), plugin->plugin_space, plugin);
+		opp_hash_otable_set(&(container->table), plugin->plugin_space, plugin);
 	}
 	int ret = 0; // XXX TOKEN DOES NOT WORK
 	OPPUNREF(plugin); // cleanup : unref the plugin, it is already saved in the hashtable
@@ -155,7 +161,7 @@ int composite_unplug_inner_composite(struct composite_plugin*container, int plug
 }
 
 int composite_plugin_call(struct composite_plugin*container, aroop_txt_t*plugin_space, aroop_txt_t*input, aroop_txt_t*output) {
-	struct internal_plugin*plugin = opp_hash_table_get_no_ref(&container->table, plugin_space);
+	struct internal_plugin*plugin = opp_hash_otable_get_no_ref(&container->table, plugin_space);
 	int ret = 0;
 	while(plugin) {
 		aroop_assert(plugin->category == CALLBACK_PLUGIN);
@@ -167,7 +173,7 @@ int composite_plugin_call(struct composite_plugin*container, aroop_txt_t*plugin_
 
 
 int composite_plugin_bridge_call(struct composite_plugin*container, aroop_txt_t*plugin_space, int signature, void*data) {
-	struct internal_plugin*plugin = opp_hash_table_get_no_ref(&container->table, plugin_space);
+	struct internal_plugin*plugin = opp_hash_otable_get_no_ref(&container->table, plugin_space);
 	int ret = 0;
 	while(plugin) {
 		aroop_assert(plugin->category == BRIDGE_PLUGIN);
