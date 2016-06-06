@@ -42,7 +42,7 @@ static int test_command_tester(
 }
 
 static int test_command(aroop_txt_t*input, aroop_txt_t*output) {
-	composite_plugin_test(pm_get());
+	//composite_plugin_test(pm_get());
 	aroop_txt_embeded_buffer(output, 512);
 	composite_plugin_visit_all(pm_get(), test_command_tester, output);
 	aroop_txt_concat_string(output, "\nTests Complete\n");

@@ -15,7 +15,7 @@
 
 C_CAPSULE_START
 enum {
-	MAX_EXTENSIONS = 23,
+	MAX_EXTENSIONS = 64,
 };
 
 struct composite_plugin { 
@@ -68,7 +68,7 @@ OPP_CB(composite_plugin) {
 		case OPPN_ACTION_INITIALIZE:
 			memset(&cplug->factory, 0, sizeof(cplug->factory)); // MUST
 			NGINZ_FACTORY_CREATE(&cplug->factory, 32, sizeof(struct internal_plugin), OPP_CB_FUNC(internal_plugin));
-			opp_hash_otable_create(&cplug->table, cplug->ptrs, MAX_EXTENSIONS, 16, 0, aroop_txt_get_hash_cb, aroop_txt_equals_cb);
+			opp_hash_otable_create(&cplug->table, &cplug->ptrs, MAX_EXTENSIONS, aroop_txt_get_hash_cb, aroop_txt_equals_cb, 0);
 		break;
 		case OPPN_ACTION_FINALIZE:
 			OPP_PFACTORY_DESTROY(&cplug->factory);
@@ -183,6 +183,36 @@ int composite_plugin_bridge_call(struct composite_plugin*container, aroop_txt_t*
 	return ret;
 }
 
+struct composite_plugin_visit_all_helper_data {
+	int (*visitor)(
+		int category
+		, aroop_txt_t*plugin_space
+		, int(*callback)(aroop_txt_t*input, aroop_txt_t*output)
+		, int(*bridge)(int signature, void*x)
+		, struct composite_plugin*inner
+		, int(*desc)(aroop_txt_t*plugin_space, aroop_txt_t*output)
+		, void*visitor_data
+	);
+	void*visitor_data;
+};
+
+int composite_plugin_visit_all_helper(void*cb_data, void*key, void*data) {
+	struct composite_plugin_visit_all_helper_data*helper_data = cb_data;
+	struct internal_plugin*plugin = data;
+	do {
+		helper_data->visitor(
+			plugin->category
+			, plugin->plugin_space
+			, plugin->x.callback
+			, plugin->x.bridge
+			, plugin->x.inner
+			, plugin->desc
+			, helper_data->visitor_data
+		);
+	} while((plugin = plugin->next));
+	return 0;
+}
+
 
 int composite_plugin_visit_all(struct composite_plugin*container, int (*visitor)(
 		int category
@@ -193,31 +223,13 @@ int composite_plugin_visit_all(struct composite_plugin*container, int (*visitor)
 		, int(*desc)(aroop_txt_t*plugin_space, aroop_txt_t*output)
 		, void*visitor_data
 	), void*visitor_data) {
-	struct opp_iterator iterator;
-	opp_iterator_create(&iterator, &container->table.fac, OPPN_ALL, 0, 0);
-	do {
-		opp_map_pointer_ext_t*item = opp_iterator_next(&iterator);
-		if(item == NULL)
-			break;
-		struct internal_plugin*plugin = item->ptr.obj_data;
-		do {
-			visitor(
-				plugin->category
-				, plugin->plugin_space
-				, plugin->x.callback
-				, plugin->x.bridge
-				, plugin->x.inner
-				, plugin->desc
-				, visitor_data
-			);
-		} while((plugin = plugin->next));
-		//OPPUNREF(plugin);
-	} while(1);
-	opp_iterator_destroy(&iterator);
+	struct composite_plugin_visit_all_helper_data cb_data = {visitor, visitor_data};
+	opp_hash_otable_traverse(&container->table, composite_plugin_visit_all_helper, &cb_data);
 	return 0;
 }
 
 
+#if 0
 int composite_plugin_test(struct composite_plugin*container) {
 	struct opp_iterator iterator;
 	opp_iterator_create(&iterator, &container->table.fac, OPPN_ALL, 0, 0);
@@ -239,6 +251,7 @@ int composite_plugin_test(struct composite_plugin*container) {
 	opp_iterator_destroy(&iterator);
 	return 0;
 }
+#endif
 
 
 int plugin_desc(aroop_txt_t*output, char*plugin_name, char*plugin_type, aroop_txt_t*space, char*source_file, char*desc) {
