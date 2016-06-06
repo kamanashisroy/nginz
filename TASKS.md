@@ -18,8 +18,8 @@ Tasks
 
 ### parallel
 - [x] Add support for data-type in binary coder.
-- [ ] Add support for mailbox.
-- [ ] Try to implement STAR topology instead of ring.
+- [x] Add support for mailbox.
+- [x] Try to implement STAR topology instead of ring.(Hurry ! We reached 10K concurrency by doing this)
 - [ ] Explain parallel architecture in state diagram.
 
 ### shake
