@@ -30,6 +30,7 @@
 #include <aroop/opp/opp_any_obj.h>
 #include <aroop/opp/opp_str2.h>
 #include <aroop/aroop_memory_profiler.h>
+#include "nginz_config.h"
 #include "log.h"
 #include "binary_coder.h"
 

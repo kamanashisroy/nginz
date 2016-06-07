@@ -15,7 +15,7 @@
 
 C_CAPSULE_START
 enum {
-	MAX_EXTENSIONS = 64,
+	MAX_EXTENSIONS = 32,
 };
 
 struct composite_plugin { 
@@ -67,7 +67,7 @@ OPP_CB(composite_plugin) {
 	switch(callback) {
 		case OPPN_ACTION_INITIALIZE:
 			memset(&cplug->factory, 0, sizeof(cplug->factory)); // MUST
-			NGINZ_FACTORY_CREATE(&cplug->factory, 32, sizeof(struct internal_plugin), OPP_CB_FUNC(internal_plugin));
+			NGINZ_FACTORY_CREATE(&cplug->factory, 16, sizeof(struct internal_plugin), OPP_CB_FUNC(internal_plugin));
 			opp_hash_otable_create(&cplug->table, &cplug->ptrs, MAX_EXTENSIONS, aroop_txt_get_hash_cb, aroop_txt_equals_cb, 0);
 		break;
 		case OPPN_ACTION_FINALIZE:
@@ -117,16 +117,22 @@ static int composite_plug_helper(struct composite_plugin*container
 	plugin->filename = filename;
 	plugin->lineno = lineno;
 	aroop_assert(plugin->plugin_space != NULL);
+	aroop_assert(plugin->next == NULL);
 	aroop_txt_zero_terminate(plugin->plugin_space);
 	struct internal_plugin*root = opp_hash_otable_get_no_ref(&(container->table), plugin->plugin_space);
 	if(root) {
+		aroop_assert(plugin->next == NULL);
 		while(root->next != NULL)
 			root = root->next;
+		aroop_assert(plugin->next == NULL);
 		OPPREF(plugin);
-		root->next = plugin;
+		root->next = OPPREF(plugin);
+		aroop_assert(plugin->next == NULL);
 	} else {
 		opp_hash_otable_set(&(container->table), plugin->plugin_space, plugin);
+		aroop_assert(plugin->next == NULL);
 	}
+	aroop_assert(plugin->next == NULL);
 	int ret = 0; // XXX TOKEN DOES NOT WORK
 	OPPUNREF(plugin); // cleanup : unref the plugin, it is already saved in the hashtable
 	return ret;

@@ -22,6 +22,9 @@ C_CAPSULE_START
 #define DB_LOG(...)
 
 static aroop_txt_t null_hook = {};
+static aroop_txt_t compare_and_set_app;
+static aroop_txt_t set_if_null_app;
+static aroop_txt_t unset_app;
 int async_db_compare_and_swap(int cb_token, aroop_txt_t*cb_hook, aroop_txt_t*key, aroop_txt_t*newval, aroop_txt_t*oldval) {
 	if(cb_hook == NULL) {
 		cb_hook = &null_hook;
@@ -29,19 +32,19 @@ int async_db_compare_and_swap(int cb_token, aroop_txt_t*cb_hook, aroop_txt_t*key
 	aroop_assert(!aroop_txt_is_empty_magical(key));
 	if(oldval)
 		aroop_assert(!aroop_txt_is_empty_magical(newval));
-	aroop_txt_t app = {};
+	aroop_txt_t*app = NULL;
 	if(oldval) {
-		aroop_txt_embeded_set_static_string(&app, "asyncdb/cas/request"); 
+		app = &compare_and_set_app;
 	} else {
 		if(newval)
-			aroop_txt_embeded_set_static_string(&app, "asyncdb/sin/request"); 
+			app = &set_if_null_app;
 		else
-			aroop_txt_embeded_set_static_string(&app, "asyncdb/unset/request"); 
+			app = &unset_app;
 	}
 	aroop_txt_t*args[4] = {key, newval, oldval, NULL};
 	// 0 = pid, 1 = srcpid, 2 = command, 3 = token, 4 = cb_hook, 5 = key, 6 = newval, 7 = oldval
 	DB_LOG(LOG_NOTICE, "[token%d]-CAS-throwing to--[master]-[key:%s]", cb_token, aroop_txt_to_string(key));
-	async_pm_call_master(cb_token, cb_hook, &app, args);
+	async_pm_call_master(cb_token, cb_hook, app, args);
 	return 0;
 }
 
@@ -64,21 +67,24 @@ int async_db_set_int(int cb_token, aroop_txt_t*cb_hook, aroop_txt_t*key, int int
 	return 0;
 }
 
+static aroop_txt_t get_app;
 int async_db_get(int cb_token, aroop_txt_t*cb_hook, aroop_txt_t*key) {
 	if(cb_hook == NULL) {
 		cb_hook = &null_hook;
 	}
 	aroop_assert(!aroop_txt_is_empty_magical(key));
-	aroop_txt_t app = {};
-	aroop_txt_embeded_set_static_string(&app, "asyncdb/get/request"); 
 	aroop_txt_t*args[2] = {key, NULL};
 	// 0 = pid, 1 = srcpid, 2 = command, 3 = token, 4 = cb_hook, 5 = key
 	DB_LOG(LOG_NOTICE, "[token%d]-get-throwing to--[master]-[key:%s]", cb_token, aroop_txt_to_string(key));
-	return async_pm_call_master(cb_token, cb_hook, &app, args);
+	return async_pm_call_master(cb_token, cb_hook, &get_app, args);
 }
 
 int async_db_init() {
 	aroop_txt_embeded_set_static_string(&null_hook, "null");
+	aroop_txt_embeded_set_static_string(&compare_and_set_app, "asyncdb/cas/request"); 
+	aroop_txt_embeded_set_static_string(&set_if_null_app, "asyncdb/sin/request"); 
+	aroop_txt_embeded_set_static_string(&unset_app, "asyncdb/unset/request"); 
+	aroop_txt_embeded_set_static_string(&get_app, "asyncdb/get/request"); 
 	if(is_master()) {
 		async_db_master_init();
 	}

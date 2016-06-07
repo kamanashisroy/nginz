@@ -58,15 +58,13 @@ int chat_room_get_pid(aroop_txt_t*my_room, int token, aroop_txt_t*callback_hook)
 	return 0;
 }
 
+aroop_txt_t on_async_reply = {};
+aroop_txt_t on_async_request = {};
 static int chat_room_lookup_plug(int signature, void*given) {
 	aroop_assert(signature == CHAT_SIGNATURE);
 	struct chat_connection*chat = (struct chat_connection*)given;
 	if(!IS_VALID_CHAT(chat)) // sanity check
 		return 0;
-	aroop_txt_t on_async_reply = {};
-	aroop_txt_embeded_set_static_string(&on_async_reply, ON_ASYNC_ROOM_REPLY);
-	aroop_txt_t on_async_request = {};
-	aroop_txt_embeded_set_static_string(&on_async_request, ON_ASYNC_ROOM_CALL);
 	aroop_txt_t*empty[1] = {NULL};
 	async_pm_call_master(chat->strm._ext.token, &on_async_reply, &on_async_request, empty);
 	return 0;
@@ -103,7 +101,10 @@ static int on_asyncchat_rooms_desc(aroop_txt_t*plugin_space,aroop_txt_t*output) 
 static int chat_room_lookup_plug_desc(aroop_txt_t*plugin_space, aroop_txt_t*output) {
 	return plugin_desc(output, "room", "chat", plugin_space, __FILE__, "It respons to room command.\n");
 }
+
 int room_module_init() {
+	aroop_txt_embeded_set_static_string(&on_async_reply, ON_ASYNC_ROOM_REPLY);
+	aroop_txt_embeded_set_static_string(&on_async_request, ON_ASYNC_ROOM_CALL);
 	aroop_txt_t plugin_space = {};
 	aroop_txt_embeded_set_static_string(&plugin_space, "chat/rooms");
 	cplug_bridge(chat_plugin_manager_get(), &plugin_space, chat_room_lookup_plug, chat_room_lookup_plug_desc);
