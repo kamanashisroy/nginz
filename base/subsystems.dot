@@ -13,18 +13,18 @@ digraph G {
 
 		fiber [
 			label = <<table><tr><td>Fiber</td></tr><tr><td>+ register_fiber_full()<br/>+ unregister_fiber()</td></tr></table>>
-			color = "blue"
+			color = "cyan"
 		];
 		fiber -> pm;
 		binary_coder [
 			label = <<table><tr><td>Binary Coder</td></tr><tr><td>+ binary_coder_pack_..()<br/>+ binary_coder_unpack_..()</td></tr></table>>
-			color = "blue"
+			color = "cyan"
 		];
 		binary_coder -> pm;
 
 		event_loop [
 			label = <<table><tr><td>Event loop</td></tr><tr><td>+ event_loop_register_fd()<br/>+ event_loop_unregister_fd()</td></tr></table>>
-			color = "blue"
+			color = "cyan"
 		];
 		event_loop -> fiber;
 		event_loop -> pm;
@@ -36,15 +36,15 @@ digraph G {
 		label = "Parallel Subsystem";
 		fork [
 			label = <<table><tr><td>Fork</td></tr><tr><td>+ fork_processors()</td></tr></table>>
-			color = "blue"
+			color = "cyan"
 		];
 		pipeline [
 			label = <<table><tr><td>Pipeline</td></tr><tr><td>+ pp_get_raw_fd()<br/>+ pp_next_worker_nid()<br/>+ pp_send()<br/>+ is_master()</td></tr></table>>
-			color = "blue"
+			color = "cyan"
 		];
 		async_request [
 			label = <<table><tr><td>Async Request</td></tr><tr><td>+ async_pm_call_master()<br/>+ async_pm_reply_worker()</td></tr></table>>
-			color = "blue"
+			color = "cyan"
 		]
 		async_request -> pipeline
 	}
