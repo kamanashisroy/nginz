@@ -1,0 +1,24 @@
+      
+main:(Master)base
+fiber:base
+event_loop:base
+tcp_listener:net
+http_accept:http
+load_balancer:load_balancer
+pipeline:base
+raw_pipeline:net
+
+main:fiber.fiber_module_run()
+[c:loop while(!internal_quit)]
+	fiber:fiber.fiber_module_step()
+	fiber:event_loop.event_loop_step()
+	event_loop:poll()
+	event_loop:tcp_listener.on_connection(fd, status, http_accept)
+	tcp_listener:accept()
+	tcp_listener:http_accept.on_tcp_connection(client_fd)
+	http_accept:load_balancer.load_balancer_next()
+	load_balancer:pipeline.pp_next_worker_nid()
+	http_accept:raw_pipeline.pp_raw_send_socket(client_fd)
+	raw_pipeline:IPC()
+[/c]
+

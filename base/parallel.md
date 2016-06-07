@@ -14,43 +14,13 @@ The network stacks are implemented by master listener process and child workers.
 
 #### Serving an http request scenario ..
 
-The table below shows the socket/connection jumping over the worker processes. The master process listens for new connection by [`event_loop.c`:`event_loop_register_fd`](../event_loop.c) . When there is a new connection `event_loop.c` triggers the event callback [`tcp_listener.c:on_connection()`](../net/tcp_listener.c). 
+Here the master process accepts the user tcp connection(request level). It then sends the socket to the worker(background) process.
 
+![http acecpt](https://cloud.githubusercontent.com/assets/973414/15868199/824f41e2-2c9b-11e6-8b40-eea0bec8be0b.jpg)
 
-| Master | Worker 1 | Worker 2 | Worker 3 | More ..
-| --- | --- | --- | --- |--- 
-| New TCP Connection:<br>`tcp_listener.c:on_connection()`<br>calls `stack.on_tcp_connection(fd)`<br>=`http_accept.c:http_on_tcp_connection(fd)`<br>calls `pipeline.c:pp_bubble_down_send_socket(fd,msg)`<br>calls `sendmsg` | | | | 
-| | `pipeline.c:on_bubble_down_recv_socket()`<br>load balance `skip_load()`<br>calls `pipeline.c:pp_bubble_down_send_socket(fd,msg)`| | | 
-| ... | ... | ... | ... | ...
+The diagram below shows how the worker(task level) process responds user request.
 
-
-The [`tcp_listener.c`](../net/tcp_listener.c) resolves the associated protocol dynamically. It eventually calls the [`tcp_listener.c:http_on_tcp_connection(fd)`](../net/http/http_accept.c) with newly accepted TCP client.
-
-The http module sends the connection/socket to the worker process. It does it by calling [`pipeline.c:pp_bubble_down_send_socket(fd,msg)`](pipeline.c).
-
-On the other end the worker process gets notification. It does the load-balancing.
-
-```C
-// simple load balancing code
-static int skipped = 0;
-static int skip_load() {
-        int load = event_loop_fd_count();
-        load = load + skipped;
-        skipped++;
-        return (load % (NGINZ_NUMBER_OF_PROCESSORS-1));
-}
-```
-
-Then it can skip the task and pass onto the child worker process. It can also notify the http module to process the data. It takes the decision based on the above load-balancing code.
-
-| Master | Worker 1 | Worker 2 | Worker 3 | More ..
-| --- | --- | --- | --- |--- 
-| New TCP Connection:<br>`tcp_listener.c:on_connection()`<br>calls `stack.on_tcp_connection(fd)`<br>=`http_accept.c:http_on_tcp_connection(fd)`<br>calls `pipeline.c:pp_bubble_down_send_socket(fd,msg)`<br>calls `sendmsg` | | | | 
-| | `pipeline.c:on_bubble_down_recv_socket()`<br>calls `stack.on_connection_bubble(fd,msg)`<br>=`http_accept.c:http_on_connection_bubble(fd,msg)`<br>calls `event_loop.c:event_loop_register_fd()` | | | 
-| ... | ... | ... | ... | ...
-
-
-In the scenario above the `worker 1` processes user request.
+![http respond](https://cloud.githubusercontent.com/assets/973414/15868500/f2fd194a-2c9c-11e6-8665-5b1827a4b1a0.jpg)
 
 Compare and Swap database
 ==========================

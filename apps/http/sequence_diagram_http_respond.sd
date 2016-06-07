@@ -1,0 +1,21 @@
+      
+main:(Worker)base
+fiber:base
+event_loop:base
+http_parser:http
+plugin:base
+
+main:fiber.fiber_module_run()
+[c:loop while(!internal_quit)]
+	fiber:fiber.fiber_module_step()
+	fiber:event_loop.event_loop_step()
+	event_loop:poll()
+	event_loop:http_parser.http_on_client_data()
+	http_parser:http_url_parse()
+	http_parser:http_url_go()
+	http_parser:plugin.composite_plugin_bridge_call()
+    	[c:alt request is not processed by plugin]
+		http_parser:default_streamio_send(not found)
+	[/c]
+[/c]
+
