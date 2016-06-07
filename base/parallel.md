@@ -4,7 +4,7 @@ Parallel processing
 
 The parallelism achieved by this module is process based rather than thread-based. So there is no memory sharing. The processes communicate with each other through sockets.
 
-This module facilitates parallel communication over processes. The processes form a line topology. They communicate over unix socket by token passing.
+This module facilitates parallel communication over processes. The processes form a star topology. The master process stays in the middle. They communicate over unix socket by token passing.
 
 Note that the design is event based. So all the actions start from the `event_loop.c`. Eventually the `event_loop.c` is executed by the `fiber.c` which facilitates co-operative non-preemptive multitasking.
 
