@@ -16,7 +16,7 @@ Hierarchy of nginz
 
 The hierarchy of the core modules are given below. The blue-filled boxes are the libraryes. And green-filled boxes are modules.
 
-![hierarchy](subsystem.dot)
+![hierarchy](https://cloud.githubusercontent.com/assets/973414/15866119/3b56bbf2-2c92-11e6-8023-5bbf0025428c.png)
 
 It is notable that the modules has least dependency among each other. So it restricts the propagation of error. It also supports cohesion in the contrary of the dependency-hell. And as a result of that, it makes the development and testing easier.
 

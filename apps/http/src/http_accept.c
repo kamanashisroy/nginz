@@ -26,13 +26,12 @@ static struct load_balancer http_lb;
 static struct http_hooks*hooks = NULL;
 static int http_accept_module_is_quiting = 0;
 #define HTTP_WELCOME "http/welcome"
+static aroop_txt_t welcome_command = {};
 static int http_on_tcp_connection(int fd) {
 	aroop_txt_t bin = {};
 	aroop_txt_embeded_stackbuffer(&bin, 255);
 	binary_coder_reset_for_pid(&bin, 0);
 	binary_pack_int(&bin, NGINZ_HTTP_PORT);
-	aroop_txt_t welcome_command = {};
-	aroop_txt_embeded_set_static_string(&welcome_command, HTTP_WELCOME); 
 	binary_pack_string(&bin, &welcome_command);
 	pp_raw_send_socket(load_balancer_next(&http_lb), fd, &bin);
 	return 0;
@@ -117,6 +116,7 @@ static int http_accept_hookup_desc(aroop_txt_t*plugin_space, aroop_txt_t*output)
 }
 
 int http_accept_module_init() {
+	aroop_txt_embeded_set_static_string(&welcome_command, HTTP_WELCOME); 
 	protostack_set(NGINZ_HTTP_PORT, &http_protostack);
 
 	// initiate load balancer

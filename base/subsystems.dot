@@ -39,7 +39,7 @@ digraph G {
 			color = "blue"
 		];
 		pipeline [
-			label = <<table><tr><td>Pipeline</td></tr><tr><td>+ pp_bubble_down()<br/>+ pp_bubble_down_send_socket()<br/>+ pp_bubble_up()<br/>+ pp_bubble_up_send_socket()<br/>+ is_master()</td></tr></table>>
+			label = <<table><tr><td>Pipeline</td></tr><tr><td>+ pp_get_raw_fd()<br/>+ pp_next_worker_nid()<br/>+ pp_send()<br/>+ is_master()</td></tr></table>>
 			color = "blue"
 		];
 		async_request [
@@ -75,8 +75,52 @@ digraph G {
 	subgraph cluster_net {
 		graph [style="dotted" color="black"];
 		label = "Net";
+		protostack [
+			label = <<table><tr><td>Proto-Stack</td></tr><tr><td>+ protostack_get(port)<br/>+ protostack_set(port)<br/>+ stack.on_connection_bubble</td></tr></table>>
+			color = "green"
+		]
 		tcp_listener [label = "TCP Listener" color = "green"]
 		tcp_listener -> event_loop
+		tcp_listener -> protostack [label = "protostack_get(port)"]
+		raw_pipeline [label = "Raw-Pipeline" color = "green"]
+		raw_pipeline [
+			label = <<table><tr><td>Raw-Pipeline</td></tr><tr><td>+ pp_raw_send_socket()</td></tr></table>>
+			color = "green"
+		]
+		raw_pipeline -> pm [label = "parallel/pipeline/raw/setup"]
+		raw_pipeline -> protostack [label = "protostack_get(port)"]
+		raw_pipeline -> protostack [label = "on_connection_bubble(fd,&cmd)"]
+		streamio [
+			label = <<table><tr><td>StreamIO</td></tr><tr><td>+ default_streamio_close()<br/>+ default_transfer_parallel()<br/>+ default_streamio_send()<br/>+ streamio_chain/unchain()</td></tr></table>>
+			color = "green"
+		]
+		streamio -> raw_pipeline
 	}
+	
+	subgraph cluster_load_balancer {
+		graph [style="dotted" color="black"];
+		load_balancer [
+			label = <<table><tr><td>Load Balancer</td></tr><tr><td>+ load_balancer_next()</td></tr></table>>
+			color = "green"
+		]
+		load_balancer -> pipeline [label = "pp_next_worker_nid()"]
+	}
+
+	subgraph cluster_http {
+		graph [style="dotted" color="black"];
+		label = "Http";
+		http_accept [label = "HTTP-Accept" color = "green"]
+		http_accept -> protostack [label = "protostack_set(80,..)"]
+		http_accept -> event_loop
+		http_accept -> load_balancer
+		http_accept -> raw_pipeline
+		http_factory [label = "HTTP-Factory" color = "green"]
+		http_parser [label = "HTTP-Parser" color = "green"]
+		http_parser -> streamio
+		http_plugin_manager  [label = "HTTP-Plugin-Manager" color = "green"]
+		http_tunnel  [label = "HTTP-Tunnel" color = "green"]
+		http_tunnel -> streamio
+	}
+
 	
 }
