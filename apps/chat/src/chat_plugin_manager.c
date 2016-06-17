@@ -113,6 +113,7 @@ int chat_plugin_manager_module_init() {
 	cplug_bridge(chat_plugin_manager_get(), &plugin_space, chat_help_plug, chat_help_plug_desc);
 	aroop_txt_embeded_set_static_string(&plugin_space, "shake/chatplugin");
 	pm_plug_callback(&plugin_space, chat_plugin_command, chat_plugin_command_desc);
+	return 0;
 }
 
 int chat_plugin_manager_module_deinit() {
@@ -133,6 +134,7 @@ int chat_plugin_manager_module_deinit() {
 	chat_factory_module_deinit();
 	composite_unplug_bridge(chat_plugin_manager_get(), 0, chat_help_plug);
 	composite_plugin_destroy(chat_plug);
+	return 0;
 }
 
 

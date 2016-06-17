@@ -1,12 +1,17 @@
 
 #include <aroop/aroop_core.h>
 #include <aroop/core/xtring.h>
+#include <aroop/opp/opp_str2.h>
 #include "nginz_config.h"
 #include "log.h"
 #include "db.h"
 #include "plugin.h"
 #include "plugin_manager.h"
 #include "streamio.h"
+#include "async_db.h"
+#include "parallel/async_request.h"
+#include "parallel/pipeline.h"
+#include "binary_coder.h"
 #include "chat.h"
 #include "chat/chat_plugin_manager.h"
 #include "chat/room.h"
@@ -26,7 +31,7 @@ int chat_room_convert_room_from_room_pid_key(aroop_txt_t*room_key, aroop_txt_t*r
 	return 0;
 }
 
-int chat_room_set_user_count(aroop_txt_t*my_room, int user_count) {
+int chat_room_set_user_count(aroop_txt_t*my_room, int user_count, int increment) {
 	if(aroop_txt_is_empty(my_room)) {
 		return -1;
 	}
@@ -36,11 +41,8 @@ int chat_room_set_user_count(aroop_txt_t*my_room, int user_count) {
 	aroop_txt_concat_string(&db_room_key, ROOM_USER_KEY);
 	aroop_txt_concat(&db_room_key, my_room);
 	aroop_txt_zero_terminate(&db_room_key);
-	if(user_count) {
-		async_db_set_int(-1, NULL, &db_room_key, user_count);
-	} else {
-		async_db_unset(-1, NULL, &db_room_key);
-	}
+
+	async_db_increment(-1, NULL, &db_room_key, user_count, increment);
 	return 0;
 }
 
@@ -112,6 +114,7 @@ int room_module_init() {
 	pm_plug_callback(&plugin_space, on_asyncchat_rooms, on_asyncchat_rooms_desc);
 	if(is_master())
 		room_master_module_init();
+	return 0;
 }
 
 int room_module_deinit() {
@@ -119,6 +122,7 @@ int room_module_deinit() {
 		room_master_module_deinit();
 	composite_unplug_bridge(chat_plugin_manager_get(), 0, chat_room_lookup_plug);
 	pm_unplug_callback(0, on_asyncchat_rooms);
+	return 0;
 }
 
 

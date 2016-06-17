@@ -150,7 +150,7 @@ static int chat_room_add_helper(int index) {
 	aroop_txt_concat_string(&db_room_key, ROOM_PID_KEY);
 	aroop_txt_concat(&db_room_key, &room_name);
 	aroop_txt_zero_terminate(&db_room_key);
-	async_db_set_int(-1, NULL, &db_room_key, pid);
+	async_db_set_if_null(-1, NULL, &db_room_key, pid);
 
 	/** create the room constructs */
 	broadcast_add_room(&room_name);

@@ -52,7 +52,7 @@ static int set_token(const int token) {
 	aroop_txt_embeded_set_static_string(&key, "db/test/key");
 	cb_test_set_value = MAGIC_NUMBER;
 	cb_test_token_passed = token;
-	async_db_set_int(token, NULL, &key, cb_test_set_value);
+	async_db_set_if_null(token, NULL, &key, cb_test_set_value);
 	syslog(LOG_NOTICE, "[%d]set the key\n", token);
 	return 0;
 }

@@ -55,7 +55,7 @@ int async_db_unset(int cb_token, aroop_txt_t*cb_hook, aroop_txt_t*key) {
 	return async_db_compare_and_swap(cb_token, cb_hook, key, NULL, NULL);
 }
 
-int async_db_set_int(int cb_token, aroop_txt_t*cb_hook, aroop_txt_t*key, int intval) {
+int async_db_set_if_null(int cb_token, aroop_txt_t*cb_hook, aroop_txt_t*key, int intval) {
 	if(cb_hook == NULL) {
 		cb_hook = &null_hook;
 	}
@@ -64,6 +64,34 @@ int async_db_set_int(int cb_token, aroop_txt_t*cb_hook, aroop_txt_t*key, int int
 	aroop_txt_printf(&intstr, "%d", intval);
 	async_db_compare_and_swap(cb_token, cb_hook, key, &intstr, NULL);
 	aroop_txt_destroy(&intstr);
+	return 0;
+}
+
+
+int async_db_increment(const int cb_token, aroop_txt_t*cb_hook, aroop_txt_t*key, const int intval, const int increment) {
+	if(cb_hook == NULL) {
+		cb_hook = &null_hook;
+	}
+
+	if((intval + increment) == 0) {
+		return async_db_unset(-1, NULL, key);
+	}
+
+	if(intval == 0)
+		async_db_set_if_null(-1, NULL, key, increment);
+
+	aroop_txt_t oldstr = {};
+	aroop_txt_embeded_stackbuffer(&oldstr, 32);
+	aroop_txt_printf(&oldstr, "%d", intval);
+
+
+	aroop_txt_t newstr = {};
+	aroop_txt_embeded_stackbuffer(&newstr, 32);
+	aroop_txt_printf(&newstr, "%d", intval+increment);
+
+	async_db_compare_and_swap(cb_token, cb_hook, key, &newstr, &oldstr);
+	aroop_txt_destroy(&oldstr);
+	aroop_txt_destroy(&newstr);
 	return 0;
 }
 

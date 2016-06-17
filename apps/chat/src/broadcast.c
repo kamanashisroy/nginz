@@ -181,7 +181,9 @@ int broadcast_room_join(struct chat_connection*chat, aroop_txt_t*room_name) {
 	rm = (struct internal_room*)chat->callback_data;
 	// show room information 
 	broadcast_room_greet(chat, rm);
-	chat_room_set_user_count(room_name, OPP_FACTORY_USE_COUNT(&rm->user_list));
+	int oldcount = OPP_FACTORY_USE_COUNT(&rm->user_list); // convert it into signed int
+	oldcount--;
+	chat_room_set_user_count(&rm->name, oldcount, 1);
 	return 0;
 }
 
@@ -189,7 +191,7 @@ int broadcast_room_leave(struct chat_connection*chat) {
 	// find the chatroom
 	struct internal_room*rm = (struct internal_room*)chat->callback_data;
 	if(!rm) {
-		syslog(LOG_ERR, "We do not know how he can leave room\n");
+		syslog(LOG_ERR, "We do not know how he can leave room");
 		return 0;
 	}
 	aroop_assert(chat->state & CHAT_IN_ROOM);
@@ -203,7 +205,8 @@ int broadcast_room_leave(struct chat_connection*chat) {
 		struct chat_connection*other = (struct chat_connection*)pt->obj_data;
 		if(chat == other) {
 			syslog(LOG_NOTICE, "Scheduled destruction of user %s from list\n", aroop_txt_to_string(&other->name));
-			lazy_cleanup(pt);
+			//lazy_cleanup(pt);
+			OPPUNREF(pt);
 			break;
 		}
 	}
@@ -212,7 +215,7 @@ int broadcast_room_leave(struct chat_connection*chat) {
 	chat->callback_data = NULL;
 	chat->on_response_callback = NULL;
 	chat->state &= (~CHAT_IN_ROOM);
-	chat_room_set_user_count(&rm->name, OPP_FACTORY_USE_COUNT(&rm->user_list));
+	chat_room_set_user_count(&rm->name, OPP_FACTORY_USE_COUNT(&rm->user_list)+1, -1);
 	return 0;
 }
 
