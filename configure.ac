@@ -38,6 +38,7 @@ m4_ifdef([AM_SILENT_RULES],[AM_SILENT_RULES([yes])])
 # Checks for header files.
 AC_CHECK_HEADERS([stdlib.h string.h])
 
+# It is also possible to add this flag by seting the variables
 AC_ARG_ENABLE([production],
     AS_HELP_STRING([--enable-production], [CXXFLAGS='-O2']))
 
@@ -75,6 +76,7 @@ AC_CONFIG_FILES([
 	net/libnginz_net.pc
 	db/Makefile
 	db/libnginz_db.pc
+	db/tests/Makefile
 	apps/Makefile
 	apps/load_balancer/Makefile
 	apps/load_balancer/libnginz_lb.pc

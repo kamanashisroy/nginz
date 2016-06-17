@@ -1,4 +1,6 @@
 
+SUBDIRS=tests
+
 #TARGET_BIN=nginz_db_main
 TARGET_LAR=libnginz_db.la
 #bin_PROGRAMS=$(TARGET_BIN)

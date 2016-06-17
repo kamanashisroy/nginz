@@ -12,9 +12,11 @@ Tasks
 
 ### Packaging
 - [ ] Use bii-code.
+	- [ ] It needs cmake support.
 
 ### base
 - [ ] Move memory profiler from chat module and let chat module use this profiler.
+	- [ ] Write a document on memory profiler and its usage.
 
 ### parallel
 - [x] Add support for data-type in binary coder.
@@ -31,9 +33,11 @@ Tasks
 
 ### Testing
 - [x] Load test and report the result.
+- [x] Add unit test for base module.
 - [ ] Add unit test for net.
 - [ ] Add unit test for http.
 - [ ] Add unit test for chat.
+- [x] Add unit test for db.
 
 ### net
 - [x] Add HTTP support.

@@ -17,6 +17,7 @@ NginZ depends on the following packages,
 - automake
 - libtool
 - pkg-config
+- [check](https://libcheck.github.io/check/)
 - [Aroop Core](https://github.com/kamanashisroy/aroop_core)
 - libmemcached(not needed anymore)
 
@@ -27,7 +28,13 @@ Building
 
 The compilation command is. `./autogen.sh;make;make install;`
 
-And the output binary is `nginz_main`, `nginz_main_debug`.
+And the output binary is in apps directory.
+
+```
+find -iname "*.bin"
+apps/http/nginz_http_main
+apps/chat/nginz_chat_main
+```
 
 Features
 ========
@@ -38,11 +45,11 @@ NginZ is equiped to serve as communication applications. It has,
 - Parallel processing support based on [star-topology and pipeline pattern](base/src/parallel/pipeline.c). [This is elaborated in great details by the networking scenarios here.](base/parallel.md).
 - It has scalability features. The requests are [load-balanced](apps/load_balancer) in the worker processes.
 - It has [memory profiler](apps/chat/src/profiler.c).
-- It has [event-loop](base/src/event_loop.c) module to handle user data in [fibers](base/src/fiber.c).
+- It has [event-loop](base/src/event_loop_poll.c) module to handle user data in [fibers](base/src/fiber.c).
 - It has [command shell](base/src/shake.c) to diagnose the server.
 - Writing new feature for chat server needs very less code(see the following ..). 
 - It has an [HTTP interface](apps/http)(It is useful for benchmarking).
-- It has [streamio](net/src/streamio.c) which supports io chaining. It is useful to implement proxy-pattern and chain-of-responsiblity pattern. The chat server is tunneled through http protocol using this feature.
+- It has [streamio](net/src/streamio.c) which supports io chaining. It is useful to implement proxy-pattern and chain-of-responsiblity pattern. The instant-messaging(chat) server is tunneled through http protocol using this feature.
 
 Dependency injection
 ====================
@@ -66,8 +73,8 @@ As a framework it supports dependency injection by plugin-spaces/extension-point
 Module Description
 ===================
 
-- [Chat Module](apps/README.md)
-- [HTTP Module](apps/README.md)
+- [Chat Module](apps/chat/README.md)
+- [HTTP Module](apps/http/README.md)
 - [Parallel Processing Module](base/parallel.md)
 
 livedemo
