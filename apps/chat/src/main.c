@@ -21,13 +21,14 @@ static int nginz_main(char**args) {
 	openlog ("nginz_chat", LOG_CONS | LOG_PID | LOG_NDELAY, LOG_LOCAL1);
 	nginz_core_init();
 	nginz_net_init();
+	nginz_db_module_init_before_parallel_init();
 	nginz_chat_module_init();
 	nginz_parallel_init();
 	nginz_net_init_after_parallel_init();
 	nginz_db_module_init_after_parallel_init();
 	fiber_module_run();
-	nginz_db_module_deinit();
 	nginz_chat_module_deinit();
+	nginz_db_module_deinit();
 	nginz_net_deinit();
 	nginz_core_deinit();
 	closelog();

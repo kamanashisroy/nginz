@@ -3,6 +3,7 @@
 
 C_CAPSULE_START
 
+int nginz_db_module_init_before_parallel_init();
 int nginz_db_module_init_after_parallel_init();
 int nginz_db_module_deinit();
 

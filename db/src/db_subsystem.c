@@ -8,6 +8,7 @@
 #include "fiber.h"
 #include "fork.h"
 #include "db.h"
+#include "parallel/pipeline.h"
 #include "shake/quitall.h"
 #include "event_loop.h"
 #include "async_db_internal.h"
@@ -15,13 +16,22 @@
 
 C_CAPSULE_START
 
-int nginz_db_module_init_after_parallel_init() {
+int nginz_db_module_init_before_parallel_init() {
 	async_db_init();
+	return 0;
+}
+
+int nginz_db_module_init_after_parallel_init() {
+	if(is_master()) {
+		async_db_master_init();
+	}
 	return 0;
 }
 
 int nginz_db_module_deinit() {
 	async_db_deinit();
+	if(is_master())
+		async_db_master_deinit();
 	return 0;
 }
 

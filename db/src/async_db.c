@@ -85,15 +85,10 @@ int async_db_init() {
 	aroop_txt_embeded_set_static_string(&set_if_null_app, "asyncdb/sin/request"); 
 	aroop_txt_embeded_set_static_string(&unset_app, "asyncdb/unset/request"); 
 	aroop_txt_embeded_set_static_string(&get_app, "asyncdb/get/request"); 
-	if(is_master()) {
-		async_db_master_init();
-	}
 	return 0;
 }
 
 int async_db_deinit() {
-	if(is_master())
-		async_db_master_deinit();
 	return 0;
 }
 

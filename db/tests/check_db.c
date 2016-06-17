@@ -156,6 +156,7 @@ static int test_main() {
 	nginz_core_init();
 	/* initiate fibers */
 	register_fiber(step_before_quit);
+	nginz_db_module_init_before_parallel_init();
 	nginz_parallel_init();
 	nginz_db_module_init_after_parallel_init();
 
