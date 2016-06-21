@@ -31,10 +31,12 @@ The compilation command is. `./autogen.sh;make;make install;`
 And the output binary is in apps directory.
 
 ```
-find -iname "*.bin"
+find -iname "nginz_*_main"
 apps/http/nginz_http_main
 apps/chat/nginz_chat_main
 ```
+
+The `nginz_http_main` listens to 80 port and typically a demo http server. The `nginz_chat_main` is a text messaging server(see below).
 
 Features
 ========
